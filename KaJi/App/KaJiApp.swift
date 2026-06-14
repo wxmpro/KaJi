@@ -74,6 +74,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
 
+        // 窗口 appearance 跟随用户主题设置
+        window.appearance = NSApp.appearance
+
         // 尺寸约束：最小宽度要保证侧栏 + 详情区都能正常显示
         window.minSize = NSSize(width: 900, height: 600)
 
@@ -88,6 +91,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let mainView = MainView().environmentObject(appState)
         let hostingController = NSHostingController(rootView: mainView)
         window.contentViewController = hostingController
+
+        // 关键：titlebar 区域加一个 accessory view，背景填 windowBackgroundColor。
+        // 防止 titlebarAppearsTransparent + fullSizeContentView 组合下全屏时露出黑色条。
+        // NSTitlebarAccessoryViewController 是 Apple 官方推荐方案，全屏/非全屏都覆盖。
+        let titlebarAccessory = NSTitlebarAccessoryViewController()
+        let titlebarBackground = NSView()
+        titlebarBackground.wantsLayer = true
+        titlebarBackground.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        titlebarAccessory.view = titlebarBackground
+        titlebarAccessory.layoutAttribute = .left
+        // 主题切换时同步 accessory 背景色
+        for name in [NSWindow.didEnterFullScreenNotification,
+                     NSWindow.didExitFullScreenNotification] {
+            NotificationCenter.default.addObserver(
+                forName: name, object: window, queue: .main
+            ) { [weak titlebarBackground] _ in
+                titlebarBackground?.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+            }
+        }
+        window.addTitlebarAccessoryViewController(titlebarAccessory)
+
+        // 双保险：hostingController.view 背景色
+        hostingController.view.wantsLayer = true
+        hostingController.view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
 
         return window
     }

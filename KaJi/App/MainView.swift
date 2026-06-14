@@ -31,11 +31,18 @@ private struct CardListView: View {
     var body: some View {
         let cards = appState.filteredCards()
         VStack(spacing: 0) {
-            NavigationHeader(showsFilterTitle: true)
+            NavigationHeader()
                 .padding(.horizontal, 50)
-                .padding(.top, 10)
-                .padding(.bottom, 12)
-                .ignoresSafeArea(.container, edges: .top)
+                .padding(.top, 5)
+                .padding(.bottom, 4)
+                .offset(y: -10)
+
+            // 列表标题（放在列表区域上方，更清晰）
+            ListFilterTitle()
+                .padding(.leading, 50)
+                .padding(.trailing, 62)
+                .padding(.bottom, 8)
+                .offset(y: -6)
 
             if cards.isEmpty {
                 ContentUnavailableView {
@@ -59,35 +66,21 @@ private struct CardListView: View {
                     }
                 }
                 .listStyle(.plain)
-                .scrollContentBackground(.hidden)
                 .padding(.horizontal, 50)
             }
         }
     }
 }
 
-/// 通用顶部导航条：← / → + 右侧可选标题
-/// - 列表模式：`showsFilterTitle = true` → 显示「自由卡 · 12 张」
-/// - 编辑器模式：`showsFilterTitle = false` → 右侧留白
-///
-/// 视觉规范：back/forward 是 Finder 风格的「胶囊 + 两个圆形按钮」整体。
-/// pill 永远显示（controlBackgroundColor 底 + 0.5pt 描边），可点的按钮
-/// 默认就是实心灰圆（不依赖 hover 出现）。
+/// 通用顶部导航条：仅保留 back / forward
 private struct NavigationHeader: View {
     @EnvironmentObject var appState: AppState
-    let showsFilterTitle: Bool
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         HStack(spacing: 14) {
             navPill
-
             Spacer()
-
-            if showsFilterTitle {
-                Text("\(appState.listFilterTitle) · \(appState.filteredCards().count) 张")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-            }
         }
     }
 
@@ -114,7 +107,7 @@ private struct NavigationHeader: View {
         }
         .padding(3)
         .background(
-            Capsule().fill(Color(nsColor: .windowBackgroundColor))
+            Capsule().fill(pillBackgroundColor)
         )
         .overlay(
             Capsule().stroke(
@@ -122,6 +115,12 @@ private struct NavigationHeader: View {
                 lineWidth: 0.5
             )
         )
+    }
+
+    private var pillBackgroundColor: Color {
+        colorScheme == .dark
+            ? Color(nsColor: .windowBackgroundColor)
+            : Color(white: 0.94)
     }
 
     /// pill 内部单个圆形按钮
@@ -145,43 +144,95 @@ private struct NavigationHeader: View {
     }
 }
 
+/// 列表区域上方的筛选标题
+/// 布局：标题大字在左、数量小字在右，同一 baseline 对齐
+private struct ListFilterTitle: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(appState.listFilterTitle)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(.primary)
+
+            Spacer()
+
+            Text("\(appState.filteredCards().count) 张卡片")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
 private struct CardListRow: View {
     let card: Card
 
-    private var relativeTime: String {
-        let now = Date()
-        let interval = now.timeIntervalSince(card.updatedAt)
-        let day: TimeInterval = 24 * 3600
-        if interval < 60 { return "刚刚" }
-        if interval < 3600 { return "\(Int(interval / 60)) 分钟前" }
-        if interval < day { return "\(Int(interval / 3600)) 小时前" }
-        if interval < day * 2 { return "昨天" }
-        if interval < day * 7 { return "\(Int(interval / day)) 天前" }
-        let f = DateFormatter()
-        f.dateFormat = "MM-dd"
-        return f.string(from: card.updatedAt)
-    }
-
     var body: some View {
-        HStack(spacing: 12) {
-            Circle()
+        HStack(spacing: 0) {
+            // 左侧垂直彩色条
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
                 .fill(card.cardType.color)
-                .frame(width: 8, height: 8)
+                .frame(width: 4)
+                .padding(.vertical, 2)
 
-            Text(card.title.isEmpty ? "无标题" : card.title)
-                .font(.system(size: 14))
-                .lineLimit(1)
-                .foregroundStyle(card.title.isEmpty ? .secondary : .primary)
+            VStack(alignment: .leading, spacing: 6) {
+                // 标题
+                Text(card.title.isEmpty ? "无标题" : card.title)
+                    .font(.system(size: 15, weight: .medium))
+                    .lineLimit(1)
+                    .foregroundStyle(card.title.isEmpty ? .secondary : .primary)
 
-            Spacer(minLength: 12)
+                // 元信息行：类型 + 标签
+                HStack(spacing: 6) {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(card.cardType.color)
+                            .frame(width: 6, height: 6)
+                        Text(card.cardType.rawValue)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
 
-            Text(relativeTime)
-                .font(.system(size: 12))
+                    if !card.tags.isEmpty {
+                        ForEach(card.tags.prefix(5), id: \.self) { tag in
+                            TagPill(tag: tag)
+                        }
+                    }
+                }
+            }
+            .padding(.leading, 12)
+
+            Spacer(minLength: 16)
+
+            // 右侧：14 位显示 ID
+            Text(card.displayID)
+                .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 4)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct TagPill: View {
+    let tag: String
+
+    var body: some View {
+        Text(tag)
+            .font(.system(size: 10))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(
+                Capsule()
+                    .fill(Color(nsColor: .controlBackgroundColor))
+            )
+            .overlay(
+                Capsule()
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.35), lineWidth: 0.5)
+            )
     }
 }
 
@@ -192,9 +243,9 @@ private struct DetailView: View {
 
     var body: some View {
         ZStack {
-            // 浅色背景，让白卡片浮起来有阴影对比
+            // 窗口背景色，覆盖 titlebar 区域防止全屏黑条
             Color(nsColor: .windowBackgroundColor)
-                .ignoresSafeArea()
+                .ignoresSafeArea(.all)
 
             // 主体：根据 rightPaneMode 切换
             switch appState.rightPaneMode {
@@ -209,9 +260,9 @@ private struct DetailView: View {
             // 右上角搜索浮层（editor + list 两种模式都显示）
             SearchOverlay()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(.top, 10)
+                .padding(.top, 5)
                 .padding(.trailing, 46)
-                .ignoresSafeArea(.container, edges: .top)
+                .offset(y: -10)
         }
     }
 }
@@ -225,11 +276,11 @@ private struct NotesEditor: View {
         // 白卡片：圆角 + 浅阴影，浮在背景上
         VStack(spacing: 0) {
             // 顶部导航条：back / forward
-            NavigationHeader(showsFilterTitle: false)
+            NavigationHeader()
                 .padding(.horizontal, 50)
-                .padding(.top, 10)
+                .padding(.top, 5)
                 .padding(.bottom, 4)
-                .ignoresSafeArea(.container, edges: .top)
+                .offset(y: -10)
 
             // 单 NSTextView 编辑器：纯用户输入，无字段名，无字段分隔
             SingleEditor(text: Binding(
@@ -256,11 +307,49 @@ private struct SingleEditor: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        SingleTextView(text: $text, isFocused: $isFocused)
-            .frame(minHeight: 500, maxHeight: .infinity)
-            .padding(.top, 4)
+        ZStack {
+            // 下层卡片（向右+上偏移 4pt，露出主卡片的"上+右"灰色边）
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.gray.opacity(0.30))
+                .offset(x: 4, y: -4)
+
+            // 上层主卡片
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.gray.opacity(0.35), lineWidth: 0.5)
+                )
+
+            // 横线层
+            // Canvas 高度跟 NSTextView 文字内容高度一致（通过 sizeThatFits 实现）
+            // 第一行底 y=32（textContainerInset.top 8 + 行高 24），最后一条 = size.height - 8
+            Canvas { context, size in
+                guard size.height > 40 else { return }
+                let lineHeight: CGFloat = 24
+                let firstY: CGFloat = 32
+                let lastY: CGFloat = size.height - 8
+                var y = firstY
+                while y <= lastY {
+                    var path = Path()
+                    path.move(to: CGPoint(x: 0, y: y))
+                    path.addLine(to: CGPoint(x: size.width, y: y))
+                    context.stroke(path, with: .color(.black), lineWidth: 0.8)
+                    y += lineHeight
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(30)  // 编辑区和圆角矩形之间的 30pt 间隙
+
+            // 文字层
+            SingleTextView(text: $text, isFocused: $isFocused)
+                .padding(30)  // 文字层也在内
+        }
     }
 }
+
+/// 普通 NSTextView（横线由 SwiftUI Canvas 在背景层画，不在这里画）
+typealias LinedTextView = NSTextView
 
 private struct SingleTextView: NSViewRepresentable {
     @Binding var text: String
@@ -268,7 +357,11 @@ private struct SingleTextView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSTextView.scrollableTextView()
-        let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 100, height: 100))
+        // 必须先创建 textContainer 传给 NSTextView，否则 layoutManager / textStorage 不会自动建立
+        // 这是导致之前 NSTextView 完全不能编辑的根因
+        let textContainer = (scrollView.documentView as? NSTextView)?.textContainer
+            ?? NSTextContainer(size: NSSize(width: 100, height: 100))
+        let textView = LinedTextView(frame: NSRect(x: 0, y: 0, width: 100, height: 100), textContainer: textContainer)
         textView.autoresizingMask = [.width]
         textView.minSize = NSSize(width: 0, height: 0)
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
@@ -292,25 +385,47 @@ private struct SingleTextView: NSViewRepresentable {
         textView.isRichText = false
         textView.allowsUndo = true
         textView.font = NSFont.systemFont(ofSize: 17)
-        textView.textColor = .black
+        textView.textColor = .textColor
         textView.backgroundColor = .clear
         textView.drawsBackground = false
+
+        // 行间距 + 段落最小/最大行高（24pt 紧凑）
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = 6
+        paragraphStyle.minimumLineHeight = 24
+        paragraphStyle.maximumLineHeight = 24
+        textView.defaultParagraphStyle = paragraphStyle
+        textView.typingAttributes = [
+            .font: NSFont.systemFont(ofSize: 17),
+            .foregroundColor: NSColor.textColor,
+            .paragraphStyle: paragraphStyle
+        ]
+
         textView.string = text
 
         context.coordinator.text = text
+
+        // 强制 NSTextView 立即重绘（让自定义横线在第一次显示时就画出来）
+        textView.needsDisplay = true
+        scrollView.needsDisplay = true
+
         DispatchQueue.main.async {
             isFocused.wrappedValue = true
+            // 二次触发重绘（layoutManager 第一次完成布局后再画）
+            textView.needsDisplay = true
         }
         return scrollView
     }
 
     func updateNSView(_ nsView: NSScrollView, context: Context) {
         guard let textView = nsView.documentView as? NSTextView else { return }
-        // 只有外部值真的变了才重写（用户输入时不重复写）
+        // 外部值变化才重写文本
         if context.coordinator.text != text {
             textView.string = text
             context.coordinator.text = text
         }
+        // 每次 SwiftUI 重绘都强制 NSTextView 重绘
+        textView.needsDisplay = true
     }
 
     func makeCoordinator() -> Coordinator {
@@ -369,17 +484,24 @@ private struct KajiHoverBackground: ViewModifier {
     var cornerRadius: CGFloat
     var restingBackground: Color
     @State private var isHovering = false
+    @Environment(\.colorScheme) var colorScheme
 
     func body(content: Content) -> some View {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(isHovering ? Color(nsColor: .controlColor) : restingBackground)
+                    .fill(isHovering ? hoverColor : restingBackground)
             )
             .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .onHover { hovering in
                 isHovering = hovering
             }
+    }
+
+    private var hoverColor: Color {
+        colorScheme == .dark
+            ? Color(nsColor: .controlColor)
+            : Color(white: 0.84)
     }
 }
 
@@ -395,7 +517,6 @@ private extension View {
 private struct SearchOverlay: View {
     @EnvironmentObject var appState: AppState
     @FocusState private var searchFocused: Bool
-    @State private var eventMonitor: Any?
 
     var body: some View {
         HStack(spacing: 6) {
@@ -404,48 +525,6 @@ private struct SearchOverlay: View {
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             }
             magnifierButton
-        }
-        .onAppear { installClickMonitor() }
-        .onDisappear { removeClickMonitor() }
-    }
-
-    // MARK: - 全局点击监听
-
-    private func installClickMonitor() {
-        guard eventMonitor == nil else { return }
-        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown]) { event in
-            guard appState.isSearchActive else { return event }
-            guard let window = event.window, let contentView = window.contentView else { return event }
-
-            // 搜索浮层在窗口 contentView 内的位置
-            // 折叠：x = contentWidth - 16 - 32, y = 10, w = 32, h = 32
-            // 展开：x = contentWidth - 16 - 280, y = 10, w = 280, h = 32
-            let expanded: CGFloat = appState.isSearchActive ? 280 : 32
-            let hitWidth: CGFloat = max(expanded, 32)
-            let hitFrame = NSRect(
-                x: contentView.bounds.width - 16 - hitWidth,
-                y: 10,
-                width: hitWidth,
-                height: 44
-            )
-            let clickPoint = contentView.convert(event.locationInWindow, from: nil)
-            if hitFrame.contains(clickPoint) {
-                return event
-            }
-            // 点击在搜索区外 → 关闭
-            DispatchQueue.main.async {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    appState.isSearchActive = false
-                }
-            }
-            return event
-        }
-    }
-
-    private func removeClickMonitor() {
-        if let monitor = eventMonitor {
-            NSEvent.removeMonitor(monitor)
-            eventMonitor = nil
         }
     }
 
@@ -460,7 +539,11 @@ private struct SearchOverlay: View {
                 .frame(width: 220)
                 .focused($searchFocused)
                 .onSubmit {
-                    NotificationCenter.default.post(name: .kajiSearchSubmitted, object: appState.searchKeyword)
+                    let keyword = appState.searchKeyword.trimmingCharacters(in: .whitespaces)
+                    guard !keyword.isEmpty else { return }
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        appState.showList(.search(keyword))
+                    }
                 }
 
             Button {
@@ -507,11 +590,19 @@ private struct SearchOverlay: View {
         }
         .buttonStyle(.plain)
         .help("搜索卡片")
-        .kajiHover(cornerRadius: 16, restingBackground: Color(nsColor: .windowBackgroundColor))
+        .kajiHover(cornerRadius: 16, restingBackground: magnifierBackgroundColor)
         .overlay(
             Circle()
                 .stroke(Color(nsColor: .separatorColor).opacity(0.45), lineWidth: 0.5)
         )
+    }
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var magnifierBackgroundColor: Color {
+        colorScheme == .dark
+            ? Color(nsColor: .windowBackgroundColor)
+            : Color(white: 0.94)
     }
 }
 
@@ -531,11 +622,13 @@ private struct SidebarView: View {
 
         List {
             newCardSection
-            cardTypesSection(typeCounts: typeCounts)
-            tagsSection(tagCounts: tagCounts)
+            cardsAndTypesSection
+            tagsAndItemsSection(tagCounts: tagCounts)
             trashSection
         }
         .listStyle(.sidebar)
+        .environment(\.defaultMinListRowHeight, 22)
+        .listRowInsets(EdgeInsets())
     }
 
     // MARK: Snapshots
@@ -558,19 +651,36 @@ private struct SidebarView: View {
 
     private var newCardSection: some View {
         Section {
-            Button {
+            SidebarRow(
+                title: "新建卡片",
+                icon: "plus.square",
+                iconColor: .primary,
+                count: nil,
+                isSelected: false,
+                style: .large
+            ) {
                 appState.startNewCard(type: .free)
-            } label: {
-                Label("新建卡片", systemImage: "square.and.pencil")
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
         }
         .listRowSeparator(.hidden)
     }
 
-    private func cardTypesSection(typeCounts: [CardType: Int]) -> some View {
-        Section("卡片类型") {
+    private var cardsAndTypesSection: some View {
+        Section {
+            SidebarRow(
+                title: "卡片",
+                icon: "rectangle.stack",
+                iconColor: .primary,
+                count: nil,
+                isSelected: appState.rightPaneMode == .list && appState.listFilter == .all,
+                style: .large
+            ) {
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    appState.showList(.all)
+                }
+            }
+            .padding(.top, -6)
+
             ForEach(CardType.allCases) { type in
                 let selected = appState.rightPaneMode == .list
                     && appState.listFilter == .type(type)
@@ -579,11 +689,10 @@ private struct SidebarView: View {
                     title: type.rawValue,
                     icon: "circle.fill",
                     iconColor: type.color,
-                    count: typeCounts[type, default: 0],
-                    isSelected: selected
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
+                    count: nil,
+                    isSelected: selected,
+                    style: .small
+                ) {
                     withAnimation(.easeInOut(duration: 0.18)) {
                         appState.showList(.type(type))
                     }
@@ -592,32 +701,37 @@ private struct SidebarView: View {
         }
     }
 
-    private func tagsSection(tagCounts: [(String, Int)]) -> some View {
-        Section("标签") {
+    private func tagsAndItemsSection(tagCounts: [(String, Int)]) -> some View {
+        Section {
             if tagCounts.isEmpty {
                 Text("暂无标签")
-                    .font(.caption)
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(tagCounts, id: \.0) { tag, count in
+                ForEach(tagCounts, id: \.0) { tag, _ in
                     let selected = appState.rightPaneMode == .list
                         && appState.listFilter == .tag(tag)
 
                     SidebarRow(
                         title: tag,
-                        icon: "tag.fill",
+                        icon: "tag",
                         iconColor: .secondary,
-                        count: count,
-                        isSelected: selected
-                    )
-                    .contentShape(Rectangle())
-                    .onTapGesture {
+                        count: nil,
+                        isSelected: selected,
+                        style: .small
+                    ) {
                         withAnimation(.easeInOut(duration: 0.18)) {
                             appState.showList(.tag(tag))
                         }
                     }
                 }
             }
+        } header: {
+            Text("标签")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.primary)
+                .padding(.leading, 6)
+                .padding(.top, 20)
         }
     }
 
@@ -629,53 +743,104 @@ private struct SidebarView: View {
             SidebarRow(
                 title: "回收站",
                 icon: "trash",
-                iconColor: .secondary,
-                count: 0,
-                isSelected: selected
-            )
-            .contentShape(Rectangle())
-            .onTapGesture {
+                iconColor: .primary,
+                count: nil,
+                isSelected: selected,
+                style: .large
+            ) {
                 withAnimation(.easeInOut(duration: 0.18)) {
                     appState.showList(.trash)
                 }
             }
         }
+        // macOS 上 listSectionMargins 不可用；当前 .sidebar 样式
+        // 最后一个 Section 底部有系统默认 padding，我们接受这个现状
     }
 }
 
 // MARK: - 侧边栏行
 
+/// 侧栏统一按钮行为：
+/// - hover：浅灰长条
+/// - 按下：深灰长条
+/// - 松开：恢复
+/// - 背景条长度占满整行，与文字长短无关
 private struct SidebarRow: View {
+    enum Style { case large, small }
+
     let title: String
     let icon: String
     let iconColor: Color
-    let count: Int
+    let count: Int?
     let isSelected: Bool
+    var style: Style = .large
+    var action: () -> Void
+
+    private var iconSize: CGFloat { style == .large ? 16 : 9 }
+    private var iconWeight: Font.Weight { style == .large ? .regular : .semibold }
+    private var fontSize: CGFloat   { style == .large ? 15 : 13 }
+    private var hSpacing: CGFloat   { style == .large ? 10 : 8 }
+    private var vPadding: CGFloat   { style == .large ? 6 : 4 }
+    private var hPadding: CGFloat   { 16 }
+    private var iconFrame: CGFloat  { style == .large ? 22 : 18 }
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(iconColor)
-                .frame(width: 18, alignment: .center)
+        Button(action: action) {
+            HStack(spacing: hSpacing) {
+                Image(systemName: icon)
+                    .font(.system(size: iconSize, weight: iconWeight))
+                    .foregroundStyle(iconColor)
+                    .frame(width: iconFrame, alignment: .center)
 
-            Text(title)
-                .lineLimit(1)
+                Text(title)
+                    .font(.system(size: fontSize))
+                    .lineLimit(1)
 
-            Spacer(minLength: 8)
+                if let count {
+                    Spacer(minLength: 8)
 
-            Text("\(count)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
+                    Text("\(count)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                } else {
+                    Spacer(minLength: 0)
+                }
+            }
+            .padding(.vertical, vPadding)
+            .padding(.horizontal, hPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 3)
-        .padding(.horizontal, 6)
-        .contentShape(Rectangle())
-        .background(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(isSelected ? Color.accentColor.opacity(0.16) : Color.clear)
-        )
+        .buttonStyle(SidebarRowButtonStyle())
+    }
+}
+
+private struct SidebarRowButtonStyle: ButtonStyle {
+    @Environment(\.colorScheme) var colorScheme
+    @State private var isHovering = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(fillColor(isPressed: configuration.isPressed))
+                    .padding(.horizontal, 4)
+            )
+            .onHover { hovering in
+                isHovering = hovering
+            }
+    }
+
+    private func fillColor(isPressed: Bool) -> Color {
+        if colorScheme == .dark {
+            if isPressed { return Color(white: 0.22) }
+            if isHovering { return Color(white: 0.28) }
+        } else {
+            if isPressed { return Color(white: 0.85) }
+            if isHovering { return Color(white: 0.90) }
+        }
+        return .clear
     }
 }
 

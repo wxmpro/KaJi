@@ -78,6 +78,7 @@ final class AppState: ObservableObject {
         case tag(String)
         case trash
         case all
+        case search(String)
     }
     @Published var listFilter: ListFilter? = nil
 
@@ -100,6 +101,7 @@ final class AppState: ObservableObject {
         case .tag(let s):  return "#\(s)"
         case .trash:       return "回收站"
         case .all:         return "全部卡片"
+        case .search(let s): return "搜索：\(s)"
         case .none:        return ""
         }
     }
@@ -107,6 +109,9 @@ final class AppState: ObservableObject {
     // 侧栏统计缓存：避免每次 UI 渲染都读库
     @Published private(set) var cachedTypeCounts: [CardType: Int] = [:]
     @Published private(set) var cachedTagCounts: [(String, Int)] = []
+
+    // 卡片全量缓存：避免切换侧栏 filter 时反复读库
+    @Published private(set) var cachedCards: [Card] = []
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -135,6 +140,7 @@ final class AppState: ObservableObject {
     // MARK: - 屏 1: 新建 / 编辑
 
     /// 开一张新卡（屏 1 用）— 给定类型，默认自由卡
+    /// 调用后自动切回编辑器模式，清空列表筛选和历史栈。
     func startNewCard(type: CardType = .free) {
         do {
             let existing = try AppDatabase.shared.allIDs()
@@ -144,6 +150,13 @@ final class AppState: ObservableObject {
             currentCardType = type
             currentCardTags = []
             saveError = nil
+
+            // 无论从列表还是其他状态触发，都回到编辑器第一屏
+            pendingReturnCard = nil
+            pastCards = []
+            futureCards = []
+            listFilter = nil
+            rightPaneMode = .editor
         } catch {
             saveError = "无法生成新卡编码：\(error.localizedDescription)"
         }
@@ -240,16 +253,20 @@ final class AppState: ObservableObject {
 
     // MARK: - 列表
 
-    /// 拉所有卡（含回收站过滤）
+    /// 拉所有卡（含回收站过滤）— 优先走缓存，不直接读库
     func allCards(includeDeleted: Bool = false) -> [Card] {
-        (try? repository.allCards(includeDeleted: includeDeleted)) ?? []
+        includeDeleted ? cachedCards : cachedCards.filter { $0.deletedAt == nil }
     }
 
-    /// 搜索
+    /// 搜索 — 走缓存
     func search(_ keyword: String) -> [Card] {
         let kw = keyword.trimmingCharacters(in: .whitespaces)
         guard !kw.isEmpty else { return allCards() }
-        return (try? repository.search(keyword: kw)) ?? []
+        return cachedCards.filter { card in
+            card.title.localizedCaseInsensitiveContains(kw)
+                || card.tags.contains { $0.localizedCaseInsensitiveContains(kw) }
+                || card.fields.contains { $0.fieldValue.localizedCaseInsensitiveContains(kw) }
+        }
     }
 
     /// 按类型统计卡片数
@@ -264,16 +281,17 @@ final class AppState: ObservableObject {
 
     /// 重新计算并缓存侧栏统计（数据变化时调用）
     func rebuildStats() {
-        let cards = allCards()
+        let cards = (try? repository.allCards(includeDeleted: true)) ?? []
+        cachedCards = cards
 
         var typeDict: [CardType: Int] = [:]
         for type in CardType.allCases {
-            typeDict[type] = cards.filter { $0.cardType == type }.count
+            typeDict[type] = cards.filter { $0.cardType == type && $0.deletedAt == nil }.count
         }
         cachedTypeCounts = typeDict
 
         var tagDict: [String: Int] = [:]
-        for card in cards {
+        for card in cards where card.deletedAt == nil {
             for tag in card.tags {
                 tagDict[tag, default: 0] += 1
             }
@@ -378,17 +396,25 @@ final class AppState: ObservableObject {
 
     /// 当前筛选条件下的卡片（按 updatedAt 倒序）
     func filteredCards() -> [Card] {
-        let all = allCards()
         let cards: [Card]
         switch listFilter {
         case .type(let t):
-            cards = all.filter { $0.cardType == t }
+            cards = cachedCards.filter { $0.cardType == t && $0.deletedAt == nil }
         case .tag(let s):
-            cards = all.filter { $0.tags.contains(s) }
+            cards = cachedCards.filter { $0.tags.contains(s) && $0.deletedAt == nil }
         case .trash:
-            cards = allCards(includeDeleted: true).filter { $0.deletedAt != nil }
+            cards = cachedCards.filter { $0.deletedAt != nil }
         case .all:
-            cards = all
+            cards = cachedCards.filter { $0.deletedAt == nil }
+        case .search(let keyword):
+            let kw = keyword.trimmingCharacters(in: .whitespaces)
+            cards = kw.isEmpty
+                ? []
+                : cachedCards.filter { card in
+                    card.title.localizedCaseInsensitiveContains(kw)
+                        || card.tags.contains { $0.localizedCaseInsensitiveContains(kw) }
+                        || card.fields.contains { $0.fieldValue.localizedCaseInsensitiveContains(kw) }
+                }
         case .none:
             cards = []
         }
