@@ -63,6 +63,47 @@ final class AppState: ObservableObject {
     // 设置
     @Published var showingSettings: Bool = false
 
+    // MARK: - 右栏模式（v8.0.0：两栏 + 右栏动态切换）
+    // .editor = 当前编辑的卡（SingleEditor）
+    // .list   = 卡片列表（CardListView），由侧栏类型/标签/回收站触发
+    enum RightPaneMode: Equatable {
+        case editor
+        case list
+    }
+    @Published var rightPaneMode: RightPaneMode = .editor
+
+    // 列表筛选来源
+    enum ListFilter: Equatable {
+        case type(CardType)
+        case tag(String)
+        case trash
+        case all
+    }
+    @Published var listFilter: ListFilter? = nil
+
+    // 切到列表前「正在编辑」的卡 id；点「← 返回」时恢复回 currentCard
+    @Published var pendingReturnCard: Card? = nil
+
+    // 导航历史栈（v8.1.0：列表内 back/forward）
+    // pastCards: 倒序，最近的在 index 0
+    // futureCards: 同上
+    @Published var pastCards: [Card] = []
+    @Published var futureCards: [Card] = []
+
+    var canGoBack: Bool { !pastCards.isEmpty }
+    var canGoForward: Bool { !futureCards.isEmpty }
+
+    // 列表筛选对应的展示标题（用于顶部条）
+    var listFilterTitle: String {
+        switch listFilter {
+        case .type(let t): return t.rawValue
+        case .tag(let s):  return "#\(s)"
+        case .trash:       return "回收站"
+        case .all:         return "全部卡片"
+        case .none:        return ""
+        }
+    }
+
     // 侧栏统计缓存：避免每次 UI 渲染都读库
     @Published private(set) var cachedTypeCounts: [CardType: Int] = [:]
     @Published private(set) var cachedTagCounts: [(String, Int)] = []
@@ -126,17 +167,33 @@ final class AppState: ObservableObject {
 
     // MARK: - 自动保存
 
-    /// 失焦 / ⌘S 时调用
+    private var saveWorkItem: DispatchWorkItem?
+    private static let saveDebounceInterval: TimeInterval = 0.8
+
+    /// 任何字段被编辑都会调用，800ms debounce 后真正落库
     func saveImmediately() {
-        guard let card = currentCard else { return }
-        var c = card
+        saveWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.persistCurrentCard()
+        }
+        saveWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.saveDebounceInterval, execute: work)
+    }
+
+    /// 强制立即落库（失焦 / 退出 / ⌘S 时调用）
+    func flushSave() {
+        saveWorkItem?.cancel()
+        saveWorkItem = nil
+        persistCurrentCard()
+    }
+
+    private func persistCurrentCard() {
+        guard var c = currentCard else { return }
         c.type = currentCardType.rawValue
-        c.title = extractTitleFromDraft()
         c.tags = currentCardTags
-        c.fields = extractFieldsFromDraft(type: currentCardType, draft: currentCardDraft, title: c.title)
         c.updatedAt = Date()
 
-        // 3500 字符检测
+        // 3500 字符检测（title + 所有字段名 + 字段值 + 标签）
         charCount = ContentLimit.count(card: c)
         if ContentLimit.isOverLimit(card: c) {
             c = ContentLimit.truncate(c)
@@ -241,5 +298,100 @@ final class AppState: ObservableObject {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         return "已保存 · \(f.string(from: savedAt))"
+    }
+
+    // MARK: - 列表模式切换
+
+    /// 进入列表模式（侧栏点击类型/标签/回收站时调用）
+    func showList(_ filter: ListFilter) {
+        pendingReturnCard = currentCard   // 记住「我刚才在编辑哪张」
+        listFilter = filter
+        rightPaneMode = .list
+    }
+
+    /// 退出列表模式，回到 pendingReturnCard
+    func returnToEditor() {
+        if let card = pendingReturnCard {
+            // 重新加载（防止列表里编辑过别的卡，pendingReturnCard 已不是最新）
+            if let fresh = (try? repository.card(id: card.id)) ?? Optional<Card>.none {
+                currentCard = fresh
+                currentCardType = fresh.cardType
+                currentCardTags = fresh.tags
+            } else {
+                currentCard = card
+                currentCardType = card.cardType
+                currentCardTags = card.tags
+            }
+        }
+        pendingReturnCard = nil
+        listFilter = nil
+        pastCards = []
+        futureCards = []
+        rightPaneMode = .editor
+    }
+
+    /// 列表行点击 → 进入编辑（同时压入历史栈）
+    func openCardFromList(_ card: Card) {
+        if let cur = currentCard {
+            pastCards.insert(cur, at: 0)
+        }
+        futureCards = []   // 新分支清空 forward
+        currentCard = card
+        currentCardType = card.cardType
+        currentCardTags = card.tags
+        withAnimation(.easeInOut(duration: 0.18)) {
+            rightPaneMode = .editor
+        }
+    }
+
+    /// ← 返回
+    func goBack() {
+        guard let prev = pastCards.first else { return }
+        pastCards.removeFirst()
+        if let cur = currentCard {
+            futureCards.insert(cur, at: 0)
+        }
+        loadCardIntoEditor(prev)
+    }
+
+    /// → 前进
+    func goForward() {
+        guard let next = futureCards.first else { return }
+        futureCards.removeFirst()
+        if let cur = currentCard {
+            pastCards.insert(cur, at: 0)
+        }
+        loadCardIntoEditor(next)
+    }
+
+    private func loadCardIntoEditor(_ card: Card) {
+        if let fresh = (try? repository.card(id: card.id)) ?? Optional<Card>.none {
+            currentCard = fresh
+            currentCardType = fresh.cardType
+            currentCardTags = fresh.tags
+        } else {
+            currentCard = card
+            currentCardType = card.cardType
+            currentCardTags = card.tags
+        }
+    }
+
+    /// 当前筛选条件下的卡片（按 updatedAt 倒序）
+    func filteredCards() -> [Card] {
+        let all = allCards()
+        let cards: [Card]
+        switch listFilter {
+        case .type(let t):
+            cards = all.filter { $0.cardType == t }
+        case .tag(let s):
+            cards = all.filter { $0.tags.contains(s) }
+        case .trash:
+            cards = allCards(includeDeleted: true).filter { $0.deletedAt != nil }
+        case .all:
+            cards = all
+        case .none:
+            cards = []
+        }
+        return cards.sorted { $0.updatedAt > $1.updatedAt }
     }
 }

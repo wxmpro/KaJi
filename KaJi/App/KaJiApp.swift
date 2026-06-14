@@ -10,6 +10,7 @@
 
 import SwiftUI
 import AppKit
+import Combine
 
 @main
 struct KaJiApp: App {
@@ -17,7 +18,7 @@ struct KaJiApp: App {
 
     var body: some Scene {
         Settings {
-            EmptyView()
+            SettingsView()
         }
     }
 }
@@ -83,6 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 使用 contentViewController 而非把 NSHostingView 当子视图添加，
         // SwiftUI 才能正确把 NavigationSplitView 的侧边栏延伸到 titlebar 区域，
         // 让 traffic-lights 浮在侧栏内部（macOS 15 原生效果）。
+        // 右上角搜索控件由 SwiftUI MainView 内部实现（避免 NSToolbar 撑开 titlebar）
         let mainView = MainView().environmentObject(appState)
         let hostingController = NSHostingController(rootView: mainView)
         window.contentViewController = hostingController
