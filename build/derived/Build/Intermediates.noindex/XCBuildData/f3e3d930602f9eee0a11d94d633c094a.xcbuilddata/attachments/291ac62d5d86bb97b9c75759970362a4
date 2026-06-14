@@ -1,0 +1,189 @@
+{
+  "" : {
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJi-primary.dia",
+    "emit-module-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJi-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJi-primary-emit-module.dia",
+    "pch" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJi-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJi-primary.swiftdeps"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/App/AppState.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppState.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppState.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppState.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppState.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppState.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppState.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppState.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppState~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/App/ContentView.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentView.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentView~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/App/KaJiApp.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJiApp.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJiApp.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJiApp.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJiApp.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJiApp.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJiApp.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJiApp.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/KaJiApp~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/App/MainView.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/MainView.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/MainView.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/MainView.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/MainView.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/MainView.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/MainView.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/MainView.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/MainView~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/App/Notifications.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Notifications.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Notifications.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Notifications.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Notifications.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Notifications.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Notifications.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Notifications.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Notifications~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Database/AppDatabase.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppDatabase.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppDatabase.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppDatabase.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppDatabase.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppDatabase.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppDatabase.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppDatabase.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/AppDatabase~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Database/CardFileIO.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardFileIO.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardFileIO.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardFileIO.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardFileIO.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardFileIO.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardFileIO.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardFileIO.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardFileIO~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Database/CardRecord.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRecord.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRecord.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRecord.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRecord.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRecord.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRecord.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRecord.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRecord~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Database/CardRepository.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRepository.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRepository.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRepository.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRepository.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRepository.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRepository.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRepository.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardRepository~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Models/Card.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Card.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Card.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Card.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Card.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Card.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Card.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Card.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Card~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Models/CardField.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardField.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardField.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardField.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardField.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardField.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardField.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardField.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardField~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Models/CardType.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardType.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardType.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardType.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardType.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardType.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardType.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardType.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardType~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Models/Tag.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Tag.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Tag.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Tag.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Tag.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Tag.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Tag.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Tag.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/Tag~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Utilities/CardIDGenerator.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardIDGenerator.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardIDGenerator.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardIDGenerator.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardIDGenerator.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardIDGenerator.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardIDGenerator.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardIDGenerator.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/CardIDGenerator~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Utilities/ContentLimit.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentLimit.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentLimit.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentLimit.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentLimit.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentLimit.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentLimit.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentLimit.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ContentLimit~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Utilities/DataLayerSmokeTest.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/DataLayerSmokeTest.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/DataLayerSmokeTest.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/DataLayerSmokeTest.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/DataLayerSmokeTest.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/DataLayerSmokeTest.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/DataLayerSmokeTest.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/DataLayerSmokeTest.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/DataLayerSmokeTest~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Utilities/ExportService.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ExportService.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ExportService.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ExportService.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ExportService.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ExportService.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ExportService.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ExportService.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/ExportService~partial.swiftmodule"
+  },
+  "/Users/xinmin/openmind/03_Own_project/16-KaJi/KaJi/Utilities/SettingsService.swift" : {
+    "const-values" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/SettingsService.swiftconstvalues",
+    "dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/SettingsService.d",
+    "diagnostics" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/SettingsService.dia",
+    "index-unit-output-path" : "/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/SettingsService.o",
+    "llvm-bc" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/SettingsService.bc",
+    "object" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/SettingsService.o",
+    "swift-dependencies" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/SettingsService.swiftdeps",
+    "swiftmodule" : "/Users/xinmin/openmind/03_Own_project/16-KaJi/build/derived/Build/Intermediates.noindex/KaJi.build/Debug/KaJi.build/Objects-normal/arm64/SettingsService~partial.swiftmodule"
+  }
+}

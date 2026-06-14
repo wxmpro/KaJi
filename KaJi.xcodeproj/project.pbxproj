@@ -1,0 +1,447 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0C20DBEA694EF0C47723D36D /* CardFileIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CE95E491876197E909A86B0 /* CardFileIO.swift */; };
+		0F9D88E1A0D2ADE35C1FD71A /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DEFF8CEDCED1AEC155AF4E2 /* MainView.swift */; };
+		1089AC86E468F535F46A0D25 /* KaJiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F1E5D7FA567AB3B93A5E90 /* KaJiApp.swift */; };
+		17E4C7ECE8A2F6BA64E22A9A /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD9140953A0EFC4A19583E5 /* ExportService.swift */; };
+		2A81A09556177893A6023CEA /* CardIDGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF832ED09C5A71F672E6D89 /* CardIDGenerator.swift */; };
+		3E6244F89B67DDF82771DE3B /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 779A271A1B8E8EC1EBF80ABF /* GRDB */; };
+		44AE7C107C617E5F8FAB1CAD /* DataLayerSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED91EE25B3039D62FC768933 /* DataLayerSmokeTest.swift */; };
+		4532EEE3BC391DC2DAC197AE /* CardRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A4616229289AE1DE903BD24 /* CardRecord.swift */; };
+		467F7AE6516FF489F37C65B3 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33D963919B38A67DD84F9BEA /* Tag.swift */; };
+		598BEBE794C7C9F7991BA779 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9EB42189596AEFBF30D023B /* AppState.swift */; };
+		7170D44D32519B19B07D9E8B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1841433CCD43A96D06396CF2 /* ContentView.swift */; };
+		7C5DA8257EB2C228A849E895 /* CardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60F46A35E904ABF137D03552 /* CardRepository.swift */; };
+		831A4B4C570C3BB8B74CF63D /* CardType.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2C2B4B24CA43949D4AA46CF /* CardType.swift */; };
+		9F30FC57C2B0F84213BFDB54 /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42CFF8F25761CACD3184597E /* AppDatabase.swift */; };
+		A506B368E84598D6C89B8961 /* Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84AB7B6767CC5810E228175 /* Card.swift */; };
+		BBB886041FBCCCB94A180FF0 /* SettingsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EB6B78BC1C7BA574E35BF37 /* SettingsService.swift */; };
+		DB1301FC34C000F8F5963FF3 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B79BF3E048E3659F3CBF90B /* Notifications.swift */; };
+		DEE197EBEFEBBD91A9F64939 /* CardField.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE706C53BA6C1856A9781F63 /* CardField.swift */; };
+		F423DE0FE152E2ADAB4B0A11 /* ContentLimit.swift in Sources */ = {isa = PBXBuildFile; fileRef = E546D7FFEB130D7DD5217111 /* ContentLimit.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0A5CF4E98B6868AFAA27FD81 /* KaJi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KaJi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0EB6B78BC1C7BA574E35BF37 /* SettingsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsService.swift; sourceTree = "<group>"; };
+		13F1E5D7FA567AB3B93A5E90 /* KaJiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiApp.swift; sourceTree = "<group>"; };
+		1841433CCD43A96D06396CF2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		1B79BF3E048E3659F3CBF90B /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
+		33D963919B38A67DD84F9BEA /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
+		3E423AB4B1F431DBF146C853 /* GRDB.swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GRDB.swift; path = ../../../Developer/Vendor/GRDB.swift; sourceTree = SOURCE_ROOT; };
+		42CFF8F25761CACD3184597E /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
+		5BF832ED09C5A71F672E6D89 /* CardIDGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardIDGenerator.swift; sourceTree = "<group>"; };
+		60F46A35E904ABF137D03552 /* CardRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardRepository.swift; sourceTree = "<group>"; };
+		6A4616229289AE1DE903BD24 /* CardRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardRecord.swift; sourceTree = "<group>"; };
+		8DEFF8CEDCED1AEC155AF4E2 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		9CE95E491876197E909A86B0 /* CardFileIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardFileIO.swift; sourceTree = "<group>"; };
+		9F741B3A0BFC712111BEE2D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		A84AB7B6767CC5810E228175 /* Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Card.swift; sourceTree = "<group>"; };
+		AE706C53BA6C1856A9781F63 /* CardField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardField.swift; sourceTree = "<group>"; };
+		C2C2B4B24CA43949D4AA46CF /* CardType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardType.swift; sourceTree = "<group>"; };
+		CCD9140953A0EFC4A19583E5 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
+		E546D7FFEB130D7DD5217111 /* ContentLimit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentLimit.swift; sourceTree = "<group>"; };
+		ED91EE25B3039D62FC768933 /* DataLayerSmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataLayerSmokeTest.swift; sourceTree = "<group>"; };
+		F9EB42189596AEFBF30D023B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		476B83EF75277E031CD8F3E4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3E6244F89B67DDF82771DE3B /* GRDB in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0328227C906EB3DFB519D181 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				5BF832ED09C5A71F672E6D89 /* CardIDGenerator.swift */,
+				E546D7FFEB130D7DD5217111 /* ContentLimit.swift */,
+				ED91EE25B3039D62FC768933 /* DataLayerSmokeTest.swift */,
+				CCD9140953A0EFC4A19583E5 /* ExportService.swift */,
+				0EB6B78BC1C7BA574E35BF37 /* SettingsService.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		4A678DBDCEDA13CEEA647585 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				F9EB42189596AEFBF30D023B /* AppState.swift */,
+				1841433CCD43A96D06396CF2 /* ContentView.swift */,
+				13F1E5D7FA567AB3B93A5E90 /* KaJiApp.swift */,
+				8DEFF8CEDCED1AEC155AF4E2 /* MainView.swift */,
+				1B79BF3E048E3659F3CBF90B /* Notifications.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		5BA6294A5E4081DB849B6254 = {
+			isa = PBXGroup;
+			children = (
+				F660FACD94526A63DA3B8751 /* KaJi */,
+				6DB26FAA92245F7A0650914D /* Packages */,
+				BBCE1271F6A7B0E12C64A376 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		6DB26FAA92245F7A0650914D /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				3E423AB4B1F431DBF146C853 /* GRDB.swift */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		7D807E9F250550463269DA6E /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A84AB7B6767CC5810E228175 /* Card.swift */,
+				AE706C53BA6C1856A9781F63 /* CardField.swift */,
+				C2C2B4B24CA43949D4AA46CF /* CardType.swift */,
+				33D963919B38A67DD84F9BEA /* Tag.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		BBCE1271F6A7B0E12C64A376 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0A5CF4E98B6868AFAA27FD81 /* KaJi.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E2A0326C493CA9DB869CE11F /* Database */ = {
+			isa = PBXGroup;
+			children = (
+				42CFF8F25761CACD3184597E /* AppDatabase.swift */,
+				9CE95E491876197E909A86B0 /* CardFileIO.swift */,
+				6A4616229289AE1DE903BD24 /* CardRecord.swift */,
+				60F46A35E904ABF137D03552 /* CardRepository.swift */,
+			);
+			path = Database;
+			sourceTree = "<group>";
+		};
+		F660FACD94526A63DA3B8751 /* KaJi */ = {
+			isa = PBXGroup;
+			children = (
+				4A678DBDCEDA13CEEA647585 /* App */,
+				E2A0326C493CA9DB869CE11F /* Database */,
+				7D807E9F250550463269DA6E /* Models */,
+				0328227C906EB3DFB519D181 /* Utilities */,
+				9F741B3A0BFC712111BEE2D2 /* Info.plist */,
+			);
+			path = KaJi;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		94F4EED2D95BF692A12375A6 /* KaJi */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9C3AE4026742DA872086C352 /* Build configuration list for PBXNativeTarget "KaJi" */;
+			buildPhases = (
+				32D506E2D12FBD7176A7AA19 /* Sources */,
+				476B83EF75277E031CD8F3E4 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KaJi;
+			packageProductDependencies = (
+				779A271A1B8E8EC1EBF80ABF /* GRDB */,
+			);
+			productName = KaJi;
+			productReference = 0A5CF4E98B6868AFAA27FD81 /* KaJi.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0BB585ABA8C09F2C31C64E9A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					94F4EED2D95BF692A12375A6 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = DB89D7A6AB86476B0DBA263A /* Build configuration list for PBXProject "KaJi" */;
+			developmentRegion = "zh-Hans";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				"zh-Hans",
+			);
+			mainGroup = 5BA6294A5E4081DB849B6254;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CA8A27A4EDF49F7EF253BB15 /* XCLocalSwiftPackageReference "/Users/xinmin/Developer/Vendor/GRDB.swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = BBCE1271F6A7B0E12C64A376 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				94F4EED2D95BF692A12375A6 /* KaJi */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		32D506E2D12FBD7176A7AA19 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9F30FC57C2B0F84213BFDB54 /* AppDatabase.swift in Sources */,
+				598BEBE794C7C9F7991BA779 /* AppState.swift in Sources */,
+				A506B368E84598D6C89B8961 /* Card.swift in Sources */,
+				DEE197EBEFEBBD91A9F64939 /* CardField.swift in Sources */,
+				0C20DBEA694EF0C47723D36D /* CardFileIO.swift in Sources */,
+				2A81A09556177893A6023CEA /* CardIDGenerator.swift in Sources */,
+				4532EEE3BC391DC2DAC197AE /* CardRecord.swift in Sources */,
+				7C5DA8257EB2C228A849E895 /* CardRepository.swift in Sources */,
+				831A4B4C570C3BB8B74CF63D /* CardType.swift in Sources */,
+				F423DE0FE152E2ADAB4B0A11 /* ContentLimit.swift in Sources */,
+				7170D44D32519B19B07D9E8B /* ContentView.swift in Sources */,
+				44AE7C107C617E5F8FAB1CAD /* DataLayerSmokeTest.swift in Sources */,
+				17E4C7ECE8A2F6BA64E22A9A /* ExportService.swift in Sources */,
+				1089AC86E468F535F46A0D25 /* KaJiApp.swift in Sources */,
+				0F9D88E1A0D2ADE35C1FD71A /* MainView.swift in Sources */,
+				DB1301FC34C000F8F5963FF3 /* Notifications.swift in Sources */,
+				BBB886041FBCCCB94A180FF0 /* SettingsService.swift in Sources */,
+				467F7AE6516FF489F37C65B3 /* Tag.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		24BB0C1B46DCFB3D779C657D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = KaJi/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"@executable_path/../Frameworks",
+				);
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
+			};
+			name = Release;
+		};
+		495BA4013042BD1C42DDBB72 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_SWIFT_FLAGS = "-suppress-warnings";
+				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;
+				PRODUCT_NAME = KaJi;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = NO;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		49CA1F9699D03EF216CC7FD4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = KaJi/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"@executable_path/../Frameworks",
+				);
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "";
+			};
+			name = Debug;
+		};
+		70E904C857CEAC207EF1F679 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_SWIFT_FLAGS = "-suppress-warnings";
+				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;
+				PRODUCT_NAME = KaJi;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = NO;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9C3AE4026742DA872086C352 /* Build configuration list for PBXNativeTarget "KaJi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				49CA1F9699D03EF216CC7FD4 /* Debug */,
+				24BB0C1B46DCFB3D779C657D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DB89D7A6AB86476B0DBA263A /* Build configuration list for PBXProject "KaJi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				495BA4013042BD1C42DDBB72 /* Debug */,
+				70E904C857CEAC207EF1F679 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		CA8A27A4EDF49F7EF253BB15 /* XCLocalSwiftPackageReference "/Users/xinmin/Developer/Vendor/GRDB.swift" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = /Users/xinmin/Developer/Vendor/GRDB.swift;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		779A271A1B8E8EC1EBF80ABF /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GRDB;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 0BB585ABA8C09F2C31C64E9A /* Project object */;
+}
