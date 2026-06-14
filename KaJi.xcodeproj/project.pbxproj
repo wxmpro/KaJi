@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		781BD1992ED3439988148DEC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FDF04B51DCA40189327D0BF /* SettingsView.swift */; };
 		0C20DBEA694EF0C47723D36D /* CardFileIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CE95E491876197E909A86B0 /* CardFileIO.swift */; };
 		0F9D88E1A0D2ADE35C1FD71A /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DEFF8CEDCED1AEC155AF4E2 /* MainView.swift */; };
 		1089AC86E468F535F46A0D25 /* KaJiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F1E5D7FA567AB3B93A5E90 /* KaJiApp.swift */; };
@@ -21,6 +20,7 @@
 		7170D44D32519B19B07D9E8B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1841433CCD43A96D06396CF2 /* ContentView.swift */; };
 		7C5DA8257EB2C228A849E895 /* CardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60F46A35E904ABF137D03552 /* CardRepository.swift */; };
 		831A4B4C570C3BB8B74CF63D /* CardType.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2C2B4B24CA43949D4AA46CF /* CardType.swift */; };
+		849BC9EA5181A1256E0EB13F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E238850BBAFEA2E06163B9 /* SettingsView.swift */; };
 		9F30FC57C2B0F84213BFDB54 /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42CFF8F25761CACD3184597E /* AppDatabase.swift */; };
 		A506B368E84598D6C89B8961 /* Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84AB7B6767CC5810E228175 /* Card.swift */; };
 		BBB886041FBCCCB94A180FF0 /* SettingsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EB6B78BC1C7BA574E35BF37 /* SettingsService.swift */; };
@@ -30,7 +30,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0FDF04B51DCA40189327D0BF /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		0A5CF4E98B6868AFAA27FD81 /* KaJi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KaJi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0EB6B78BC1C7BA574E35BF37 /* SettingsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsService.swift; sourceTree = "<group>"; };
 		13F1E5D7FA567AB3B93A5E90 /* KaJiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiApp.swift; sourceTree = "<group>"; };
@@ -39,6 +38,7 @@
 		33D963919B38A67DD84F9BEA /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
 		3E423AB4B1F431DBF146C853 /* GRDB.swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GRDB.swift; path = ../../../Developer/Vendor/GRDB.swift; sourceTree = SOURCE_ROOT; };
 		42CFF8F25761CACD3184597E /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
+		56E238850BBAFEA2E06163B9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		5BF832ED09C5A71F672E6D89 /* CardIDGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardIDGenerator.swift; sourceTree = "<group>"; };
 		60F46A35E904ABF137D03552 /* CardRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardRepository.swift; sourceTree = "<group>"; };
 		6A4616229289AE1DE903BD24 /* CardRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardRecord.swift; sourceTree = "<group>"; };
@@ -66,14 +66,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		EF5FFA76366A46B3BAE2EC73 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				0FDF04B51DCA40189327D0BF /* SettingsView.swift */,
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
 		0328227C906EB3DFB519D181 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
@@ -145,14 +137,22 @@
 			path = Database;
 			sourceTree = "<group>";
 		};
+		EC4FEA1D2EBE0204A4A08B86 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				56E238850BBAFEA2E06163B9 /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
 		F660FACD94526A63DA3B8751 /* KaJi */ = {
 			isa = PBXGroup;
 			children = (
-				EF5FFA76366A46B3BAE2EC73 /* Views */,
 				4A678DBDCEDA13CEEA647585 /* App */,
 				E2A0326C493CA9DB869CE11F /* Database */,
 				7D807E9F250550463269DA6E /* Models */,
 				0328227C906EB3DFB519D181 /* Utilities */,
+				EC4FEA1D2EBE0204A4A08B86 /* Views */,
 				9F741B3A0BFC712111BEE2D2 /* Info.plist */,
 			);
 			path = KaJi;
@@ -222,7 +222,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				781BD1992ED3439988148DEC /* SettingsView.swift in Sources */,
 				9F30FC57C2B0F84213BFDB54 /* AppDatabase.swift in Sources */,
 				598BEBE794C7C9F7991BA779 /* AppState.swift in Sources */,
 				A506B368E84598D6C89B8961 /* Card.swift in Sources */,
@@ -240,6 +239,7 @@
 				0F9D88E1A0D2ADE35C1FD71A /* MainView.swift in Sources */,
 				DB1301FC34C000F8F5963FF3 /* Notifications.swift in Sources */,
 				BBB886041FBCCCB94A180FF0 /* SettingsService.swift in Sources */,
+				849BC9EA5181A1256E0EB13F /* SettingsView.swift in Sources */,
 				467F7AE6516FF489F37C65B3 /* Tag.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -298,7 +298,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -321,7 +321,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.1.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -387,7 +387,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -404,7 +404,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.1.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "-suppress-warnings";

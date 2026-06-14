@@ -267,13 +267,15 @@ private struct DetailView: View {
     }
 }
 
-// MARK: - macOS Notes 风格编辑器
+// MARK: - 表单化编辑器
 
 private struct NotesEditor: View {
     @EnvironmentObject var appState: AppState
+    @State private var showingTypePicker = false
+    @State private var newTagText = ""
+    @State private var isAddingTag = false
 
     var body: some View {
-        // 白卡片：圆角 + 浅阴影，浮在背景上
         VStack(spacing: 0) {
             // 顶部导航条：back / forward
             NavigationHeader()
@@ -282,69 +284,354 @@ private struct NotesEditor: View {
                 .padding(.bottom, 4)
                 .offset(y: -10)
 
-            // 单 NSTextView 编辑器：纯用户输入，无字段名，无字段分隔
-            SingleEditor(text: Binding(
-                get: { appState.currentCard?.title ?? "" },
-                set: { newValue in
-                    guard var card = appState.currentCard else { return }
-                    card.title = newValue
-                    appState.currentCard = card
-                    appState.saveImmediately()
-                }
-            ))
+            // 表单化编辑器：左侧标签栏 + 右侧输入区
+            FormEditor(
+                showingTypePicker: $showingTypePicker,
+                newTagText: $newTagText,
+                isAddingTag: $isAddingTag
+            )
             .padding(.horizontal, 50)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-
-            Spacer()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .alert("切换卡片类型", isPresented: $appState.showingTypeChangeAlert) {
+            Button("复制全部并切换", role: .none) {
+                appState.copyAllContentToPasteboard()
+                appState.confirmPendingCardTypeChange()
+            }
+            Button("直接切换", role: .destructive) {
+                appState.confirmPendingCardTypeChange()
+            }
+            Button("取消", role: .cancel) {
+                appState.pendingCardType = nil
+            }
+        } message: {
+            Text("当前卡片已有内容，切换类型会清空字段结构。建议先复制全部内容。")
         }
     }
 }
 
-// MARK: - 单编辑器：一个纯 NSTextView，无任何字段概念
+// MARK: - 表单化编辑器：左标签栏 + 右输入区
 
-private struct SingleEditor: View {
-    @Binding var text: String
-    @FocusState private var isFocused: Bool
+private struct FormEditor: View {
+    @EnvironmentObject var appState: AppState
+    @Binding var showingTypePicker: Bool
+    @Binding var newTagText: String
+    @Binding var isAddingTag: Bool
+    @Environment(\.colorScheme) var colorScheme
+
+    private let labelWidth: CGFloat = 56
+    private let lineHeight: CGFloat = 24
+    private let contentFontSize: CGFloat = 16
+
+    private var cardBackground: Color {
+        colorScheme == .dark
+            ? Color(nsColor: .textBackgroundColor)
+            : Color.white
+    }
+
+    private var lineStrokeColor: Color {
+        colorScheme == .dark ? .white.opacity(0.55) : .black
+    }
+
+    private var shadowCardColor: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.08)
+            : Color.gray.opacity(0.30)
+    }
+
+    private var borderColor: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.15)
+            : Color.gray.opacity(0.35)
+    }
 
     var body: some View {
         ZStack {
-            // 下层卡片（向右+上偏移 4pt，露出主卡片的"上+右"灰色边）
+            // 下层卡片（向右+上偏移 4pt，露出主卡片的"上+右"边）
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.gray.opacity(0.30))
+                .fill(shadowCardColor)
                 .offset(x: 4, y: -4)
 
             // 上层主卡片
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white)
+                .fill(cardBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.gray.opacity(0.35), lineWidth: 0.5)
+                        .stroke(borderColor, lineWidth: 0.5)
                 )
 
-            // 横线层
-            // Canvas 高度跟 NSTextView 文字内容高度一致（通过 sizeThatFits 实现）
-            // 第一行底 y=32（textContainerInset.top 8 + 行高 24），最后一条 = size.height - 8
+            // 内容：左侧标签栏 + 右侧输入区（横线只在右侧）
+            HStack(spacing: 0) {
+                // 左侧标签栏
+                VStack(spacing: 0) {
+                    labelView("标题")
+                    ForEach(appState.currentCardType.fields, id: \.self) { field in
+                        labelView(field)
+                    }
+                    Spacer()
+                    typeButton
+                }
+                .frame(width: labelWidth)
+                .padding(.leading, 12)
+
+                // 右侧输入区
+                ZStack(alignment: .topLeading) {
+                    ruledPaper
+                    inputsColumn
+                }
+                .padding(.trailing, 12)
+            }
+            .padding(.top, 30)
+            .padding(.bottom, 12)
+
+            // 卡片类型选择浮动层（内联浮在卡片上方，不是弹窗/popover）
+            if showingTypePicker {
+                // 点击空白处收起
+                Rectangle()
+                    .fill(Color.clear)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        showingTypePicker = false
+                    }
+
+                VStack {
+                    Spacer()
+                    CardTypePickerView(selectedType: appState.currentCardType) { type in
+                        appState.requestCardTypeChange(to: type)
+                        showingTypePicker = false
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(cardBackground)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(borderColor, lineWidth: 0.5)
+                            )
+                            .shadow(color: .black.opacity(colorScheme == .dark ? 0.35 : 0.12), radius: 10, x: 0, y: -3)
+                    )
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 44)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func labelView(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.secondary)
+            .frame(height: lineHeight, alignment: .topTrailing)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.trailing, 10)
+    }
+
+    private var typeButton: some View {
+        Button {
+            showingTypePicker = true
+        } label: {
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(appState.currentCardType.color)
+                    .frame(width: 6, height: 6)
+                Text(appState.currentCardType.rawValue)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.primary)
+            }
+            .frame(height: lineHeight)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.trailing, 10)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var ruledPaper: some View {
+        GeometryReader { _ in
             Canvas { context, size in
                 guard size.height > 40 else { return }
-                let lineHeight: CGFloat = 24
-                let firstY: CGFloat = 32
+                let firstY: CGFloat = lineHeight
                 let lastY: CGFloat = size.height - 8
                 var y = firstY
                 while y <= lastY {
                     var path = Path()
                     path.move(to: CGPoint(x: 0, y: y))
                     path.addLine(to: CGPoint(x: size.width, y: y))
-                    context.stroke(path, with: .color(.black), lineWidth: 0.8)
+                    context.stroke(path, with: .color(lineStrokeColor), lineWidth: 0.8)
                     y += lineHeight
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .padding(30)  // 编辑区和圆角矩形之间的 30pt 间隙
-
-            // 文字层
-            SingleTextView(text: $text, isFocused: $isFocused)
-                .padding(30)  // 文字层也在内
         }
+    }
+
+    private var inputsColumn: some View {
+        VStack(spacing: 0) {
+            // 标题输入（多行，无字数限制）
+            fieldEditor(text: titleBinding)
+
+            // 动态字段
+            ForEach(appState.currentCardType.fields, id: \.self) { fieldName in
+                fieldEditor(text: fieldBinding(for: fieldName))
+            }
+
+            Spacer()
+
+            // 底部行：标签 + UUID（永远沉底）
+            bottomMetaRow
+        }
+    }
+
+    private func fieldEditor(text: Binding<String>) -> some View {
+        TextEditor(text: text)
+            .font(.system(size: contentFontSize))
+            .lineSpacing(6)
+            .scrollContentBackground(.hidden)
+            .background(Color.clear)
+            .frame(minHeight: lineHeight * 3, alignment: .topLeading)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var bottomMetaRow: some View {
+        HStack(spacing: 8) {
+            // 标签区
+            HStack(spacing: 4) {
+                ForEach(appState.currentCardTags, id: \.self) { tag in
+                    TagPill(tag: tag)
+                }
+                if isAddingTag {
+                    TextField("标签", text: $newTagText)
+                        .textFieldStyle(.plain)
+                        .frame(width: 80)
+                        .onSubmit {
+                            addTag()
+                        }
+                } else {
+                    Button {
+                        isAddingTag = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 18, height: 18)
+                    }
+                    .buttonStyle(.plain)
+                    .kajiHover(cornerRadius: 9, restingBackground: .clear)
+                }
+            }
+
+            Spacer()
+
+            Text(appState.currentCard?.displayID ?? "")
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+        }
+        .frame(height: lineHeight)
+    }
+
+    private var titleBinding: Binding<String> {
+        Binding(
+            get: { appState.currentCard?.title ?? "" },
+            set: { newValue in
+                guard var card = appState.currentCard else { return }
+                card.title = newValue
+                appState.currentCard = card
+                appState.saveImmediately()
+            }
+        )
+    }
+
+    private func fieldBinding(for fieldName: String) -> Binding<String> {
+        Binding(
+            get: {
+                appState.currentCard?.value(ofField: fieldName) ?? ""
+            },
+            set: { newValue in
+                guard var card = appState.currentCard else { return }
+                if let idx = card.fields.firstIndex(where: { $0.fieldName == fieldName }) {
+                    card.fields[idx].fieldValue = newValue
+                } else {
+                    let order = card.fields.count
+                    card.fields.append(
+                        CardField(cardId: card.id, fieldName: fieldName, fieldValue: newValue, fieldOrder: order)
+                    )
+                }
+                appState.currentCard = card
+                appState.saveImmediately()
+            }
+        )
+    }
+
+    private func addTag() {
+        let trimmed = newTagText.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else {
+            isAddingTag = false
+            newTagText = ""
+            return
+        }
+        appState.currentCardTags.append(trimmed)
+        if var card = appState.currentCard {
+            card.tags = appState.currentCardTags
+            appState.currentCard = card
+            appState.saveImmediately()
+        }
+        newTagText = ""
+        isAddingTag = false
+    }
+}
+
+// MARK: - 卡片类型选择器（内联浮动层）
+
+private struct CardTypePickerView: View {
+    let selectedType: CardType
+    let onSelect: (CardType) -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(CardType.allCases) { type in
+                Button {
+                    onSelect(type)
+                } label: {
+                    VStack(spacing: 4) {
+                        Circle()
+                            .fill(type.color)
+                            .frame(width: 7, height: 7)
+                        Text(type.rawValue)
+                            .font(.system(size: 10))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                    }
+                    .frame(width: 46, height: 42)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(selectedType == type ? Color(nsColor: .selectedControlColor) : Color.clear)
+                    )
+                    .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+// MARK: - 旧单编辑器（已弃用，保留以避免引用断裂）
+
+private struct SingleEditor: View {
+    @Binding var text: String
+    @FocusState private var isFocused: Bool
+    @Environment(\.colorScheme) var colorScheme
+
+    private var cardBackground: Color {
+        colorScheme == .dark
+            ? Color(nsColor: .textBackgroundColor)
+            : Color.white
+    }
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(cardBackground)
+            .frame(height: 100)
     }
 }
 
@@ -357,8 +644,6 @@ private struct SingleTextView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSTextView.scrollableTextView()
-        // 必须先创建 textContainer 传给 NSTextView，否则 layoutManager / textStorage 不会自动建立
-        // 这是导致之前 NSTextView 完全不能编辑的根因
         let textContainer = (scrollView.documentView as? NSTextView)?.textContainer
             ?? NSTextContainer(size: NSSize(width: 100, height: 100))
         let textView = LinedTextView(frame: NSRect(x: 0, y: 0, width: 100, height: 100), textContainer: textContainer)
@@ -370,7 +655,6 @@ private struct SingleTextView: NSViewRepresentable {
         textView.textContainer?.widthTracksTextView = true
         scrollView.documentView = textView
 
-        // macOS Notes 风格滚动条：默认隐藏，内容溢出时自动出现（浮层灰色）
         scrollView.hasVerticalScroller = true
         scrollView.autohidesScrollers = true
         scrollView.hasHorizontalScroller = false
@@ -389,7 +673,6 @@ private struct SingleTextView: NSViewRepresentable {
         textView.backgroundColor = .clear
         textView.drawsBackground = false
 
-        // 行间距 + 段落最小/最大行高（24pt 紧凑）
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = 6
         paragraphStyle.minimumLineHeight = 24
@@ -402,16 +685,13 @@ private struct SingleTextView: NSViewRepresentable {
         ]
 
         textView.string = text
-
         context.coordinator.text = text
 
-        // 强制 NSTextView 立即重绘（让自定义横线在第一次显示时就画出来）
         textView.needsDisplay = true
         scrollView.needsDisplay = true
 
         DispatchQueue.main.async {
             isFocused.wrappedValue = true
-            // 二次触发重绘（layoutManager 第一次完成布局后再画）
             textView.needsDisplay = true
         }
         return scrollView
@@ -419,12 +699,10 @@ private struct SingleTextView: NSViewRepresentable {
 
     func updateNSView(_ nsView: NSScrollView, context: Context) {
         guard let textView = nsView.documentView as? NSTextView else { return }
-        // 外部值变化才重写文本
         if context.coordinator.text != text {
             textView.string = text
             context.coordinator.text = text
         }
-        // 每次 SwiftUI 重绘都强制 NSTextView 重绘
         textView.needsDisplay = true
     }
 

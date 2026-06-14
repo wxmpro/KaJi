@@ -63,6 +63,10 @@ final class AppState: ObservableObject {
     // 设置
     @Published var showingSettings: Bool = false
 
+    // 卡片类型切换确认
+    @Published var showingTypeChangeAlert: Bool = false
+    @Published var pendingCardType: CardType? = nil
+
     // MARK: - 右栏模式（v8.0.0：两栏 + 右栏动态切换）
     // .editor = 当前编辑的卡（SingleEditor）
     // .list   = 卡片列表（CardListView），由侧栏类型/标签/回收站触发
@@ -176,6 +180,67 @@ final class AppState: ObservableObject {
             }
         }
         currentCardDraft = draft
+    }
+
+    /// 当前卡片是否已有内容（用于判断能否直接切换卡片类型）
+    var currentCardHasContent: Bool {
+        guard let card = currentCard else { return false }
+        if !card.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        return card.fields.contains {
+            !$0.fieldValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    /// 用户请求切换卡片类型：有内容时弹出确认，无内容时直接切换
+    func requestCardTypeChange(to type: CardType) {
+        guard type != currentCardType else { return }
+        if currentCardHasContent {
+            pendingCardType = type
+            showingTypeChangeAlert = true
+        } else {
+            applyCardTypeChange(to: type)
+        }
+    }
+
+    /// 确认切换：清空字段并按新类型重建结构
+    func confirmPendingCardTypeChange() {
+        guard let type = pendingCardType else { return }
+        applyCardTypeChange(to: type)
+        pendingCardType = nil
+    }
+
+    private func applyCardTypeChange(to type: CardType) {
+        currentCardType = type
+        if var card = currentCard {
+            card.type = type.rawValue
+            card.fields = type.fields.enumerated().map { idx, name in
+                CardField(cardId: card.id, fieldName: name, fieldValue: "", fieldOrder: idx)
+            }
+            // 标题保留，因为标题是通用字段
+            currentCard = card
+            saveImmediately()
+        }
+    }
+
+    /// 复制当前卡片全部内容到剪贴板（Markdown 格式）
+    func copyAllContentToPasteboard() {
+        guard let card = currentCard else { return }
+        var lines: [String] = []
+        lines.append("## \(card.cardType.rawValue)")
+        lines.append("")
+        lines.append("**标题：** \(card.title)")
+        for field in card.orderedFields {
+            lines.append("")
+            lines.append("**\(field.fieldName)：** \(field.fieldValue)")
+        }
+        lines.append("")
+        lines.append("**唯一编码：** \(card.displayID)")
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(lines.joined(separator: "\n"), forType: .string)
     }
 
     // MARK: - 自动保存
