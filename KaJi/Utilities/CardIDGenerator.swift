@@ -40,6 +40,8 @@ struct CardIDGenerator {
         // 用 DateComponents 提时间位（防 Date 跨时区错乱）
         let comps = cal.dateComponents([.year, .month, .day, .hour, .minute, .second, .nanosecond], from: now)
 
+        // v1.2.8 P2-4 修复：把 guard 后的 comps 字段解包后存到 var（y/m/d/h/m/s/ns），
+        // 后续冲突兜底用 var 而不是 force unwrap (bumpedComps.year! 等)
         guard let y = comps.year, let m = comps.month, let d = comps.day,
               let h = comps.hour, let mi = comps.minute, let s = comps.second,
               let ns = comps.nanosecond else {
@@ -56,7 +58,11 @@ struct CardIDGenerator {
         var attempt = 0
         var bumpedMs = ms
         var bumpedSec = s
-        var bumpedComps = comps
+        var bumpedY = y
+        var bumpedMo = m
+        var bumpedD = d
+        var bumpedH = h
+        var bumpedMi = mi
         while attempt < 1000 {
             attempt += 1
             bumpedMs += 1
@@ -74,7 +80,7 @@ struct CardIDGenerator {
                           let ns2 = newComps.nanosecond else {
                         throw IDError.systemClockMalfunction
                     }
-                    bumpedComps = newComps
+                    bumpedY = y2; bumpedMo = m2; bumpedD = d2; bumpedH = h2; bumpedMi = mi2
                     let newPrefix = String(format: "%04d%02d%02d%02d%02d%02d", y2, m2, d2, h2, mi2, s2)
                     let newMs = ns2 / 1_000_000
                     let cand = String(format: "%@%03d", newPrefix, newMs)
@@ -82,7 +88,7 @@ struct CardIDGenerator {
                     continue
                 }
             }
-            let prefix2 = String(format: "%04d%02d%02d%02d%02d%02d", bumpedComps.year!, bumpedComps.month!, bumpedComps.day!, bumpedComps.hour!, bumpedComps.minute!, bumpedSec)
+            let prefix2 = String(format: "%04d%02d%02d%02d%02d%02d", bumpedY, bumpedMo, bumpedD, bumpedH, bumpedMi, bumpedSec)
             let cand = String(format: "%@%03d", prefix2, bumpedMs)
             if !existing.contains(cand) { return cand }
         }

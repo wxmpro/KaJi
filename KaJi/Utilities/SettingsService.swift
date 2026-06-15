@@ -13,7 +13,6 @@ import Foundation
 enum SettingsService {
     // MARK: - 键名
     private static let themeKey = "KaJi.theme"
-    private static let launchBehaviorKey = "KaJi.launchBehavior"
     private static let autoSaveIntervalKey = "KaJi.autoSaveInterval"
     private static let trashRetentionDaysKey = "KaJi.trashRetentionDays"
 
@@ -31,20 +30,6 @@ enum SettingsService {
             case .follow: return "跟随系统"
             case .light:  return "浅色"
             case .dark:   return "深色"
-            }
-        }
-    }
-
-    enum LaunchBehavior: String, CaseIterable, Identifiable {
-        case newCard = "newCard"
-        case lastState = "lastState"
-
-        var id: String { rawValue }
-
-        var displayName: String {
-            switch self {
-            case .newCard:   return "新建卡片"
-            case .lastState: return "恢复上次状态"
             }
         }
     }
@@ -80,25 +65,29 @@ enum SettingsService {
         }
     }
 
-    // MARK: - 启动行为
-
-    static var launchBehavior: LaunchBehavior {
-        get {
-            LaunchBehavior(rawValue: UserDefaults.standard.string(forKey: launchBehaviorKey) ?? "newCard") ?? .newCard
-        }
-        set {
-            UserDefaults.standard.set(newValue.rawValue, forKey: launchBehaviorKey)
-        }
-    }
-
     // MARK: - 自动保存间隔
+
+    // v1.2.8 P1-3 修复：cache UserDefaults 值，避免每次 debounce 都 double 读 + > 0 判断。
+    // 旧实现每次 PersistenceCoordinator.debounce 触发时读一次 UserDefaults +
+    // `> 0 ? value : 0.8` fallback（虽然 UserDefaults 内部有缓存，但 fallback 逻辑每次跑）。
+    // 新实现：首次 getter 从 UserDefaults 读，后续 getter 直接返回 cache；
+    // setter 同时更新 cache 和 UserDefaults，保证一致性。
+    // 0 UI 风险：值在 setter 之前的任何时刻都跟 UserDefaults 同步。
+    private static var cachedAutoSaveInterval: TimeInterval = 0.8
+    private static var autoSaveIntervalLoaded: Bool = false
 
     static var autoSaveInterval: TimeInterval {
         get {
-            let value = UserDefaults.standard.double(forKey: autoSaveIntervalKey)
-            return value > 0 ? value : 0.8
+            if !autoSaveIntervalLoaded {
+                let value = UserDefaults.standard.double(forKey: autoSaveIntervalKey)
+                cachedAutoSaveInterval = value > 0 ? value : 0.8
+                autoSaveIntervalLoaded = true
+            }
+            return cachedAutoSaveInterval
         }
         set {
+            cachedAutoSaveInterval = newValue > 0 ? newValue : 0.8
+            autoSaveIntervalLoaded = true
             UserDefaults.standard.set(newValue, forKey: autoSaveIntervalKey)
         }
     }

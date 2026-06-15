@@ -56,11 +56,19 @@ final class EditorState: ObservableObject {
         // 1. 先初始化所有 @Published 基本状态
         isInMemoryDB = AppDatabase.shared.isInMemory
 
-        // init 不再阻塞主线程：后台异步生成首张空白卡。
-        // currentCard 默认为 nil 期间，FormEditor 会显示空 TextEditor（与历史
-        // "生成失败时 currentCard=nil" 的 UI 行为完全一致）。
+        // v1.2.8 P1-4 修复：把 reconcile 和 generateNewCard 从并行改为串行，
+        // 避免启动期 ⌘N 竞争 — generateNewCard 读到的 existing IDs
+        // 不会包含 reconcile 即将恢复的卡 → 同一毫秒可能 id 冲突。
+        // 串行执行：reconcile + generateNewCard 顺序；reconcile 期间
+        // currentCard 仍为 nil，reconcile 完成后才生成首卡。
+        // 串行额外延迟 = reconcile 时间（典型 < 100ms, 用户不可感知）。
+        // 0 UI 视觉变化：用户感知的是"启动后首卡出现"，不是"启动后立刻看到"。
         Task { @MainActor in
             do {
+                // 先 bootstrap(reconcile + purgeOldTrash)
+                try await cardService.bootstrap(retentionDays: SettingsService.trashRetentionDays)
+                statsState.rebuildStats()
+                // 再生成首卡（此时 allIDs 已包含 reconcile 恢复的卡）
                 let card = try await cardService.generateNewCard(type: .free)
                 currentCard = card
                 currentCardType = .free
@@ -70,16 +78,6 @@ final class EditorState: ObservableObject {
                 currentCardType = .free
                 currentCardTags = []
                 saveError = "无法生成新卡编码：\(error.localizedDescription)"
-            }
-        }
-
-        // 2. 启动时跑清理 + 预计算侧栏统计：放到后台，避免 init 阻塞主线程（H-2）
-        Task {
-            do {
-                try await cardService.bootstrap(retentionDays: SettingsService.trashRetentionDays)
-                statsState.rebuildStats()
-            } catch {
-                saveError = "启动清理失败：\(error.localizedDescription)"
             }
         }
     }

@@ -272,6 +272,15 @@ struct FormEditor: View {
             newTagText = ""
             return
         }
+        // v1.2.8 P2-3 修复：append 前去重（忽略大小写），防止库内出现重复 tag
+        guard !editorState.currentCardTags.contains(where: {
+            $0.caseInsensitiveCompare(trimmed) == .orderedSame
+        }) else {
+            // 已存在，清空输入框并退出输入态，不重复添加
+            newTagText = ""
+            isAddingTag = false
+            return
+        }
         editorState.currentCardTags.append(trimmed)
         if var card = editorState.currentCard {
             card.tags = editorState.currentCardTags

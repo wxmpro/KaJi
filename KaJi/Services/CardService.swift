@@ -82,9 +82,15 @@ final class CardService: @unchecked Sendable {
         return try await Task.detached(priority: .utility) {
             let cards = try repo.allCards(includeDeleted: true)
 
-            var typeDict: [CardType: Int] = [:]
-            for type in CardType.allCases {
-                typeDict[type] = cards.filter { $0.cardType == type && $0.deletedAt == nil }.count
+            // v1.2.8 P1-2 修复：typeDict 计算 O(12N) → O(N)
+            // 旧实现对 12 个 CardType 各做一次 cards.filter,每次 O(N),总 O(12N)
+            // 新实现:Dictionary 预填 0 + 单次遍历所有 cards 累加,总 O(N)
+            // 0 UI 风险,纯聚合逻辑,结果完全一致
+            var typeDict: [CardType: Int] = Dictionary(
+                uniqueKeysWithValues: CardType.allCases.map { ($0, 0) }
+            )
+            for card in cards where card.deletedAt == nil {
+                typeDict[card.cardType, default: 0] += 1
             }
 
             var tagDict: [String: Int] = [:]
