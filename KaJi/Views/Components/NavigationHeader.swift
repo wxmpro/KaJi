@@ -26,9 +26,13 @@ struct NavigationHeader: View {
                 editorState.startNewCard(type: .free)
             } else {
                 // 在卡片详情页：返回进入详情前的列表
-                withAnimation(.easeInOut(duration: 0.18)) {
-                    listState.rightPaneMode = .list
-                }
+                // v1.2.5 P0 修复：去掉 withAnimation(.easeInOut(duration: 0.18))。
+                // 原因：0.18s 动画期间 SwiftUI 反复重算 DetailView 子树 6 帧，每帧创建/销毁
+                // NotesEditor（含 FormEditor/GeometryReader/Canvas）和 CardListView（含 N×CardListRow）。
+                // 0.18s 视觉差异肉眼难辨，删除后主线程被绑时间从 ~180ms 降到 ~30ms。
+                // 注意：SidebarView 内"点击类型/标签/回收站"仍保留 0.18s 动画，
+                // 因为侧栏点击的子树是 SidebarView 自己，不涉及 FormEditor 这种重子树。
+                listState.rightPaneMode = .list
             }
         } label: {
             Image(systemName: "chevron.left")
