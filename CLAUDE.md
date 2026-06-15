@@ -26,6 +26,74 @@
   - 颜色 → `NSColor` 系统语义色
 - **禁止引入新 bug**：每次改完先自检 ①已确认的功能没坏 ②新功能自己跑一遍 ③没有死代码/硬编码/凑合的临时方案。确认前不要交付给用户。
 
+## 0.2 GitHub 推送与版本号铁律
+
+**原则：每一次推送到 GitHub 都必须是一个带版本号的正式版本。没有版本号的推送不允许发生。**
+
+### 版本号格式
+
+采用语义化版本 `MAJOR.MINOR.PATCH`：
+
+- **MAJOR**：不兼容的破坏性变更、用户数据格式变更、核心交互范式改变
+- **MINOR**：新功能、架构重构、较大的模块拆分、影响面较广的内部改造
+- **PATCH**：bugfix、小优化、UI 微调、文案调整
+
+### 每次推送前必须完成以下四步
+
+1. **更新版本号**
+   - 修改 `KaJi.xcodeproj/project.pbxproj`：
+     - `MARKETING_VERSION` → 新的 `MAJOR.MINOR.PATCH`
+     - `CURRENT_PROJECT_VERSION` → build 号递增
+   - 这是硬性要求，**禁止**在版本号未更新的情况下推送。
+
+2. **写清楚 commit message**
+   - 第一行必须是：`release: KaJi vX.Y.Z`
+   - 正文必须列出本次版本更新的核心内容，包含：
+     - 版本号变化
+     - 主要改动分类
+     - 验证结果（build 是否通过）
+
+3. **创建 git tag**
+   - 必须打 tag：`git tag vX.Y.Z`
+   - **禁止覆盖已有 tag**。如果 `vX.Y.Z` 已存在，必须递增版本号，不能强制推送 tag。
+
+4. **验证通过**
+   - 推送前必须执行完整 build：
+     ```bash
+     DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+     xcodebuild -project KaJi.xcodeproj -scheme KaJi -destination 'platform=macOS' build
+     ```
+   - **BUILD FAILED 时禁止推送**。
+
+### 推送命令
+
+```bash
+git add .
+git commit -F /tmp/release_vX.Y.Z_msg.txt   # 使用写好的 release message
+git tag vX.Y.Z
+git push origin main
+git push origin vX.Y.Z
+```
+
+### 禁止事项
+
+- **禁止无版本号推送**
+- **禁止 build 失败时推送**
+- **禁止覆盖已有 tag**
+- **禁止同一版本号重复推送不同 commit**
+- **禁止只推送代码不推送 tag**
+
+### 版本号决策示例
+
+| 改动类型 | 正确版本号变化 | 示例 |
+|----------|----------------|------|
+| 修复一个 UI bug | PATCH 递增 | `1.2.0` → `1.2.1` |
+| 新增一个设置项 | MINOR 递增 | `1.2.1` → `1.3.0` |
+| 重构 AppState 拆分 | MINOR 递增 | `1.1.2` → `1.2.0` |
+| 用户数据格式不兼容升级 | MAJOR 递增 | `1.x.x` → `2.0.0` |
+
+> 用户最严厉的约束：**推送一次就是一个版本号。版本号不是装饰，是每次交付的必备身份。**
+
 ## 1. 全局思考（修 bug 时）
 
 - **影响面**：改了某个文件，会不会影响其他视图、布局、交互、状态？
