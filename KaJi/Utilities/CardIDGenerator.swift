@@ -93,7 +93,4 @@ struct CardIDGenerator {
     static func isValid(_ id: String) -> Bool {
         id.count == 17 && id.allSatisfy { $0.isNumber }
     }
-
-    /// 14 位显示用（前缀）
-    static func displayID(of id: String) -> String { String(id.prefix(14)) }
 }

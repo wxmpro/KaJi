@@ -21,7 +21,6 @@ settings:
     CODE_SIGN_IDENTITY: "-"
     DEVELOPMENT_TEAM: ""
     SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
-    OTHER_SWIFT_FLAGS: "-suppress-warnings"
     ENABLE_USER_SCRIPT_SANDBOXING: NO
 
 packages:
@@ -42,8 +41,8 @@ targets:
     info:
       path: KaJi/Info.plist
       properties:
-        CFBundleName: 卡迹
-        CFBundleDisplayName: 卡迹 KaJi
+        CFBundleName: KaJi
+        CFBundleDisplayName: KaJi
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundlePackageType: APPL

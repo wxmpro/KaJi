@@ -8,7 +8,7 @@
 //    2. cardFields     — EAV 模式字段
 //    3. tags           — 标签
 //    4. cardTags       — 卡-标签 M:N
-//    5. cardsFts       — FTS5 全文搜索（unicode61；trigram 升级 R-04 待跟进）
+//  搜索统一走 StatsState.cachedCards 内存 filter，不再维护 FTS5 虚拟表。
 //
 //  + 1 张 v1.0 回收站表实现：
 //    deletedCards     — deletedAt 非空的卡（30 天后启动时清理）
@@ -22,7 +22,7 @@
 //
 
 import Foundation
-import GRDB
+@preconcurrency import GRDB
 
 final class AppDatabase: @unchecked Sendable {
 
@@ -41,8 +41,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 统一 DB 访问 — Pool（文件）或 Queue（in-memory）共用一个协议
     let dbWriter: any DatabaseWriter
-    /// 仅在 isInMemory == false 时可用；fallback 模式下为 nil
-    var dbPool: DatabasePool? { dbWriter as? DatabasePool }
     let isInMemory: Bool
 
     private init(useInMemory: Bool) throws {
@@ -119,18 +117,12 @@ final class AppDatabase: @unchecked Sendable {
                     .references("tags", onDelete: .cascade)
                 t.primaryKey(["cardId", "tagId"])
             }
+        }
 
-            // 5. FTS5 虚拟表 — tokenizer = trigram
-            //    决策见 2026-06-10-database-selection.md §5.2 实测 + 2026-06-13/14 session 决策
-            //    v1.0 一次到位：trigram 3 字符以上中文召回 100%，零新依赖（系统 libsqlite3 自带 FTS5）
-            //    v1.1+ 评估升 ICU（+30MB 依赖），见设计文档 R-04
-            //    GRDB v7.11.0 工厂方法没暴露 trigram，用 components 显式构造
-            try db.create(virtualTable: "cardsFts", using: FTS5()) { t in
-                t.column("id")           // 用于回查 cards.id
-                t.column("title")
-                t.column("fieldValue")
-                t.tokenizer = FTS5TokenizerDescriptor(components: ["trigram"])
-            }
+        m.registerMigration("v1.1_drop_fts5") { db in
+            // H-1：搜索统一走 AppState.cachedCards 内存 filter，不再维护 FTS5 索引。
+            // 删除旧版可能存在的 cardsFts 虚拟表，释放空间并避免歧义。
+            try db.execute(sql: "DROP TABLE IF EXISTS cardsFts")
         }
 
         return m

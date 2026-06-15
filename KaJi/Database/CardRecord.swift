@@ -8,7 +8,7 @@
 //
 
 import Foundation
-import GRDB
+@preconcurrency import GRDB
 
 struct CardRecord: Codable, FetchableRecord, MutablePersistableRecord {
     static let databaseTableName = "cards"

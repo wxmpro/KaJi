@@ -5,12 +5,12 @@
 //  macOS 原生窗口设计：
 //  - .titled + .closable + .miniaturizable + .resizable = 系统画整窗 4 圆角 + traffic-lights + titlebar
 //  - titlebar 透明，侧栏顶到 (0, 0)，traffic-lights 自然落在侧栏圆角矩形内
-//  - 通过 NSHostingController 注入 AppState，供全 UI 层 @EnvironmentObject 使用
+//  - 通过 NSHostingController 注入 EditorState / ListState / StatsState，
+//    供全 UI 层 @EnvironmentObject 使用。
 //
 
 import SwiftUI
 import AppKit
-import Combine
 
 @main
 struct KaJiApp: App {
@@ -20,6 +20,100 @@ struct KaJiApp: App {
         Settings {
             SettingsView()
         }
+        .commands {
+            // MARK: File Menu
+            CommandMenu("文件") {
+                Button("新建卡片") {
+                    appDelegate.editorState.startNewCard(type: .free)
+                }
+                .keyboardShortcut("n", modifiers: .command)
+
+                Divider()
+
+                Button("导出当前卡片") {
+                    guard let card = appDelegate.editorState.currentCard else { return }
+                    ExportService.exportCard(card)
+                }
+                .keyboardShortcut("e", modifiers: .command)
+
+                Button("导出全部卡片") {
+                    ExportService.exportAll()
+                }
+                .keyboardShortcut("E", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button("关闭窗口") {
+                    appDelegate.closeMainWindow()
+                }
+                .keyboardShortcut("w", modifiers: .command)
+            }
+
+            // MARK: Edit Menu
+            CommandMenu("编辑") {
+                Button("撤销") {
+                    appDelegate.editorState.undoManager?.undo()
+                }
+                .keyboardShortcut("z", modifiers: .command)
+
+                Button("重做") {
+                    appDelegate.editorState.undoManager?.redo()
+                }
+                .keyboardShortcut("Z", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button("剪切") {
+                    NSApp.sendAction(#selector(NSText.cut(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("x", modifiers: .command)
+
+                Button("拷贝") {
+                    NSApp.sendAction(#selector(NSText.copy(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("c", modifiers: .command)
+
+                Button("粘贴") {
+                    NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("v", modifiers: .command)
+
+                Button("全选") {
+                    NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("a", modifiers: .command)
+
+                Divider()
+
+                Button("删除") {
+                    guard let card = appDelegate.editorState.currentCard else { return }
+                    appDelegate.editorState.softDeleteCard(card)
+                }
+                .keyboardShortcut(.delete, modifiers: .command)
+            }
+
+            // MARK: View Menu
+            CommandMenu("显示") {
+                Button("切换侧栏") {
+                    appDelegate.editorState.toggleSidebar()
+                }
+                .keyboardShortcut("s", modifiers: [.command, .control])
+
+                Button("进入全屏幕") {
+                    appDelegate.toggleFullScreen()
+                }
+                .keyboardShortcut("f", modifiers: [.command, .control])
+            }
+
+            // MARK: Help Menu
+            CommandMenu("帮助") {
+                Button("KaJi 帮助") {
+                    guard let url = URL(string: "https://github.com/xinmin/kaji") else { return }
+                    NSWorkspace.shared.open(url)
+                }
+                .keyboardShortcut("?", modifiers: .command)
+            }
+        }
     }
 }
 
@@ -27,7 +121,10 @@ struct KaJiApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var mainWindow: NSWindow?
-    private let appState = AppState()
+
+    private(set) lazy var statsState = StatsState()
+    private(set) lazy var listState = ListState(statsState: statsState)
+    private(set) lazy var editorState = EditorState(statsState: statsState, listState: listState)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -39,6 +136,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         SettingsService.restoreThemeOnLaunch()
     }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        editorState.flushSave()
+        return .terminateNow
+    }
+
+    // MARK: - Window Actions (called from SwiftUI .commands)
+
+    func closeMainWindow() {
+        editorState.flushSave()
+        mainWindow?.close()
+    }
+
+    func toggleFullScreen() {
+        mainWindow?.toggleFullScreen(nil)
+    }
+
+    @objc private func windowWillClose(_ notification: Notification) {
+        editorState.flushSave()
+    }
+
+    // MARK: - Window Creation
 
     private func createMainWindow() -> NSWindow {
         guard let screen = NSScreen.main else {
@@ -68,7 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = ""
         window.isReleasedWhenClosed = false
         window.isMovableByWindowBackground = true
-        window.backgroundColor = .white
+        window.backgroundColor = .windowBackgroundColor
 
         // titlebar 透明 + 文字隐藏（保留 system traffic-lights）
         window.titlebarAppearsTransparent = true
@@ -83,12 +202,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 记住用户上次调整的窗口大小 / 位置；首次启动用上面算出的默认 frame
         window.setFrameAutosaveName("KaJiMainWindow")
 
-        // content = SwiftUI MainView（NSHostingController）— 注入 AppState
+        // content = SwiftUI MainView（NSHostingController）— 注入各状态对象
         // 使用 contentViewController 而非把 NSHostingView 当子视图添加，
         // SwiftUI 才能正确把 NavigationSplitView 的侧边栏延伸到 titlebar 区域，
         // 让 traffic-lights 浮在侧栏内部（macOS 15 原生效果）。
         // 右上角搜索控件由 SwiftUI MainView 内部实现（避免 NSToolbar 撑开 titlebar）
-        let mainView = MainView().environmentObject(appState)
+        let mainView = MainView()
+            .environmentObject(editorState)
+            .environmentObject(listState)
+            .environmentObject(statsState)
         let hostingController = NSHostingController(rootView: mainView)
         window.contentViewController = hostingController
 
@@ -107,10 +229,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NotificationCenter.default.addObserver(
                 forName: name, object: window, queue: .main
             ) { [weak titlebarBackground] _ in
-                titlebarBackground?.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+                Task { @MainActor in
+                    titlebarBackground?.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+                }
             }
         }
         window.addTitlebarAccessoryViewController(titlebarAccessory)
+
+        // 窗口关闭前 flush 保存
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(windowWillClose(_:)),
+            name: NSWindow.willCloseNotification,
+            object: window
+        )
 
         // 双保险：hostingController.view 背景色
         hostingController.view.wantsLayer = true

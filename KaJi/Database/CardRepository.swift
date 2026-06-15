@@ -6,60 +6,20 @@
 //
 //  设计原则：
 //  1. .md 是 source of truth — 每次写入先写 .md，再更新 SQLite
-//  2. 单事务包裹"主表 + 字段表 + 标签关联 + FTS 索引"（R-03：写盘不是真原子但尽量紧凑）
+//  2. 单事务包裹"主表 + 字段表 + 标签关联"（R-03：写盘不是真原子但尽量紧凑）
 //  3. 读路径：直接查 SQLite（.md 不需要每次读）
-//  4. 全文搜索走 FTS5（unicode61）
+//  4. 搜索统一走内存缓存 filter（StatsState.cachedCards），不再维护 FTS5 索引
 //  5. 回收站：del(card) 改 deletedAt，不删 .md；restore 改回 null；purge 真删
 //
 
 import Foundation
-import GRDB
+@preconcurrency import GRDB
 
 final class CardRepository: @unchecked Sendable {
     fileprivate let db: AppDatabase
     static let shared = CardRepository()
 
     private init(db: AppDatabase = .shared) { self.db = db }
-
-    // MARK: - 创建
-
-    /// 创建新卡（同时写 .md 和 SQLite）
-    func create(card: Card) throws -> Card {
-        var c = card
-        // 3500 字截断（写盘前）
-        if ContentLimit.isOverLimit(card: c) {
-            c = ContentLimit.truncate(c)
-        }
-        // 写 .md
-        let mdURL = try CardFileIO.write(c)
-        // 写 SQLite
-        try db.dbWriter.write { grdb in
-            // cards
-            var cardRec = CardRecord(
-                id: c.id, type: c.type, title: c.title,
-                createdAt: iso8601(c.createdAt), updatedAt: iso8601(c.updatedAt),
-                deletedAt: c.deletedAt.map(iso8601),
-                filePath: mdURL.path, fileMtime: nil, fileHash: nil, fileSize: 0
-            )
-            try cardRec.insert(grdb)
-            // cardFields
-            for f in c.fields {
-                var fieldRec = CardFieldRecord(
-                    cardId: f.cardId, fieldName: f.fieldName,
-                    fieldValue: f.fieldValue, fieldOrder: f.fieldOrder
-                )
-                try fieldRec.insert(grdb)
-            }
-            // tags + cardTags
-            for tag in c.tags {
-                let tagRec = try ensureTag(named: tag, in: grdb)
-                try CardTagRecord(cardId: c.id, tagId: tagRec.id!).insert(grdb)
-            }
-            // FTS
-            try indexFTS(card: c, in: grdb)
-        }
-        return c
-    }
 
     // MARK: - 读取
 
@@ -82,20 +42,9 @@ final class CardRepository: @unchecked Sendable {
         }
     }
 
-    /// 回收站卡（deletedAt 非空）
-    func trashCards() throws -> [Card] {
-        try db.dbWriter.read { grdb in
-            let recs = try CardRecord.fetchAll(grdb, sql: """
-                SELECT * FROM cards WHERE deletedAt IS NOT NULL
-                ORDER BY deletedAt DESC
-                """)
-            return try recs.map { try hydrate(record: $0, in: grdb) }
-        }
-    }
-
     // MARK: - 更新
 
-    /// 更新一张卡（.md + SQLite + FTS）
+    /// 更新一张卡（.md + SQLite）
     func update(card: Card) throws -> Card {
         var c = card
         if ContentLimit.isOverLimit(card: c) {
@@ -132,9 +81,6 @@ final class CardRepository: @unchecked Sendable {
                 let tagRec = try ensureTag(named: tag, in: grdb)
                 try CardTagRecord(cardId: c.id, tagId: tagRec.id!).insert(grdb)
             }
-            // FTS — 删旧插新
-            try grdb.execute(sql: "DELETE FROM cardsFts WHERE id = ?", arguments: [c.id])
-            try indexFTS(card: c, in: grdb)
         }
         return c
     }
@@ -156,53 +102,6 @@ final class CardRepository: @unchecked Sendable {
         try db.dbWriter.write { grdb in
             try grdb.execute(sql: "UPDATE cards SET deletedAt = NULL, updatedAt = ? WHERE id = ?",
                              arguments: [now, id])
-        }
-    }
-
-    /// 彻底删除（不经过 30 天）
-    func hardDelete(id: String) throws {
-        try db.dbWriter.write { grdb in
-            try grdb.execute(sql: "DELETE FROM cards WHERE id = ?", arguments: [id])
-        }
-        try CardFileIO.delete(id: id)
-    }
-
-    // MARK: - 全文搜索
-
-    /// 关键词搜索（标题 + 字段值）
-    /// 走 FTS5（unicode61；中文按字切分 — R-04 升级 trigram 待跟进）
-    func search(keyword: String, includeDeleted: Bool = false) throws -> [Card] {
-        guard !keyword.isEmpty else { return try allCards(includeDeleted: includeDeleted) }
-        let escaped = keyword  // FTS5 quote: "  → ""
-        return try db.dbWriter.read { grdb in
-            // 用 prefix match * 让"心流"匹配"心流状态"
-            let pattern = "\"\(escaped)\"*"
-            let sql = """
-                SELECT c.* FROM cards c
-                JOIN cardsFts fts ON fts.id = c.id
-                WHERE cardsFts MATCH ?
-                \(includeDeleted ? "" : "AND c.deletedAt IS NULL")
-                ORDER BY c.createdAt DESC
-                """
-            let recs = try CardRecord.fetchAll(grdb, sql: sql, arguments: [pattern])
-            return try recs.map { try hydrate(record: $0, in: grdb) }
-        }
-    }
-
-    // MARK: - 标签
-
-    /// 全部标签（按 useCount DESC；用 COUNT(cardTags)）
-    func allTags() throws -> [(name: String, useCount: Int)] {
-        try db.dbWriter.read { grdb in
-            let rows = try Row.fetchAll(grdb, sql: """
-                SELECT t.name, COUNT(ct.cardId) as cnt
-                FROM tags t
-                LEFT JOIN cardTags ct ON ct.tagId = t.id
-                LEFT JOIN cards c ON c.id = ct.cardId AND c.deletedAt IS NULL
-                GROUP BY t.id
-                ORDER BY cnt DESC, t.name ASC
-                """)
-            return rows.map { (name: $0["name"] as String, useCount: $0["cnt"] as Int) }
         }
     }
 
@@ -240,14 +139,6 @@ final class CardRepository: @unchecked Sendable {
         var rec = TagRecord(id: nil, name: name)
         try rec.insert(grdb)
         return rec
-    }
-
-    /// 内部：写入 FTS
-    private func indexFTS(card: Card, in grdb: Database) throws {
-        let blob = card.orderedFields.map { $0.fieldValue }.joined(separator: " ")
-        try grdb.execute(sql: """
-            INSERT INTO cardsFts (id, title, fieldValue) VALUES (?, ?, ?)
-            """, arguments: [card.id, card.title, blob])
     }
 
     // MARK: - 公共辅助

@@ -66,16 +66,6 @@ struct CardFileIO {
         }
     }
 
-    /// 列出所有 .md 文件 id（用于 SQLite 全量重建）
-    static func listAllIDs() throws -> [String] {
-        try ensureDirectory(cardsDir)
-        let urls = try FileManager.default.contentsOfDirectory(at: cardsDir, includingPropertiesForKeys: nil)
-        return urls.compactMap { url in
-            let name = url.deletingPathExtension().lastPathComponent
-            return CardIDGenerator.isValid(name) ? name : nil
-        }
-    }
-
     // MARK: - 渲染：Card → Markdown
 
     /// 渲染为 Markdown + YAML frontmatter
@@ -177,10 +167,15 @@ struct CardFileIO {
         }
     }
 
-    private static func iso8601(_ d: Date) -> String {
+    // ISO8601DateFormatter 线程安全（Apple 文档），缓存避免每次写盘重复创建
+    nonisolated(unsafe) private static let isoFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f.string(from: d)
+        return f
+    }()
+
+    private static func iso8601(_ d: Date) -> String {
+        Self.isoFormatter.string(from: d)
     }
 
     private static func parseISO(_ s: String) -> Date? {
@@ -210,7 +205,7 @@ struct CardFileIO {
 // MARK: - String helper
 
 private extension String {
-    /// "key: value" → "value"（不区分大小写；只剥一次）
+    /// "key: value" -> "value"（不区分大小写；只剥一次）
     func stripping(prefix key: String) -> String? {
         let lower = self.lowercased()
         let kLower = key.lowercased()

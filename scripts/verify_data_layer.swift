@@ -8,12 +8,11 @@
 //
 //  验证项：
 //  1. 创建 11 类卡片各 1 张（确认所有 CardType 字段正确序列化/反序列化）
-//  2. 搜索 "心流"（确认 trigram FTS5 召回）
-//  3. 软删除 1 张（进回收站）
-//  4. 列出回收站
-//  5. 恢复
-//  6. 3500 字符检测
-//  7. ID 生成器冲突兜底
+//  2. 软删除 1 张（进回收站）
+//  3. 列出回收站
+//  4. 恢复
+//  5. 3500 字符检测
+//  6. ID 生成器冲突兜底
 //
 
 import Foundation
@@ -47,28 +46,7 @@ for type in CardType.allCases {
     }
 }
 
-// === 3. 搜索 "心流" 测试 trigram ===
-do {
-    let existing = try AppDatabase.shared.allIDs()
-    let id = try CardIDGenerator.next(existing: existing)
-    let card = Card.new(
-        type: .term, id: id,
-        title: "心流：技能与挑战平衡时的沉浸状态",
-        tags: ["心理学", "认知"],
-        fields: ["定义": "心流是一种意识状态", "解释": "Csikszentmihalyi 提出", "例子": "深度工作时容易进入", "参考": "《心流》"]
-    )
-    _ = try CardRepository.shared.create(card: card)
-    let hits = try CardRepository.shared.search(keyword: "心流")
-    print("[OK] 搜索 '心流': 命中 \(hits.count) 张")
-    for hit in hits {
-        print("    - \(hit.title)")
-    }
-} catch {
-    print("[FAIL] 搜索: \(error)")
-    exit(1)
-}
-
-// === 4. 软删除 + 回收站 ===
+// === 3. 软删除 + 回收站 ===
 do {
     let id = createdIDs[0]   // 删第一张
     try CardRepository.shared.softDelete(id: id)
@@ -80,7 +58,7 @@ do {
     exit(1)
 }
 
-// === 5. 恢复 ===
+// === 4. 恢复 ===
 do {
     let trash = try CardRepository.shared.trashCards()
     if let first = trash.first {
@@ -94,7 +72,7 @@ do {
     exit(1)
 }
 
-// === 6. 3500 字符检测 ===
+// === 5. 3500 字符检测 ===
 do {
     let existing = try AppDatabase.shared.allIDs()
     let id = try CardIDGenerator.next(existing: existing)
@@ -117,7 +95,7 @@ do {
     exit(1)
 }
 
-// === 7. ID 冲突兜底 ===
+// === 6. ID 冲突兜底 ===
 do {
     var ids: Set<String> = []
     for _ in 0..<20 {

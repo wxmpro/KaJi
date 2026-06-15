@@ -69,7 +69,7 @@ enum CardType: String, CaseIterable, Identifiable, Hashable {
         case .action:    return ["内容", "行动", "参考"]
         case .event:     return ["时间", "地点", "参与者", "经过", "理解", "参考"]
         case .graph:     return ["说明", "参考"]
-        case .index:     return ["引用的卡片", "参考"]
+        case .index:     return ["引用", "参考"]
         case .review:    return ["论点", "参考"]   // 6-14 用户：论述→论点，主题/要点删掉（标题即主题）
         case .free:      return ["内容", "参考"]   // 你新加的"内容"字段
         }

@@ -11,7 +11,8 @@ import AppKit
 enum SettingsService {
     enum ThemeMode { case follow, light, dark }
 
-    /// 应用主题 — 同时写到 UserDefaults 并同步到 NSApp + 所有窗口
+    /// 应用主题 — 写到 UserDefaults 并设到 NSApp；窗口创建时会跟随 NSApp.appearance
+    @MainActor
     static func applyTheme(_ mode: ThemeMode) {
         let key = "KaJi.theme"
         let appearance: NSAppearance?
@@ -28,16 +29,11 @@ enum SettingsService {
             appearance = NSAppearance(named: .darkAqua)
         }
         UserDefaults.standard.set(value, forKey: key)
-
         NSApp.appearance = appearance
-        for window in NSApp.windows {
-            window.appearance = appearance
-            // 强制 titlebar 区域重绘
-            window.contentView?.needsDisplay = true
-        }
     }
 
     /// 启动时恢复主题偏好
+    @MainActor
     static func restoreThemeOnLaunch() {
         let value = UserDefaults.standard.string(forKey: "KaJi.theme") ?? "follow"
         let appearance: NSAppearance?
@@ -47,8 +43,5 @@ enum SettingsService {
         default:       appearance = nil
         }
         NSApp.appearance = appearance
-        for window in NSApp.windows {
-            window.appearance = appearance
-        }
     }
 }
