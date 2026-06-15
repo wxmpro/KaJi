@@ -11,7 +11,7 @@
 //  搜索统一走 StatsState.cachedCards 内存 filter，不再维护 FTS5 虚拟表。
 //
 //  + 1 张 v1.0 回收站表实现：
-//    deletedCards     — deletedAt 非空的卡（30 天后启动时清理）
+//    deletedCards     — deletedAt 非空的卡（启动时按设置保留天数清理）
 //
 //  v1.0 简化：deletedCards 不新建表，复用 cards 表 + deletedAt 字段。
 //  清理策略：启动时 `DELETE FROM cards WHERE deletedAt IS NOT NULL AND deletedAt < ?`
@@ -128,11 +128,13 @@ final class AppDatabase: @unchecked Sendable {
         return m
     }
 
-    // MARK: - 启动时清理：30 天前的回收站卡彻底删
+    // MARK: - 启动时清理：N 天前的回收站卡彻底删除
 
-    /// 启动时调用一次：删除 30 天前的回收站卡
-    func purgeOldTrash() throws {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date())!
+    /// 启动时调用一次：删除超过 retentionDays 天的回收站卡
+    /// - Parameter retentionDays: 回收站保留天数；≤0 表示永不自动清理
+    func purgeOldTrash(retentionDays: Int) throws {
+        guard retentionDays > 0 else { return }
+        let cutoff = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date())!
         let cutoffStr = ISO8601DateFormatter().string(from: cutoff)
         try dbWriter.write { db in
             // 先查要删的 id

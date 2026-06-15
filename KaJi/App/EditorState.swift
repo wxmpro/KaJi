@@ -68,7 +68,7 @@ final class EditorState: ObservableObject {
 
         // 2. 启动时跑清理 + 预计算侧栏统计：放到后台，避免 init 阻塞主线程（H-2）
         Task {
-            try? await cardService.bootstrap()
+            try? await cardService.bootstrap(retentionDays: SettingsService.trashRetentionDays)
             statsState.rebuildStats()
         }
     }

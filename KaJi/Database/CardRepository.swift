@@ -143,9 +143,9 @@ final class CardRepository: @unchecked Sendable {
 
     // MARK: - 公共辅助
 
-    /// 启动时跑一次：清理 30 天前回收站
-    func bootstrap() throws {
-        try db.purgeOldTrash()
+    /// 启动时跑一次：清理超过保留天数的回收站卡
+    func bootstrap(retentionDays: Int) throws {
+        try db.purgeOldTrash(retentionDays: retentionDays)
     }
 
     // MARK: - 公共辅助

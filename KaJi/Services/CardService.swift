@@ -24,11 +24,12 @@ final class CardService: @unchecked Sendable {
 
     // MARK: - 启动与清理
 
-    /// 启动清理：在后台 utility 队列执行 30 天回收站 purge
-    func bootstrap() async throws {
+    /// 启动清理：在后台 utility 队列执行回收站 purge
+    /// - Parameter retentionDays: 回收站保留天数，由 SettingsService 提供
+    func bootstrap(retentionDays: Int) async throws {
         let repo = repository
         try await Task.detached(priority: .utility) {
-            try repo.bootstrap()
+            try repo.bootstrap(retentionDays: retentionDays)
         }.value
     }
 

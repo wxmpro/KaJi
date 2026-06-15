@@ -11,14 +11,14 @@ import Foundation
 @MainActor
 final class PersistenceCoordinator {
     private var saveWorkItem: DispatchWorkItem?
-    private static let saveDebounceInterval: TimeInterval = 0.8
 
     /// 防抖保存：取消上一个 pending 任务，延迟 interval 后执行
     func debounce(action: @escaping () -> Void) {
         saveWorkItem?.cancel()
+        let interval = SettingsService.autoSaveInterval
         let work = DispatchWorkItem { action() }
         saveWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.saveDebounceInterval, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + interval, execute: work)
     }
 
     /// 立即落库：取消 pending 并立刻执行
