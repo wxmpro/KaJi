@@ -10,9 +10,12 @@ import SwiftUI
 struct CardListRow: View {
     @EnvironmentObject var listState: ListState
     @EnvironmentObject var editorState: EditorState
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isHovering = false
     let card: Card
 
     var body: some View {
+        // v1.2.6+ UI 新增：列表行 hover 效果（跟侧栏同色：light=Color.gray.opacity(0.20)，dark=Color.white.opacity(0.10)）
         HStack(spacing: 0) {
             // 左侧垂直彩色条
             RoundedRectangle(cornerRadius: 2, style: .continuous)
@@ -57,7 +60,18 @@ struct CardListRow: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
+        .background(
+            // v1.2.7：列表行 hover 背景改成圆角矩形（6pt 圆角，跟侧栏 SidebarRowButtonStyle 一致）
+            // 之前是直接 fill Color,显示为长方形,跟整张卡的"圆角矩形"风格不一致
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(isHovering
+                    ? (colorScheme == .dark ? Color.white.opacity(0.10) : Color.gray.opacity(0.20))
+                    : Color.clear)
+        )
         .contentShape(Rectangle())
+        .onHover { hovering in
+            isHovering = hovering
+        }
         .contextMenu {
             Button("打开") {
                 listState.openCardFromList(card, editorState: editorState)

@@ -11,6 +11,7 @@ struct SidebarRow: View {
     enum Style { case large, small }
 
     @EnvironmentObject var editorState: EditorState
+    @Environment(\.colorScheme) private var colorScheme
     let title: String
     let icon: String
     let iconColor: Color
@@ -55,7 +56,7 @@ struct SidebarRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(SidebarRowButtonStyle())
+        .buttonStyle(SidebarRowButtonStyle(colorScheme: colorScheme))
         .contextMenu {
             Button("新建卡片") {
                 editorState.startNewCard(type: .free)

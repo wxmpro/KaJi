@@ -1,0 +1,37 @@
+//
+//  BackButton.swift
+//  KaJi — 卡迹 · Mac 原生卡片笔记
+//
+//  v1.2.6+ UI 重构：返回键从主内容顶部 NavigationHeader 移到 toolbar 区域
+//  （.cancellationAction placement，在搜索栏右侧），跟 searchable 同一水平线。
+//  行为完全保留：
+//    - 列表页点返回 → 开新空白卡（startNewCard）
+//    - 详情页点返回 → 回到列表（rightPaneMode = .list）
+//
+
+import SwiftUI
+
+struct BackButton: View {
+    @EnvironmentObject var listState: ListState
+    @EnvironmentObject var editorState: EditorState
+
+    var body: some View {
+        Button {
+            if listState.rightPaneMode == .list {
+                // 在列表页：返回 → 新建卡片
+                editorState.startNewCard(type: .free)
+            } else {
+                // 在卡片详情页：返回 → 回到列表
+                listState.rightPaneMode = .list
+            }
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Color.primary)
+                .frame(width: 32, height: 32)
+        }
+        .buttonStyle(.plain)
+        .help("返回")
+        .kajiHover(cornerRadius: 16, restingBackground: .clear)
+    }
+}

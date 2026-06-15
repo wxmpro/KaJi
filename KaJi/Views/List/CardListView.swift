@@ -14,11 +14,8 @@ struct CardListView: View {
     var body: some View {
         let cards = listState.cachedFilteredCards
         VStack(spacing: 0) {
-            NavigationHeader()
-                .padding(.horizontal, KaJiLayout.contentHorizontalPadding)
-                .padding(.top, KaJiLayout.headerTopPadding)
-                .padding(.bottom, KaJiLayout.headerBottomPadding)
-                .offset(y: KaJiLayout.headerTopOffset)
+            // v1.2.6+ UI 重构：删除 NavigationHeader 顶部导航条
+            // 返回键已移到 toolbar 区域（MainView 的 .cancellationAction）
 
             // 列表标题（放在列表区域上方，更清晰）
             ListFilterTitle()
@@ -26,6 +23,7 @@ struct CardListView: View {
                 .padding(.trailing, KaJiLayout.listTitleTrailingPadding)
                 .padding(.bottom, KaJiLayout.listTitleBottomPadding)
                 .offset(y: KaJiLayout.listTitleTopOffset)
+                .padding(.top, KaJiLayout.headerTopPadding)  // 保留顶部 padding 平衡视觉
 
             if cards.isEmpty {
                 ContentUnavailableView {

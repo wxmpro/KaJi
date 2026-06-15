@@ -41,7 +41,9 @@ struct FormEditor: View {
     }
 
     var body: some View {
-        ZStack {
+        // v1.2.6+ UI：把圆角矩形放回 ZStack 顶层,整个 ZStack 加 .padding(.bottom, 32)
+        // 让背景圆角矩形 + typeButton / UUID / 标签 全部跟着底部上移 32pt
+        ZStack(alignment: .topLeading) {
             // 下层卡片（向右+上偏移 4pt，露出主卡片的"上+右"边）
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(shadowCardColor)
@@ -111,6 +113,7 @@ struct FormEditor: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.bottom, 32)  // ← 关键:整个 ZStack 缩进 32pt
     }
 
     private func labelView(_ text: String) -> some View {

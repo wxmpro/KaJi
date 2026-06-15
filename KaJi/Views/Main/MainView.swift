@@ -27,6 +27,14 @@ struct MainView: View {
             placement: .toolbar,
             prompt: "搜索卡片..."
         )
+        .toolbar {
+            // v1.2.6+ UI 重构：返回键从主内容顶部 NavigationHeader 移到 toolbar 右侧
+            // .cancellationAction placement 会把按钮放在 searchable 右侧
+            // (toolbar 最右),跟 macOS 原生习惯一致
+            ToolbarItem(placement: .cancellationAction) {
+                BackButton()
+            }
+        }
         .onSubmit(of: .search) {
             let keyword = editorState.searchKeyword.trimmingCharacters(in: .whitespaces)
             guard !keyword.isEmpty else { return }

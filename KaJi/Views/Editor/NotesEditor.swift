@@ -15,12 +15,8 @@ struct NotesEditor: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 顶部导航条
-            NavigationHeader()
-                .padding(.horizontal, KaJiLayout.contentHorizontalPadding)
-                .padding(.top, KaJiLayout.headerTopPadding)
-                .padding(.bottom, KaJiLayout.headerBottomPadding)
-                .offset(y: KaJiLayout.headerTopOffset)
+            // v1.2.6+ UI 重构：删除 NavigationHeader 顶部导航条
+            // 返回键已移到 toolbar 区域（MainView 的 .cancellationAction）
 
             FormEditor(
                 showingTypePicker: $showingTypePicker,
@@ -29,6 +25,7 @@ struct NotesEditor: View {
             )
             .padding(.horizontal, KaJiLayout.contentHorizontalPadding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.top, KaJiLayout.headerTopPadding)  // 保留顶部 padding 平衡视觉
         }
         .alert("切换卡片类型", isPresented: $editorState.showingTypeChangeAlert) {
             Button("复制全部并切换", role: .none) {
