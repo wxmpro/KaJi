@@ -56,15 +56,30 @@ enum ExportService {
     }
 
     /// 在后台队列执行：读库 + 写所有 .md 文件
+    /// 文件名冲突时自动重命名（加 -1、-2…），避免覆盖用户目录中已有文件。
     private nonisolated static func exportAllCards(to url: URL) async throws -> Int {
         try await Task.detached(priority: .utility) {
             let cards = try CardRepository.shared.allCards(includeDeleted: false)
+            var writtenCount = 0
             for card in cards {
-                let fileURL = url.appendingPathComponent("\(card.id).md")
+                let fileURL = Self.uniqueFileURL(in: url, baseName: card.id, extension: "md")
                 let md = CardFileIO.renderMarkdown(card)
                 try md.write(to: fileURL, atomically: true, encoding: .utf8)
+                writtenCount += 1
             }
-            return cards.count
+            return writtenCount
         }.value
+    }
+
+    private nonisolated static func uniqueFileURL(in directory: URL, baseName: String, extension ext: String) -> URL {
+        var candidate = directory.appendingPathComponent("\(baseName).\(ext)")
+        guard FileManager.default.fileExists(atPath: candidate.path) else { return candidate }
+
+        var index = 1
+        while true {
+            candidate = directory.appendingPathComponent("\(baseName)-\(index).\(ext)")
+            if !FileManager.default.fileExists(atPath: candidate.path) { return candidate }
+            index += 1
+        }
     }
 }

@@ -67,7 +67,7 @@ struct CardIDGenerator {
                     // 进位到下一分钟
                     bumpedSec = 0
                     // 重取 now + 1s
-                    now = now.addingTimeInterval(60)
+                    now = now.addingTimeInterval(1)
                     let newComps = cal.dateComponents([.year, .month, .day, .hour, .minute, .second, .nanosecond], from: now)
                     guard let y2 = newComps.year, let m2 = newComps.month, let d2 = newComps.day,
                           let h2 = newComps.hour, let mi2 = newComps.minute, let s2 = newComps.second,

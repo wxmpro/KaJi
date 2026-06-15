@@ -15,6 +15,7 @@
 //
 
 import Foundation
+import os
 @preconcurrency import GRDB
 
 final class CardRepository: @unchecked Sendable {
@@ -40,7 +41,7 @@ final class CardRepository: @unchecked Sendable {
                 ? "SELECT * FROM cards ORDER BY createdAt DESC"
                 : "SELECT * FROM cards WHERE deletedAt IS NULL ORDER BY createdAt DESC"
             let recs = try CardRecord.fetchAll(grdb, sql: sql)
-            return try recs.map { try hydrate(record: $0, in: grdb) }
+            return try hydrate(records: recs, in: grdb)
         }
     }
 
@@ -102,8 +103,8 @@ final class CardRepository: @unchecked Sendable {
             .filter(Column("cardId") == card.id)
             .deleteAll(grdb)
         for tag in card.tags {
-            let tagRec = try ensureTag(named: tag, in: grdb)
-            try CardTagRecord(cardId: card.id, tagId: tagRec.id!).insert(grdb)
+            let tagId = try ensureTag(named: tag, in: grdb)
+            try CardTagRecord(cardId: card.id, tagId: tagId).insert(grdb)
         }
     }
 
@@ -129,38 +130,78 @@ final class CardRepository: @unchecked Sendable {
 
     // MARK: - 内部辅助
 
-    /// 内部：把 record → Card（同时把 cardFields / tags 拉出来）
+    /// 内部：把单条 record → Card
     private func hydrate(record rec: CardRecord, in grdb: Database) throws -> Card {
-        let fields = try CardFieldRecord
-            .filter(Column("cardId") == rec.id)
-            .order(Column("fieldOrder"))
-            .fetchAll(grdb)
-            .map { CardField(cardId: $0.cardId, fieldName: $0.fieldName, fieldValue: $0.fieldValue, fieldOrder: $0.fieldOrder) }
-        let tagRows = try Row.fetchAll(grdb, sql: """
-            SELECT t.name FROM tags t
-            JOIN cardTags ct ON ct.tagId = t.id
-            WHERE ct.cardId = ?
-            ORDER BY t.name ASC
-            """, arguments: [rec.id])
-        let tags = tagRows.map { $0["name"] as String }
-
-        return Card(
-            id: rec.id, type: rec.type, title: rec.title,
-            tags: tags, fields: fields,
-            createdAt: parseISO(rec.createdAt) ?? Date(),
-            updatedAt: parseISO(rec.updatedAt) ?? Date(),
-            deletedAt: rec.deletedAt.flatMap(parseISO)
-        )
+        return try hydrate(records: [rec], in: grdb)[0]
     }
 
-    /// 内部：建/取标签
-    private func ensureTag(named name: String, in grdb: Database) throws -> TagRecord {
+    /// 批量把 records → Cards（一次性 JOIN 拉取 fields/tags，避免 N+1）
+    private func hydrate(records: [CardRecord], in grdb: Database) throws -> [Card] {
+        guard !records.isEmpty else { return [] }
+
+        let ids = records.map { $0.id }
+        let placeholders = ids.map { _ in "?" }.joined(separator: ",")
+        let args = StatementArguments(ids)
+
+        // 1. 批量查 fields
+        let fieldsSQL = """
+            SELECT cardId, fieldName, fieldValue, fieldOrder
+            FROM cardFields
+            WHERE cardId IN (\(placeholders))
+            ORDER BY fieldOrder
+            """
+        let fieldRecords = try CardFieldRecord.fetchAll(grdb, sql: fieldsSQL, arguments: args)
+        var fieldsByCard: [String: [CardField]] = [:]
+        for rec in fieldRecords {
+            fieldsByCard[rec.cardId, default: []].append(
+                CardField(cardId: rec.cardId, fieldName: rec.fieldName, fieldValue: rec.fieldValue, fieldOrder: rec.fieldOrder)
+            )
+        }
+
+        // 2. 批量查 tags
+        let tagsSQL = """
+            SELECT ct.cardId, t.name
+            FROM tags t
+            JOIN cardTags ct ON ct.tagId = t.id
+            WHERE ct.cardId IN (\(placeholders))
+            ORDER BY t.name ASC
+            """
+        let tagRows = try Row.fetchAll(grdb, sql: tagsSQL, arguments: args)
+        var tagsByCard: [String: [String]] = [:]
+        for row in tagRows {
+            guard let cardId: String = row["cardId"], let name: String = row["name"] else {
+                throw NSError(domain: "CardRepository", code: 3, userInfo: [NSLocalizedDescriptionKey: "标签关联解析失败"])
+            }
+            tagsByCard[cardId, default: []].append(name)
+        }
+
+        // 3. 组装
+        return records.map { rec in
+            Card(
+                id: rec.id, type: rec.type, title: rec.title,
+                tags: tagsByCard[rec.id] ?? [],
+                fields: fieldsByCard[rec.id] ?? [],
+                createdAt: parseISO(rec.createdAt) ?? Date(),
+                updatedAt: parseISO(rec.updatedAt) ?? Date(),
+                deletedAt: rec.deletedAt.flatMap(parseISO)
+            )
+        }
+    }
+
+    /// 内部：建/取标签，返回标签 id（不存在则插入）
+    private func ensureTag(named name: String, in grdb: Database) throws -> Int64 {
         if let existing = try TagRecord.filter(Column("name") == name).fetchOne(grdb) {
-            return existing
+            guard let id = existing.id else {
+                throw NSError(domain: "CardRepository", code: 2, userInfo: [NSLocalizedDescriptionKey: "标签记录缺少 id"])
+            }
+            return id
         }
         var rec = TagRecord(id: nil, name: name)
         try rec.insert(grdb)
-        return rec
+        guard let id = rec.id else {
+            throw NSError(domain: "CardRepository", code: 2, userInfo: [NSLocalizedDescriptionKey: "插入标签后未能获取 id"])
+        }
+        return id
     }
 
     // MARK: - 启动对账
@@ -181,8 +222,15 @@ final class CardRepository: @unchecked Sendable {
         if !missingInDB.isEmpty {
             try db.dbWriter.write { grdb in
                 for id in missingInDB {
-                    guard let card = try? CardFileIO.read(id: id) else { continue }
-                    try persist(card, in: grdb)
+                    do {
+                        guard let card = try CardFileIO.read(id: id) else {
+                            print("[KaJi.Repository] 对账时未找到 .md: \(id)")
+                            continue
+                        }
+                        try persist(card, in: grdb)
+                    } catch {
+                        print("[KaJi.Repository] 对账时恢复 .md 到 SQLite 失败 (\(id)): \(error.localizedDescription)")
+                    }
                 }
             }
         }
@@ -190,11 +238,14 @@ final class CardRepository: @unchecked Sendable {
         // 2. SQLite 有但 .md 没有：从 SQLite 重建 .md
         let missingInMD = dbIDs.subtracting(mdIDs)
         for id in missingInMD {
-            guard let card = try? self.card(id: id) else { continue }
             do {
+                guard let card = try self.card(id: id) else {
+                    print("[KaJi.Repository] 对账时未找到 SQLite 记录: \(id)")
+                    continue
+                }
                 _ = try CardFileIO.write(card)
             } catch {
-                print("[KaJi.Repository] 对账时 .md 重建失败: \(error.localizedDescription)")
+                print("[KaJi.Repository] 对账时重建 .md 失败 (\(id)): \(error.localizedDescription)")
             }
         }
     }
@@ -212,18 +263,23 @@ final class CardRepository: @unchecked Sendable {
     /// DB 是否处于 in-memory 模式（fallback）— UI 层可以展示警告
     var isInMemory: Bool { db.isInMemory }
 
-    // ISO8601 helpers — 用 nonisolated(unsafe) 让 Swift 6 并发不报警
-    // 风险：ISO8601DateFormatter 本身线程安全（Apple 文档说线程安全）
+    // ISO8601 helpers — formatter 用 nonisolated(unsafe) 声明，实际访问由 OSAllocatedUnfairLock 保护。
     nonisolated(unsafe) private static let isoFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f
     }()
-    private func iso8601(_ d: Date) -> String { Self.isoFormatter.string(from: d) }
+    private static let isoFormatterLock = OSAllocatedUnfairLock<Void>()
+
+    private func iso8601(_ d: Date) -> String {
+        Self.isoFormatterLock.withLock { Self.isoFormatter.string(from: d) }
+    }
     private func parseISO(_ s: String) -> Date? {
-        if let d = Self.isoFormatter.date(from: s) { return d }
-        let simple = ISO8601DateFormatter()
-        simple.formatOptions = [.withInternetDateTime]
-        return simple.date(from: s)
+        Self.isoFormatterLock.withLock {
+            if let d = Self.isoFormatter.date(from: s) { return d }
+            let simple = ISO8601DateFormatter()
+            simple.formatOptions = [.withInternetDateTime]
+            return simple.date(from: s)
+        }
     }
 }

@@ -57,10 +57,14 @@ struct CardFileIO {
         let url = fileURL(for: card.id)
         let content = renderMarkdown(card)
         let tmp = url.appendingPathExtension("tmp")
-        try content.write(to: tmp, atomically: true, encoding: .utf8)
-        // rename 覆盖（原子；同卷下 mv 是 POSIX atomic）
-        _ = try FileManager.default.replaceItemAt(url, withItemAt: tmp)
-        return url
+        do {
+            try content.write(to: tmp, atomically: true, encoding: .utf8)
+            _ = try FileManager.default.replaceItemAt(url, withItemAt: tmp)
+            return url
+        } catch {
+            try? FileManager.default.removeItem(at: tmp)
+            throw error
+        }
     }
 
     /// 从 .md 读卡（用于 SQLite 重建 / 备份恢复）
@@ -107,13 +111,22 @@ struct CardFileIO {
 
     /// 解析 frontmatter + Markdown body
     static func parseMarkdown(_ text: String) throws -> Card {
-        // 拆 frontmatter 与 body
-        let parts = text.components(separatedBy: "\n---\n")
-        guard parts.count >= 2 else {
+        // 只匹配文件开头的 `---\n` 和第一个 `\n---\n` 作为 frontmatter 边界，
+        // 避免用户 body 中的水平分隔线被误当作 frontmatter 结束。
+        let headerPrefix = "---\n"
+        guard text.hasPrefix(headerPrefix) else {
             throw NSError(domain: "CardFileIO", code: 1, userInfo: [NSLocalizedDescriptionKey: "无 frontmatter"])
         }
-        let fm = parts[0].replacingOccurrences(of: "---\n", with: "")
-        let body = parts[1...].joined(separator: "\n---\n")
+
+        let bodyStartIndex = text.index(text.startIndex, offsetBy: headerPrefix.utf16.count)
+        guard let separatorRange = text[bodyStartIndex...].range(of: "\n---\n") else {
+            throw NSError(domain: "CardFileIO", code: 1, userInfo: [NSLocalizedDescriptionKey: "无 frontmatter 结束标记"])
+        }
+
+        let fmStart = bodyStartIndex
+        let fmEnd = separatorRange.lowerBound
+        let fm = String(text[fmStart..<fmEnd])
+        let body = String(text[separatorRange.upperBound...])
 
         // 简单 YAML 行解析（够用即可）
         var id = ""; var type = ""; var title = ""
@@ -125,9 +138,18 @@ struct CardFileIO {
             if let v = l.stripping(prefix: "id:") { id = v.trimmingCharacters(in: .whitespaces) }
             else if let v = l.stripping(prefix: "type:") { type = v.trimmingCharacters(in: .whitespaces) }
             else if let v = l.stripping(prefix: "title:") { title = yamlUnescape(v.trimmingCharacters(in: .whitespaces)) }
-            else if let v = l.stripping(prefix: "createdAt:") { createdAt = parseISO(v.trimmingCharacters(in: .whitespaces)) ?? Date() }
-            else if let v = l.stripping(prefix: "updatedAt:") { updatedAt = parseISO(v.trimmingCharacters(in: .whitespaces)) ?? Date() }
-            else if let v = l.stripping(prefix: "deletedAt:") { deletedAt = parseISO(v.trimmingCharacters(in: .whitespaces)) }
+            else if let v = l.stripping(prefix: "createdAt:") {
+                let trimmed = v.trimmingCharacters(in: .whitespaces)
+                if let d = parseISO(trimmed) { createdAt = d } else { print("[KaJi.CardFileIO] 无法解析 createdAt: \(trimmed)") }
+            }
+            else if let v = l.stripping(prefix: "updatedAt:") {
+                let trimmed = v.trimmingCharacters(in: .whitespaces)
+                if let d = parseISO(trimmed) { updatedAt = d } else { print("[KaJi.CardFileIO] 无法解析 updatedAt: \(trimmed)") }
+            }
+            else if let v = l.stripping(prefix: "deletedAt:") {
+                let trimmed = v.trimmingCharacters(in: .whitespaces)
+                if let d = parseISO(trimmed) { deletedAt = d } else { print("[KaJi.CardFileIO] 无法解析 deletedAt: \(trimmed)") }
+            }
             else if let v = l.stripping(prefix: "tags:") {
                 // 简单 [a, b, c] 解析
                 let trimmed = v.trimmingCharacters(in: .whitespaces)

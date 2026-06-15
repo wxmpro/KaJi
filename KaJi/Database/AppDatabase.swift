@@ -31,11 +31,14 @@ final class AppDatabase: @unchecked Sendable {
     ///   `_assertionFailure` EXC_BREAKPOINT，比单纯 crash 更难看）
     static let shared: AppDatabase = {
         do { return try AppDatabase(useInMemory: false) }
-        catch {
+        catch let fileError {
             // Fallback: in-memory Queue（不是 Pool — in-memory Pool 不支持 WAL 模式）
             // 数据不持久化但 App 不崩
-            print("[KaJi.DB] 文件 DB 失败: \(error). 用 in-memory fallback.")
-            return try! AppDatabase(useInMemory: true)
+            print("[KaJi.DB] 文件 DB 失败: \(fileError). 用 in-memory fallback.")
+            do { return try AppDatabase(useInMemory: true) }
+            catch let memoryError {
+                fatalError("无法创建数据库（包括 in-memory fallback）: \(memoryError)")
+            }
         }
     }()
 
@@ -134,7 +137,9 @@ final class AppDatabase: @unchecked Sendable {
     /// - Parameter retentionDays: 回收站保留天数；≤0 表示永不自动清理
     func purgeOldTrash(retentionDays: Int) throws {
         guard retentionDays > 0 else { return }
-        let cutoff = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date())!
+        guard let cutoff = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date()) else {
+            throw NSError(domain: "AppDatabase", code: 4, userInfo: [NSLocalizedDescriptionKey: "无法计算回收站清理截止日期"])
+        }
         let cutoffStr = ISO8601DateFormatter().string(from: cutoff)
 
         // 1. 先删 SQLite（在写事务内）；cardFields / cardTags 由级联自动清理

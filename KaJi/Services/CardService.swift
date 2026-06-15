@@ -116,9 +116,10 @@ final class CardService: @unchecked Sendable {
             result = kw.isEmpty
                 ? []
                 : cards.filter { card in
-                    card.title.localizedCaseInsensitiveContains(kw)
-                        || card.tags.contains { $0.localizedCaseInsensitiveContains(kw) }
-                        || card.fields.contains { $0.fieldValue.localizedCaseInsensitiveContains(kw) }
+                    card.deletedAt == nil
+                        && (card.title.localizedCaseInsensitiveContains(kw)
+                            || card.tags.contains { $0.localizedCaseInsensitiveContains(kw) }
+                            || card.fields.contains { $0.fieldValue.localizedCaseInsensitiveContains(kw) })
                 }
         case .none:
             result = []

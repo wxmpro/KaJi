@@ -27,7 +27,6 @@
 		9B4940E50A6D2CD1F65C5BD4 /* SidebarRowButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2AB17E85BF57933CCADA200 /* SidebarRowButtonStyle.swift */; };
 		9F30FC57C2B0F84213BFDB54 /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42CFF8F25761CACD3184597E /* AppDatabase.swift */; };
 		A506B368E84598D6C89B8961 /* Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84AB7B6767CC5810E228175 /* Card.swift */; };
-		A66B40791A830C98A7F39E9E /* SearchOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F524938A3598CDCE94C8C2B9 /* SearchOverlay.swift */; };
 		A899C988E7464C10213B53FA /* CardListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3912C8DB85C77F9AC3AB76A9 /* CardListRow.swift */; };
 		AC8F168F7B0F8CD8FECFE200 /* NotesEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 835C9B4A682ADB75BF679FB6 /* NotesEditor.swift */; };
 		BB24EB4047FEF199101454B5 /* CardListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05004F2A32A2EF016AD2F506 /* CardListView.swift */; };
@@ -84,7 +83,6 @@
 		CCD9140953A0EFC4A19583E5 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
 		E546D7FFEB130D7DD5217111 /* ContentLimit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentLimit.swift; sourceTree = "<group>"; };
 		EBFA0ED78BDDA942EBEA38DB /* TagPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagPill.swift; sourceTree = "<group>"; };
-		F524938A3598CDCE94C8C2B9 /* SearchOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchOverlay.swift; sourceTree = "<group>"; };
 		2EFEFFEA868D4598BC6E09106A9D32C5 /* EditorState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorState.swift; sourceTree = "<group>"; };
 		5E1F131C1AA640789E62DD1B9818530B /* ListState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListState.swift; sourceTree = "<group>"; };
 		DAB8D9070E354D148D863593A3FD04D1 /* StatsState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsState.swift; sourceTree = "<group>"; };
@@ -117,7 +115,6 @@
 		40A73612E6620A77BCDD4FB8 /* Search */ = {
 			isa = PBXGroup;
 			children = (
-				F524938A3598CDCE94C8C2B9 /* SearchOverlay.swift */,
 			);
 			path = Search;
 			sourceTree = "<group>";
@@ -369,7 +366,6 @@
 				4192C4D574F5F2A6273C907C /* NavigationHeader.swift in Sources */,
 				AC8F168F7B0F8CD8FECFE200 /* NotesEditor.swift in Sources */,
 				1EFFA5332A639A9B6FEE3BFA /* PersistenceCoordinator.swift in Sources */,
-				A66B40791A830C98A7F39E9E /* SearchOverlay.swift in Sources */,
 				BBB886041FBCCCB94A180FF0 /* SettingsService.swift in Sources */,
 				1D1FCAAEBB2F43298360E0175A00ED32 /* StatsState.swift in Sources */,
 				DE07670AB3C5E00CB28CAD8C /* SettingsView.swift in Sources */,
@@ -434,7 +430,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -457,7 +453,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 1.2.4;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -522,7 +518,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -539,7 +535,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 1.2.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;
