@@ -35,5 +35,34 @@ fastlane/test_output
 *.dSYM.zip
 *.dSYM
 
+# Screenshots and images — NEVER commit to GitHub (privacy leak)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+*.tiff
+*.tif
+*.heic
+*.heif
+*.raw
+*.cr2
+*.nef
+*.svg
+*.ico
+*.icns
+Screenshots/
+screenshots/
+Screen\ Shot*.*
+ScreenShot*.*
+Screenshot*.*
+*截屏*
+*截图*
+img/
+images/
+pics/
+assets/images/
+
 # Local config
 .claude/
