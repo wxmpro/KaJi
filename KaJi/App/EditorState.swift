@@ -55,15 +55,22 @@ final class EditorState: ObservableObject {
 
         // 1. 先初始化所有 @Published 基本状态
         isInMemoryDB = AppDatabase.shared.isInMemory
-        do {
-            currentCard = try cardService.generateNewCard(type: .free)
-            currentCardType = .free
-            currentCardTags = []
-        } catch {
-            currentCard = nil
-            currentCardType = .free
-            currentCardTags = []
-            saveError = "无法生成新卡编码：\(error.localizedDescription)"
+
+        // init 不再阻塞主线程：后台异步生成首张空白卡。
+        // currentCard 默认为 nil 期间，FormEditor 会显示空 TextEditor（与历史
+        // "生成失败时 currentCard=nil" 的 UI 行为完全一致）。
+        Task { @MainActor in
+            do {
+                let card = try await cardService.generateNewCard(type: .free)
+                currentCard = card
+                currentCardType = .free
+                currentCardTags = []
+            } catch {
+                currentCard = nil
+                currentCardType = .free
+                currentCardTags = []
+                saveError = "无法生成新卡编码：\(error.localizedDescription)"
+            }
         }
 
         // 2. 启动时跑清理 + 预计算侧栏统计：放到后台，避免 init 阻塞主线程（H-2）
@@ -80,17 +87,22 @@ final class EditorState: ObservableObject {
     // MARK: - 屏 1: 新建 / 编辑
 
     /// 开一张新卡（屏 1 用）— 给定类型，默认自由卡
+    /// 内部把 `generateNewCard`（一次全表 SQLite 读）放到后台队列，主线程不阻塞。
+    /// 行为对调用方完全同步：闭包结束后 currentCard / listState 已更新。UI 不变。
     func startNewCard(type: CardType = .free) {
-        do {
-            currentCard = try cardService.generateNewCard(type: type)
-            currentCardType = type
-            currentCardTags = []
-            saveError = nil
-            listState.listFilter = nil
-            listState.refreshFilteredCards()
-            listState.rightPaneMode = .editor
-        } catch {
-            saveError = "无法生成新卡编码：\(error.localizedDescription)"
+        Task { @MainActor in
+            do {
+                let card = try await cardService.generateNewCard(type: type)
+                currentCard = card
+                currentCardType = type
+                currentCardTags = []
+                saveError = nil
+                listState.listFilter = nil
+                listState.refreshFilteredCards()
+                listState.rightPaneMode = .editor
+            } catch {
+                saveError = "无法生成新卡编码：\(error.localizedDescription)"
+            }
         }
     }
 

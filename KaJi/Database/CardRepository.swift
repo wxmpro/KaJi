@@ -50,11 +50,16 @@ final class CardRepository: @unchecked Sendable {
     /// 保存/更新一张卡（SQLite 是强一致锚点，.md 是派生视图）
     /// - 先提交 SQLite 事务；事务成功后再写 .md
     /// - .md 写入失败不会破坏 SQLite 一致性，启动对账会修复
+    /// 保存/更新一张卡（SQLite 是强一致锚点，.md 是派生视图）
+    /// - 先提交 SQLite 事务；事务成功后再写 .md
+    /// - .md 写入失败不会破坏 SQLite 一致性，启动对账会修复
+    /// - **v1.3.0 P0-4 修复**：本方法不再做 ContentLimit 截断，统一由 caller
+    ///   负责（EditorState.persistCurrentCard 已在主线程截断，以保证 UI 同步）。
+    ///   旧实现主线程 + 后台双重 O(N) 字符统计浪费，且容易出现"caller 截断
+    ///   逻辑"和"Repository 截断逻辑"分歧。caller 传过来的卡应当已通过
+    ///   ContentLimit.truncate；如果 caller 不截断，那是 caller 的 bug。
     func save(card: Card) throws -> Card {
         var c = card
-        if ContentLimit.isOverLimit(card: c) {
-            c = ContentLimit.truncate(c)
-        }
         c.updatedAt = Date()
 
         // 1. SQLite 事务（ACID）：cards + cardFields + cardTags
@@ -236,16 +241,25 @@ final class CardRepository: @unchecked Sendable {
         }
 
         // 2. SQLite 有但 .md 没有：从 SQLite 重建 .md
+        // v1.3.0 P0-3 修复：原实现对每个 missingInMD id 调一次 self.card(id:)，
+        // 每次都是独立 dbWriter.read + hydrate（虽然 hydrate 内部已是 batch IN，
+        // 但 N 次 dbWriter.read 仍是 N 次锁等待 + 串行执行）。改为一次 self.allCards
+        // 批量拉全量 + dictionary 查，N=missingInMD.size 通常 < 10，但
+        // 数据库 IO 从 O(N) 次降到 O(1) 次。
         let missingInMD = dbIDs.subtracting(mdIDs)
-        for id in missingInMD {
+        if !missingInMD.isEmpty {
             do {
-                guard let card = try self.card(id: id) else {
-                    print("[KaJi.Repository] 对账时未找到 SQLite 记录: \(id)")
-                    continue
+                let cards = try self.allCards(includeDeleted: true)
+                let byID = Dictionary(uniqueKeysWithValues: cards.map { ($0.id, $0) })
+                for id in missingInMD {
+                    guard let card = byID[id] else {
+                        print("[KaJi.Repository] 对账时未找到 SQLite 记录: \(id)")
+                        continue
+                    }
+                    _ = try CardFileIO.write(card)
                 }
-                _ = try CardFileIO.write(card)
             } catch {
-                print("[KaJi.Repository] 对账时重建 .md 失败 (\(id)): \(error.localizedDescription)")
+                print("[KaJi.Repository] 对账时批量拉全量失败，跳过 .md 重建: \(error.localizedDescription)")
             }
         }
     }

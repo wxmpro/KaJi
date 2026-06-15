@@ -35,14 +35,23 @@ final class StatsState: ObservableObject {
     }
 
     /// 用外部已计算好的统计结果刷新缓存
+    /// v1.3.0 P0-5 修复：每次赋值前用 `!=` 守门，值相等时**不**触发 objectWillChange，
+    /// 避免 List / SidebarView 在数据无变化时被无谓重建。
+    /// 触发场景举例：编辑标题时 typeCounts / tagCounts 没变，但旧实现仍触发级联刷新，
+    /// 导致 CardListView.body 重算 + ForEach 重建；新实现短路后整条链不发。
+    /// 注：[(String, Int)] 元组数组在 Swift 6 下不能直接走 Equatable 协议，
+    ///     用 zip + `==` 元素比较做 O(N) 短路。([Card] / [CardType: Int] 的 `!=` 可用，
+    ///     是 Array/Dictionary 标准 Equatable)
     func update(with stats: (
         cards: [Card],
         typeCounts: [CardType: Int],
         tagCounts: [(String, Int)]
     )) {
-        cachedCards = stats.cards
-        cachedTypeCounts = stats.typeCounts
-        cachedTagCounts = stats.tagCounts
+        if cachedCards != stats.cards { cachedCards = stats.cards }
+        if cachedTypeCounts != stats.typeCounts { cachedTypeCounts = stats.typeCounts }
+        let tagSame = cachedTagCounts.count == stats.tagCounts.count
+            && zip(cachedTagCounts, stats.tagCounts).allSatisfy { $0 == $1 }
+        if !tagSame { cachedTagCounts = stats.tagCounts }
     }
 
     /// 重新计算并缓存侧栏统计（数据变化时调用）

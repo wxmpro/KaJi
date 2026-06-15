@@ -36,8 +36,13 @@ final class CardService: @unchecked Sendable {
     // MARK: - 新卡
 
     /// 生成一张新卡（不写库）
-    func generateNewCard(type: CardType) throws -> Card {
-        let existing = try AppDatabase.shared.allIDs()
+    /// 异步原因：`AppDatabase.allIDs()` 是一次 SQLite 全表读，在 1k+ 卡片时
+    /// 在主线程跑会肉眼可感卡顿。挪到 detached utility 队列后，UI 完全不阻塞。
+    /// 调用方（EditorState.startNewCard / init）用 `Task { @MainActor in try await ... }` 包裹即可。
+    func generateNewCard(type: CardType) async throws -> Card {
+        let existing = try await Task.detached(priority: .userInitiated) {
+            try AppDatabase.shared.allIDs()
+        }.value
         let id = try CardIDGenerator.next(existing: existing)
         return Card.new(type: type, id: id, title: "", tags: [], fields: [:])
     }

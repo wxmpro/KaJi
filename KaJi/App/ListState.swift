@@ -52,7 +52,10 @@ final class ListState: ObservableObject {
     }
 
     /// 重新计算并缓存当前筛选条件下的卡片
+    /// v1.3.0 P0-5 配套修复：值相等时**不**触发 objectWillChange，避免 CardListView.body
+    /// 在数据无变化时被无谓重建（同 StatsState.update 的修复理由）。
     func refreshFilteredCards() {
-        cachedFilteredCards = cardService.filteredCards(from: statsState.cachedCards, matching: listFilter)
+        let new = cardService.filteredCards(from: statsState.cachedCards, matching: listFilter)
+        if new != cachedFilteredCards { cachedFilteredCards = new }
     }
 }

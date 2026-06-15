@@ -28,7 +28,13 @@ struct KaJiApp: App {
         .defaultPosition(.center)
         .commands {
             // MARK: File Menu
-            CommandGroup(after: .newItem) {
+            // 用 `replacing: .newItem` 替换 WindowGroup 默认的"新建窗口"项，
+            // 让 ⌘N 唯一作用是"新建卡片"（不开新窗口）。
+            // 之前用 `after: .newItem` 时，WindowGroup 的默认 New 仍然存在，
+            // 旧版 `startNewCard` 同步阻塞主线程，Button handler 跑完前 SwiftUI
+            // 不会触发默认 New；改成 async 后 handler 立刻返回，SwiftUI fallback
+            // 到默认 New，结果每次 ⌘N 都开新窗口。
+            CommandGroup(replacing: .newItem) {
                 Button("新建卡片") {
                     appDelegate.editorState.startNewCard(type: .free)
                 }
@@ -104,12 +110,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     override init() {
         super.init()
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(windowDidBecomeKey(_:)),
-            name: NSWindow.didBecomeKeyNotification,
-            object: nil
-        )
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -129,11 +129,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - 窗口 chrome 配置
-
-    @objc private func windowDidBecomeKey(_ notification: Notification) {
-        guard let window = notification.object as? NSWindow else { return }
-        configure(window: window)
-    }
+    // v1.3.0 P0-7 修复：删掉 addObserver(NSWindow.didBecomeKeyNotification) +
+    // windowDidBecomeKey 重复订阅。旧版每次窗口变 key 都遍历 NSApp.windows 并
+    // 设 title / titlebarSeparatorStyle，无意义（launch 已调 configureWindows
+    // 全量配置过）。删除后只在 applicationDidFinishLaunching 调一次即可。
 
     private func configureWindows() {
         NSApp.windows.forEach(configure)

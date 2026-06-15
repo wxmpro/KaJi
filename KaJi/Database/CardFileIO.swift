@@ -214,9 +214,13 @@ struct CardFileIO {
     }
 
     private static func parseISO(_ s: String) -> Date? {
+        // 优化（v1.3.0 P0-2）：复用上面的 `isoFormatter` 静态缓存，避免每次解析
+        // 都 new 一个 ISO8601DateFormatter。reconcile 期间每个 .md 的 frontmatter
+        // 解析会调 4-5 次 parseISO，1k+ 卡库时启动期累计可达 ~700ms。
+        // ISO8601DateFormatter 在 Apple 文档中标为线程安全（immutable），单线程内
+        // 反复 date(from:) 安全。第一次失败（字符串无 fractional seconds）才 new fallback。
+        if let d = isoFormatter.date(from: s) { return d }
         let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let d = f.date(from: s) { return d }
         f.formatOptions = [.withInternetDateTime]
         return f.date(from: s)
     }
