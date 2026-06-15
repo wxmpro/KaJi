@@ -136,19 +136,21 @@ final class AppDatabase: @unchecked Sendable {
         guard retentionDays > 0 else { return }
         let cutoff = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date())!
         let cutoffStr = ISO8601DateFormatter().string(from: cutoff)
-        try dbWriter.write { db in
-            // 先查要删的 id
-            let idsToPurge = try String.fetchAll(db, sql: """
+
+        // 1. 先删 SQLite（在写事务内）；cardFields / cardTags 由级联自动清理
+        let idsToPurge = try dbWriter.write { db -> [String] in
+            let ids = try String.fetchAll(db, sql: """
                 SELECT id FROM cards WHERE deletedAt IS NOT NULL AND deletedAt < ?
                 """, arguments: [cutoffStr])
-            for id in idsToPurge {
-                // 删 .md
-                try? CardFileIO.delete(id: id)
-            }
-            // SQLite 级联自动删 cardFields / cardTags
             try db.execute(sql: """
                 DELETE FROM cards WHERE deletedAt IS NOT NULL AND deletedAt < ?
                 """, arguments: [cutoffStr])
+            return ids
+        }
+
+        // 2. SQLite 提交成功后，再删 .md
+        for id in idsToPurge {
+            try? CardFileIO.delete(id: id)
         }
     }
 

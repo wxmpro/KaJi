@@ -2,11 +2,11 @@
 //  CardFileIO.swift
 //  KaJi
 //
-//  .md 文件 source of truth — 按 V1 草稿 + 数据库设计文档"md 是 source of truth，SQLite 是 derived"。
+//  .md 文件派生视图（derived view）— 按 V1 草稿 + 数据库设计文档。
 //
 //  - 文件路径：~/Library/Application Support/KaJi/cards/<id>.md
 //  - 文件格式：Markdown + YAML frontmatter（方便人读、git 同步、备份）
-//  - 写盘策略：.md 先写、SQLite 后写（数据库设计文档 R-03：非原子）
+//  - 写盘策略：SQLite 事务提交成功后，再写 .md；.md 写入失败不破坏主数据一致性
 //  - 写盘方式：先写 .tmp 再 rename（原子替换）
 //
 //  单卡导出（PRD V2 #9）+ 批量导出也用同一格式。
@@ -32,6 +32,19 @@ struct CardFileIO {
     /// 单卡 .md 路径
     static func fileURL(for id: String) -> URL {
         cardsDir.appendingPathComponent("\(id).md")
+    }
+
+    /// 列出 cards 目录下所有 .md 文件的 id（用于启动对账）
+    static func listAllIDs() throws -> Set<String> {
+        try ensureDirectory(cardsDir)
+        let urls = try FileManager.default.contentsOfDirectory(
+            at: cardsDir,
+            includingPropertiesForKeys: [.isRegularFileKey]
+        )
+        return Set(urls.compactMap { url in
+            guard url.pathExtension.lowercased() == "md" else { return nil }
+            return url.deletingPathExtension().lastPathComponent
+        })
     }
 
     // MARK: - 写盘

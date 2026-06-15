@@ -44,11 +44,12 @@ final class CardService: @unchecked Sendable {
 
     // MARK: - 持久化
 
-    /// 写卡到 .md + SQLite：在后台 utility 队列执行
+    /// 写卡到 SQLite + .md：在后台 utility 队列执行
+    /// SQLite 是强一致锚点；.md 是派生视图，写入失败会由启动对账修复
     func persist(card: Card) async throws {
         let repo = repository
         try await Task.detached(priority: .utility) {
-            _ = try repo.update(card: card)
+            _ = try repo.save(card: card)
         }.value
     }
 
