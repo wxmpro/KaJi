@@ -6,6 +6,9 @@
 //  使用 .windowToolbarStyle(.unifiedCompact) + .searchable(placement: .toolbar)
 //  实现 traffic-lights 视觉上落在侧栏顶部 + 原生 toolbar 搜索。
 //
+//  v1.3.1：那 1px 分隔线由 NSToolbar.showsBaselineSeparator 控制，
+//  在 AppDelegate.configure 中设为 false 即可消除。
+//
 
 import SwiftUI
 

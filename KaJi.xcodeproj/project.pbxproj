@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		018964F353241A631E2FB565 /* CardService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5832713E45FBEA4ADB655DC7 /* CardService.swift */; };
+		AABBCC0001F0E0E0E0E0E0E1 /* KaJiListRowButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABBCC0001F0E0E0E0E0E0E0 /* KaJiListRowButtonStyle.swift */; };
 		06BBCC976ECC1D5F9B72B90D /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D443FD69E1F5C34DF1EF0D /* SidebarView.swift */; };
 		0C20DBEA694EF0C47723D36D /* CardFileIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CE95E491876197E909A86B0 /* CardFileIO.swift */; };
 		1089AC86E468F535F46A0D25 /* KaJiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F1E5D7FA567AB3B93A5E90 /* KaJiApp.swift */; };
@@ -104,6 +105,7 @@
 		1AA3BD9F2EB6AAB4BF9DA491 /* DatabaseError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseError.swift; sourceTree = "<group>"; };
 		A2351964E3FF5EED90ED01B0 /* KaJiColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiColor.swift; sourceTree = "<group>"; };
 		D9BF85A36149BECE3EF9BE78 /* KaJiAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiAnimation.swift; sourceTree = "<group>"; };
+		AABBCC0001F0E0E0E0E0E0E0 /* KaJiListRowButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiListRowButtonStyle.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -245,6 +247,7 @@
 			children = (
 				47612C79664152B4925BA53B /* KaJiHoverBackground.swift */,
 				B1AC2B2C1A2C1A2C1A2C1A2C /* BackButton.swift */,
+				AABBCC0001F0E0E0E0E0E0E0 /* KaJiListRowButtonStyle.swift */,
 				EBFA0ED78BDDA942EBEA38DB /* TagPill.swift */,
 			);
 			path = Components;
@@ -409,6 +412,7 @@
 				0B326CF037FDC7DF8FCCF4A0 /* DatabaseError.swift in Sources */,
 				72AC16A3D9557A22DDFBB0CC /* KaJiColor.swift in Sources */,
 				8A8CFC612A668B4D9D991623 /* KaJiAnimation.swift in Sources */,
+				AABBCC0001F0E0E0E0E0E0E1 /* KaJiListRowButtonStyle.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -466,7 +470,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -489,7 +493,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.3.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -554,7 +558,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -571,7 +575,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.3.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;

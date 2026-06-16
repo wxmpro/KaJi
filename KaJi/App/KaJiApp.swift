@@ -7,6 +7,9 @@
 //  - NavigationSplitView 侧栏自动延伸到 titlebar，traffic-lights 视觉上落在侧栏顶部
 //  - .searchable(placement: .toolbar) 提供原生 NSSearchToolbarItem 搜索
 //
+//  v1.3.1：保留 toolbar 范式；那条 1px 分隔线在 AppDelegate.configure 中
+//  通过 window.toolbar?.showsBaselineSeparator = false 消除。
+//
 
 import SwiftUI
 import AppKit
@@ -136,10 +139,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - 窗口 chrome 配置
-    // v1.3.0 P0-7 修复：删掉 addObserver(NSWindow.didBecomeKeyNotification) +
-    // windowDidBecomeKey 重复订阅。旧版每次窗口变 key 都遍历 NSApp.windows 并
-    // 设 title / titlebarSeparatorStyle，无意义（launch 已调 configureWindows
-    // 全量配置过）。删除后只在 applicationDidFinishLaunching 调一次即可。
+    // v1.3.1：加 window.toolbar?.showsBaselineSeparator = false 消除那条 1px 分隔线
+    // 这是 NSToolbar 自带的 baseline line，与 unified toolbar 无关
+    // 之前错误归因到 .windowToolbarStyle(.unifiedCompact)，实际是 NSWindow API 控制
 
     private func configureWindows() {
         NSApp.windows.forEach(configure)
@@ -148,5 +150,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func configure(window: NSWindow) {
         window.title = ""
         window.titlebarSeparatorStyle = .none
+        // v1.3.1 P0 关键修复：消除 toolbar 下方那条 1px 分隔线
+        // 用户反馈的"侧栏和右栏内容区分开的那条线"就是 NSToolbar 的 baseline separator
+        window.toolbar?.showsBaselineSeparator = false
     }
 }

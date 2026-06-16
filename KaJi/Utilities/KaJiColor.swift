@@ -26,9 +26,4 @@ enum KaJiColor {
     // MARK: - 列表行
     static let listRowHoverLight = Color.gray.opacity(0.20)
     static let listRowHoverDark = Color.white.opacity(0.10)
-    static let listRowSelectedLight = Color.accentColor.opacity(0.20)
-    static let listRowSelectedDark = Color.accentColor.opacity(0.30)
-
-    // MARK: - 侧栏
-    static let sidebarButtonSelected = Color.accentColor.opacity(0.15)
 }

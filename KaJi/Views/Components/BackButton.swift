@@ -8,6 +8,10 @@
 //    - 列表页点返回 → 开新空白卡（startNewCard）
 //    - 详情页点返回 → 回到列表（rightPaneMode = .list）
 //
+//  v1.3.1：删 .buttonStyle(.plain) + .kajiHover()，
+//  让 SwiftUI 用系统 toolbar item 默认 hover 表现，与 NavigationSplitView
+//  系统生成的"切换侧栏"按钮完全一致。
+//
 
 import SwiftUI
 
@@ -23,7 +27,9 @@ struct BackButton: View {
                 editorState.data.startNewCard(type: .free)
             } else {
                 // 在卡片详情页：返回 → 回到列表
-                listState.rightPaneMode = .list
+                withAnimation(KaJiAnimation.editorModeSwitch) {
+                    listState.rightPaneMode = .list
+                }
             }
         } label: {
             Image(systemName: "chevron.left")
@@ -31,8 +37,6 @@ struct BackButton: View {
                 .foregroundStyle(Color.primary)
                 .frame(width: 32, height: 32)
         }
-        .buttonStyle(.plain)
         .help("返回")
-        .kajiHover(cornerRadius: 16, restingBackground: .clear)
     }
 }

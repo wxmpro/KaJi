@@ -4,6 +4,10 @@
 //
 //  卡片列表视图（侧栏点击类型/标签/回收站时占用右栏）。
 //
+//  v1.3.1 改造：弃用 SwiftUI List(selection:) 的蓝色选中高亮（accentColor），
+//  改用 ScrollView + LazyVStack + 每行 Button，selected 由 data.selectedCardID
+//  单一数据源控制，渲染走 KaJiListRowButtonStyle，深浅模式视觉与侧栏完全统一。
+//
 
 import SwiftUI
 
@@ -37,25 +41,18 @@ struct CardListView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(selection: Binding(
-                    get: { data.selectedCardID },
-                    set: { newID in
-                        // 用户在列表里点选/取消选择
-                        data.selectedCardID = newID
-                        // 同时把选中的卡加载进编辑器（保持原行为）
-                        if let id = newID,
-                           let card = cards.first(where: { $0.id == id }) {
-                            listState.openCardFromList(card, editorState: editorState)
+                // v1.3.1：弃用 List(selection:)。改用 ScrollView + LazyVStack，
+                // 每行 Button 用 KaJiListRowButtonStyle 自定义选中色（深灰），
+                // 与侧栏 SidebarRowButtonStyle 视觉同源。
+                ScrollView {
+                    LazyVStack(spacing: 4) {
+                        ForEach(cards) { card in
+                            CardListRow(card: card)
                         }
                     }
-                )) {
-                    ForEach(cards) { card in
-                        CardListRow(card: card)  // v1.2.9 T5：传 CardSummary
-                            .tag(card.id)
-                    }
+                    .padding(.horizontal, KaJiLayout.contentHorizontalPadding)
+                    .padding(.vertical, 4)
                 }
-                .listStyle(.plain)
-                .padding(.horizontal, KaJiLayout.contentHorizontalPadding)
             }
         }
     }
