@@ -2,8 +2,22 @@
 //  EditorState.swift
 //  KaJi
 //
-//  编辑器与当前卡片状态。
-//  负责当前卡片、类型切换弹窗、搜索、自动保存、剪贴板、 UndoManager。
+//  编辑器与当前卡片状态 — 容器层（v1.2.9 T2 改造完成）。
+//
+//  v1.2.9 T2 改造：原 11 个 @Published + 12 个方法全挤在一个类里，导致输入时
+//  整棵 SwiftUI 视图树重建。按生命周期拆为 3 个独立 ObservableObject：
+//    - EditorDataState    数据态（currentCard / currentCardType / currentCardTags / 业务方法）
+//    - EditorUIState      UI 态（sidebarColumnVisibility / searchKeyword / isSearchActive）
+//    - EditorAlertState   告警态（showingTypeChangeAlert / pendingCardType / saveError / ...）
+//
+//  本文件（EditorState）作为容器：
+//    - 持有 3 个子 state（强引用）
+//    - 持有 listState / statsState（弱引用，由 init 传入）
+//    - 持有 undoManager（由 MainView.onAppear 注入）
+//    - 业务方法 facade（startNewCard / openCard / softDeleteCard / ...）转发到子 state，
+//      保证 KaJiApp 顶层菜单和外部调用方（ListState.openCardFromList 等）API 不变
+//    - 保留 ObservableObject 协议让 @EnvironmentObject 仍能注入，但不暴露任何 @Published，
+//      因此不会触发 objectWillChange（订阅者不会因为 facade 转发而重建）
 //
 
 import SwiftUI
@@ -11,41 +25,17 @@ import AppKit
 
 @MainActor
 final class EditorState: ObservableObject {
+    // MARK: - 子 state（强引用）
+    let data: EditorDataState
+    let ui: EditorUIState
+    let alert: EditorAlertState
+
     // MARK: - 依赖
     private let cardService = CardService.shared
-    private let persistence = PersistenceCoordinator()
     private let statsState: StatsState
     private let listState: ListState
-    private lazy var typeChangeService = CardTypeChangeService(editorState: self)
-    private lazy var lifecycleService = CardLifecycleService(editorState: self, statsState: statsState)
 
-    // MARK: - 当前态
-    @Published var currentCard: Card?           // 屏 1 编辑中 / 屏 3 详情
-    @Published var currentCardType: CardType = .free    // 当前卡类型
-    @Published var currentCardTags: [String] = []       // 当前卡的标签
-
-    // 侧栏
-    @Published var sidebarColumnVisibility: NavigationSplitViewVisibility = .all
-
-    func toggleSidebar() {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            sidebarColumnVisibility = (sidebarColumnVisibility == .all) ? .detailOnly : .all
-        }
-    }
-
-    // 数据层告警
-    @Published var isInMemoryDB: Bool = false
-    @Published var saveError: String?
-    @Published var lastSavedAt: Date?
-
-    // 搜索
-    @Published var searchKeyword: String = ""
-    @Published var isSearchActive: Bool = false
-
-    // 卡片类型切换确认
-    @Published var showingTypeChangeAlert: Bool = false
-    @Published var pendingCardType: CardType? = nil
-
+    // MARK: - 容器持状态
     /// UndoManager 由 SwiftUI 环境注入（MainView.onAppear 设置）
     var undoManager: UndoManager?
 
@@ -53,136 +43,91 @@ final class EditorState: ObservableObject {
         self.statsState = statsState
         self.listState = listState
 
-        // 1. 先初始化所有 @Published 基本状态
-        isInMemoryDB = AppDatabase.shared.isInMemory
+        // 1. 初始化子 state
+        self.alert = EditorAlertState()
+        self.data = EditorDataState(statsState: statsState, listState: listState, alert: alert)
+        self.ui = EditorUIState()
 
-        // v1.2.8 P1-4 修复：把 reconcile 和 generateNewCard 从并行改为串行，
-        // 避免启动期 ⌘N 竞争 — generateNewCard 读到的 existing IDs
-        // 不会包含 reconcile 即将恢复的卡 → 同一毫秒可能 id 冲突。
-        // 串行执行：reconcile + generateNewCard 顺序；reconcile 期间
-        // currentCard 仍为 nil，reconcile 完成后才生成首卡。
-        // 串行额外延迟 = reconcile 时间（典型 < 100ms, 用户不可感知）。
-        // 0 UI 视觉变化：用户感知的是"启动后首卡出现"，不是"启动后立刻看到"。
-        Task { @MainActor in
+        // 2. 同步初始 isInMemoryDB
+        alert.isInMemoryDB = AppDatabase.shared.isInMemory
+
+        // 3. 启动 bootstrap（reconcile + purgeOldTrash + 生成首卡）
+        //    v1.2.8 串行化逻辑保留：reconcile 完成后才 generateNewCard，避免同一毫秒 ID 冲突。
+        //    0 UI 视觉变化：用户感知的是"启动后首卡出现"，不是"启动后立刻看到"。
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
             do {
-                // 先 bootstrap(reconcile + purgeOldTrash)
-                try await cardService.bootstrap(retentionDays: SettingsService.trashRetentionDays)
-                statsState.rebuildStats()
-                // 再生成首卡（此时 allIDs 已包含 reconcile 恢复的卡）
-                let card = try await cardService.generateNewCard(type: .free)
-                currentCard = card
-                currentCardType = .free
-                currentCardTags = []
+                try await self.cardService.bootstrap(retentionDays: SettingsService.trashRetentionDays)
+                self.statsState.rebuildStats()
+                let card = try await self.cardService.generateNewCard(type: .free)
+                self.data.currentCard = card
+                self.data.currentCardType = .free
+                self.data.currentCardTags = []
             } catch {
-                currentCard = nil
-                currentCardType = .free
-                currentCardTags = []
-                saveError = "无法生成新卡编码：\(error.localizedDescription)"
+                self.alert.saveError = "无法生成新卡编码：\(error.localizedDescription)"
+                self.data.currentCard = nil
+                self.data.currentCardType = .free
+                self.data.currentCardTags = []
             }
         }
     }
 
-    // MARK: - 屏 1: 新建 / 编辑
+    // MARK: - 业务方法 facade（实际实现在 data / ui 子 state）
 
-    /// 开一张新卡（屏 1 用）— 给定类型，默认自由卡
-    /// 内部把 `generateNewCard`（一次全表 SQLite 读）放到后台队列，主线程不阻塞。
-    /// 行为对调用方完全同步：闭包结束后 currentCard / listState 已更新。UI 不变。
+    /// 切换侧栏显隐
+    func toggleSidebar() {
+        ui.toggleSidebar()
+    }
+
+    /// 开一张新卡（屏 1 用）
     func startNewCard(type: CardType = .free) {
-        Task { @MainActor in
-            do {
-                let card = try await cardService.generateNewCard(type: type)
-                currentCard = card
-                currentCardType = type
-                currentCardTags = []
-                saveError = nil
-                listState.listFilter = nil
-                listState.refreshFilteredCards()
-                listState.rightPaneMode = .editor
-            } catch {
-                saveError = "无法生成新卡编码：\(error.localizedDescription)"
-            }
-        }
+        data.startNewCard(type: type)
     }
 
     /// 列表行点击后把指定卡片加载进编辑器
     func openCard(_ card: Card) {
-        currentCard = card
-        currentCardType = card.cardType
-        currentCardTags = card.tags
+        data.openCard(card)
     }
 
     func requestCardTypeChange(to type: CardType) {
-        typeChangeService.requestChange(to: type)
+        data.requestCardTypeChange(to: type)
     }
 
     func confirmPendingCardTypeChange() {
-        typeChangeService.confirmPendingChange()
+        data.confirmPendingCardTypeChange()
     }
 
     /// Undo 入口：恢复卡片类型和字段（由 CardTypeChangeService 注册）
     func undoCardTypeChange(to type: CardType, fields: [CardField]) {
-        typeChangeService.undoChange(to: type, fields: fields)
+        data.undoCardTypeChange(to: type, fields: fields)
     }
 
     /// 复制当前卡片全部内容到剪贴板（Markdown 格式）
     func copyAllContentToPasteboard() {
-        guard let card = currentCard else { return }
-        cardService.copyAllContentToPasteboard(for: card)
+        data.copyAllContentToPasteboard()
     }
 
     // MARK: - 自动保存
 
     /// 任何字段被编辑都会调用，800ms debounce 后真正落库
     func saveImmediately() {
-        persistence.debounce { [weak self] in
-            self?.persistCurrentCard()
-        }
+        data.saveImmediately()
     }
 
     /// 强制立即落库（失焦 / 退出 / ⌘S 时调用）
     func flushSave() {
-        persistence.flush { [weak self] in
-            self?.persistCurrentCard()
-        }
-    }
-
-    private func persistCurrentCard() {
-        guard var c = currentCard else { return }
-        c.type = currentCardType.rawValue
-        c.tags = currentCardTags
-
-        // 3500 字符截断（title + 所有字段名 + 字段值 + 标签）
-        if ContentLimit.isOverLimit(card: c) {
-            c = ContentLimit.truncate(c)
-        }
-
-        // 截断结果立即同步回 UI，避免后台写盘完成后再覆盖 currentCard（H-2）
-        currentCard = c
-
-        // 写盘 + 重建统计放到后台队列，主线程只刷新 @Published（H-2）
-        Task {
-            do {
-                try await cardService.persist(card: c)
-                lastSavedAt = Date()
-                saveError = nil
-                let stats = try await cardService.refreshStats()
-                statsState.update(with: stats)
-                listState.refreshFilteredCards()
-            } catch {
-                saveError = "保存失败：\(error.localizedDescription)"
-            }
-        }
+        data.flushSave()
     }
 
     // MARK: - 卡片生命周期
 
     /// 列表行/菜单删除入口：带 UndoManager 注册
     func softDeleteCard(_ card: Card) {
-        lifecycleService.softDelete(card)
+        data.softDeleteCard(card)
     }
 
     /// Undo 入口：从回收站恢复卡片
     func restoreCard(_ card: Card) {
-        lifecycleService.restore(card)
+        data.restoreCard(card)
     }
 }

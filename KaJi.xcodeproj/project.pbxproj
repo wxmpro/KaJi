@@ -11,8 +11,10 @@
 		06BBCC976ECC1D5F9B72B90D /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D443FD69E1F5C34DF1EF0D /* SidebarView.swift */; };
 		0C20DBEA694EF0C47723D36D /* CardFileIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CE95E491876197E909A86B0 /* CardFileIO.swift */; };
 		1089AC86E468F535F46A0D25 /* KaJiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F1E5D7FA567AB3B93A5E90 /* KaJiApp.swift */; };
+		4C03139C116F46D09A742A13 /* EditorAlertState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E63B4450F7FC452B99B44511 /* EditorAlertState.swift */; };
+		EB35101A73A742AEBE7DE37B /* EditorUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC9C897D5FE54FEAB61E097E /* EditorUIState.swift */; };
+		98EB08BCF4B447FA8A69A325 /* EditorDataState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36DB9C2EDA44449682E0F92D /* EditorDataState.swift */; };
 		17E4C7ECE8A2F6BA64E22A9A /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD9140953A0EFC4A19583E5 /* ExportService.swift */; };
-		1EFFA5332A639A9B6FEE3BFA /* PersistenceCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DAFF3062C736E1629D6B8BA /* PersistenceCoordinator.swift */; };
 		2A81A09556177893A6023CEA /* CardIDGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF832ED09C5A71F672E6D89 /* CardIDGenerator.swift */; };
 		3E6244F89B67DDF82771DE3B /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 779A271A1B8E8EC1EBF80ABF /* GRDB */; };
 		3F83D0177AC4BD5B052E1573 /* CardLifecycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1536CBD99F2A9B3B09E7D1B2 /* CardLifecycleService.swift */; };
@@ -49,6 +51,9 @@
 /* Begin PBXFileReference section */
 		05004F2A32A2EF016AD2F506 /* CardListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardListView.swift; sourceTree = "<group>"; };
 		0A5CF4E98B6868AFAA27FD81 /* KaJi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KaJi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E63B4450F7FC452B99B44511 /* EditorAlertState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorAlertState.swift; sourceTree = "<group>"; };
+		FC9C897D5FE54FEAB61E097E /* EditorUIState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorUIState.swift; sourceTree = "<group>"; };
+		36DB9C2EDA44449682E0F92D /* EditorDataState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorDataState.swift; sourceTree = "<group>"; };
 		0EB6B78BC1C7BA574E35BF37 /* SettingsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsService.swift; sourceTree = "<group>"; };
 		13F1E5D7FA567AB3B93A5E90 /* KaJiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiApp.swift; sourceTree = "<group>"; };
 		1536CBD99F2A9B3B09E7D1B2 /* CardLifecycleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardLifecycleService.swift; sourceTree = "<group>"; };
@@ -59,7 +64,6 @@
 		3E423AB4B1F431DBF146C853 /* GRDB.swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GRDB.swift; path = ../../../Developer/Vendor/GRDB.swift; sourceTree = SOURCE_ROOT; };
 		42CFF8F25761CACD3184597E /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
 		47612C79664152B4925BA53B /* KajiHoverBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KajiHoverBackground.swift; sourceTree = "<group>"; };
-		4DAFF3062C736E1629D6B8BA /* PersistenceCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceCoordinator.swift; sourceTree = "<group>"; };
 		5832713E45FBEA4ADB655DC7 /* CardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardService.swift; sourceTree = "<group>"; };
 		5BF832ED09C5A71F672E6D89 /* CardIDGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardIDGenerator.swift; sourceTree = "<group>"; };
 		5D9764329C9E9B202E4BCF7A /* FormEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormEditor.swift; sourceTree = "<group>"; };
@@ -123,6 +127,9 @@
 			isa = PBXGroup;
 			children = (
 				2EFEFFEA868D4598BC6E09106A9D32C5 /* EditorState.swift */,
+				E63B4450F7FC452B99B44511 /* EditorAlertState.swift */,
+				FC9C897D5FE54FEAB61E097E /* EditorUIState.swift */,
+				36DB9C2EDA44449682E0F92D /* EditorDataState.swift */,
 				13F1E5D7FA567AB3B93A5E90 /* KaJiApp.swift */,
 				5E1F131C1AA640789E62DD1B9818530B /* ListState.swift */,
 				DAB8D9070E354D148D863593A3FD04D1 /* StatsState.swift */,
@@ -174,7 +181,6 @@
 				1536CBD99F2A9B3B09E7D1B2 /* CardLifecycleService.swift */,
 				5832713E45FBEA4ADB655DC7 /* CardService.swift */,
 				1A7BCF285D1FC16090347EBC /* CardTypeChangeService.swift */,
-				4DAFF3062C736E1629D6B8BA /* PersistenceCoordinator.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -339,6 +345,9 @@
 			files = (
 				9F30FC57C2B0F84213BFDB54 /* AppDatabase.swift in Sources */,
 				F9511BB6D43A405EAEA349B21660C1F9 /* EditorState.swift in Sources */,
+				4C03139C116F46D09A742A13 /* EditorAlertState.swift in Sources */,
+				EB35101A73A742AEBE7DE37B /* EditorUIState.swift in Sources */,
+				98EB08BCF4B447FA8A69A325 /* EditorDataState.swift in Sources */,
 				A506B368E84598D6C89B8961 /* Card.swift in Sources */,
 				B1AC2B2B1A2B1A2B1A2B1A2B /* BackButton.swift in Sources */,
 				DEE197EBEFEBBD91A9F64939 /* CardField.swift in Sources */,
@@ -365,7 +374,6 @@
 				C96FD0E18FCB4C21F166C7F8 /* ListFilterTitle.swift in Sources */,
 				C4D91BD7E546C9EB8B02E675 /* MainView.swift in Sources */,
 				AC8F168F7B0F8CD8FECFE200 /* NotesEditor.swift in Sources */,
-				1EFFA5332A639A9B6FEE3BFA /* PersistenceCoordinator.swift in Sources */,
 				BBB886041FBCCCB94A180FF0 /* SettingsService.swift in Sources */,
 				1D1FCAAEBB2F43298360E0175A00ED32 /* StatsState.swift in Sources */,
 				DE07670AB3C5E00CB28CAD8C /* SettingsView.swift in Sources */,
@@ -430,7 +438,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -453,7 +461,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.2.8;
+				MARKETING_VERSION = 1.2.9;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -518,7 +526,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -535,7 +543,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.2.8;
+				MARKETING_VERSION = 1.2.9;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;

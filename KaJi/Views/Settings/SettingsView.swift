@@ -176,11 +176,16 @@ struct SettingsView: View {
     // MARK: - 辅助
 
     /// 当前数据库文件路径（in-memory 模式下显示提示）
+    /// v1.2.9 S1 修复：dbURL 改 throws；失败时返回友好提示
     private var databasePath: String {
         if AppDatabase.shared.isInMemory {
             return "内存模式（无文件）"
         }
-        return AppDatabase.dbURL.path
+        do {
+            return try AppDatabase.dbURL().path
+        } catch {
+            return "无法获取（\(error.localizedDescription)）"
+        }
     }
 
     private func openDatabaseFolder() {
@@ -188,7 +193,9 @@ struct SettingsView: View {
         if AppDatabase.shared.isInMemory {
             url = FileManager.default.homeDirectoryForCurrentUser
         } else {
-            url = AppDatabase.dbURL.deletingLastPathComponent()
+            // v1.2.9 S1 修复：fallback 到 home 目录
+            url = (try? AppDatabase.dbURL().deletingLastPathComponent())
+                ?? FileManager.default.homeDirectoryForCurrentUser
         }
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.path)
     }

@@ -62,6 +62,16 @@ final class CardRepository: @unchecked Sendable {
         var c = card
         c.updatedAt = Date()
 
+        // T1 P0 修复（v1.2.9）：防御性兜底 — 拒绝保存已删除的卡片（deletedAt != nil）。
+        // 即使 Service 层未及时 flush，任何延迟到达的 save 都不会复活已删除/回收中的卡。
+        if c.deletedAt != nil {
+            throw NSError(
+                domain: "CardRepository",
+                code: 10,
+                userInfo: [NSLocalizedDescriptionKey: "拒绝保存已删除的卡片 (\(c.id))"]
+            )
+        }
+
         // 1. SQLite 事务（ACID）：cards + cardFields + cardTags
         try db.dbWriter.write { grdb in
             try persist(c, in: grdb)
@@ -81,11 +91,13 @@ final class CardRepository: @unchecked Sendable {
 
     /// 内部：在指定数据库事务内写入/更新卡片记录（INSERT OR REPLACE）
     private func persist(_ card: Card, in grdb: Database) throws {
+        // v1.2.9 S1 修复：fileURL 改 throws
+        let filePath = try CardFileIO.fileURL(for: card.id).path
         var record = CardRecord(
             id: card.id, type: card.type, title: card.title,
             createdAt: iso8601(card.createdAt), updatedAt: iso8601(card.updatedAt),
             deletedAt: card.deletedAt.map(iso8601),
-            filePath: CardFileIO.fileURL(for: card.id).path,
+            filePath: filePath,
             fileMtime: nil, fileHash: nil, fileSize: 0
         )
         // save = insert or update：兼容新建和更新，避免 update() 在记录不存在时抛错

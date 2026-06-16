@@ -8,7 +8,9 @@
 import SwiftUI
 
 struct FormEditor: View {
-    @EnvironmentObject var editorState: EditorState
+    // v1.2.9 T2：数据态订阅 data（currentCard / currentCardType / currentCardTags），
+    // 输入字符时只 FormEditor 自身重建，不再触发整棵树。
+    @EnvironmentObject var data: EditorDataState
     @Binding var showingTypePicker: Bool
     @Binding var newTagText: String
     @Binding var isAddingTag: Bool
@@ -62,7 +64,7 @@ struct FormEditor: View {
                 // 左侧标签栏
                 VStack(spacing: 0) {
                     labelView("标题")
-                    ForEach(editorState.currentCardType.fields, id: \.self) { field in
+                    ForEach(data.currentCardType.fields, id: \.self) { field in
                         labelView(field)
                     }
                     Spacer()
@@ -92,8 +94,8 @@ struct FormEditor: View {
 
                 VStack {
                     Spacer()
-                    CardTypePickerView(selectedType: editorState.currentCardType) { type in
-                        editorState.requestCardTypeChange(to: type)
+                    CardTypePickerView(selectedType: data.currentCardType) { type in
+                        data.requestCardTypeChange(to: type)
                         showingTypePicker = false
                     }
                     .padding(.horizontal, 14)
@@ -131,9 +133,9 @@ struct FormEditor: View {
         } label: {
             HStack(spacing: 4) {
                 Circle()
-                    .fill(editorState.currentCardType.color)
+                    .fill(data.currentCardType.color)
                     .frame(width: 6, height: 6)
-                Text(editorState.currentCardType.rawValue)
+                Text(data.currentCardType.rawValue)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.primary)
             }
@@ -168,7 +170,7 @@ struct FormEditor: View {
             fieldEditor(text: titleBinding)
 
             // 动态字段
-            ForEach(editorState.currentCardType.fields, id: \.self) { fieldName in
+            ForEach(data.currentCardType.fields, id: \.self) { fieldName in
                 fieldEditor(text: fieldBinding(for: fieldName))
             }
 
@@ -193,7 +195,7 @@ struct FormEditor: View {
         HStack(spacing: 8) {
             // 标签区
             HStack(spacing: 4) {
-                ForEach(editorState.currentCardTags, id: \.self) { tag in
+                ForEach(data.currentCardTags, id: \.self) { tag in
                     TagPill(tag: tag)
                         .contextMenu {
                             Button("删除标签", role: .destructive) {
@@ -224,7 +226,7 @@ struct FormEditor: View {
 
             Spacer()
 
-            Text(editorState.currentCard?.displayID ?? "")
+            Text(data.currentCard?.displayID ?? "")
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
@@ -234,12 +236,12 @@ struct FormEditor: View {
 
     private var titleBinding: Binding<String> {
         Binding(
-            get: { editorState.currentCard?.title ?? "" },
+            get: { data.currentCard?.title ?? "" },
             set: { newValue in
-                guard var card = editorState.currentCard else { return }
+                guard var card = data.currentCard else { return }
                 card.title = newValue
-                editorState.currentCard = card
-                editorState.saveImmediately()
+                data.currentCard = card
+                data.saveImmediately()
             }
         )
     }
@@ -247,10 +249,10 @@ struct FormEditor: View {
     private func fieldBinding(for fieldName: String) -> Binding<String> {
         Binding(
             get: {
-                editorState.currentCard?.value(ofField: fieldName) ?? ""
+                data.currentCard?.value(ofField: fieldName) ?? ""
             },
             set: { newValue in
-                guard var card = editorState.currentCard else { return }
+                guard var card = data.currentCard else { return }
                 if let idx = card.fields.firstIndex(where: { $0.fieldName == fieldName }) {
                     card.fields[idx].fieldValue = newValue
                 } else {
@@ -259,8 +261,8 @@ struct FormEditor: View {
                         CardField(cardId: card.id, fieldName: fieldName, fieldValue: newValue, fieldOrder: order)
                     )
                 }
-                editorState.currentCard = card
-                editorState.saveImmediately()
+                data.currentCard = card
+                data.saveImmediately()
             }
         )
     }
@@ -273,7 +275,7 @@ struct FormEditor: View {
             return
         }
         // v1.2.8 P2-3 修复：append 前去重（忽略大小写），防止库内出现重复 tag
-        guard !editorState.currentCardTags.contains(where: {
+        guard !data.currentCardTags.contains(where: {
             $0.caseInsensitiveCompare(trimmed) == .orderedSame
         }) else {
             // 已存在，清空输入框并退出输入态，不重复添加
@@ -281,22 +283,22 @@ struct FormEditor: View {
             isAddingTag = false
             return
         }
-        editorState.currentCardTags.append(trimmed)
-        if var card = editorState.currentCard {
-            card.tags = editorState.currentCardTags
-            editorState.currentCard = card
-            editorState.saveImmediately()
+        data.currentCardTags.append(trimmed)
+        if var card = data.currentCard {
+            card.tags = data.currentCardTags
+            data.currentCard = card
+            data.saveImmediately()
         }
         newTagText = ""
         isAddingTag = false
     }
 
     private func removeTag(_ tag: String) {
-        editorState.currentCardTags.removeAll { $0 == tag }
-        if var card = editorState.currentCard {
-            card.tags = editorState.currentCardTags
-            editorState.currentCard = card
-            editorState.saveImmediately()
+        data.currentCardTags.removeAll { $0 == tag }
+        if var card = data.currentCard {
+            card.tags = data.currentCardTags
+            data.currentCard = card
+            data.saveImmediately()
         }
     }
 }

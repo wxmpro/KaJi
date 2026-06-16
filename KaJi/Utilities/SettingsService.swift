@@ -94,12 +94,26 @@ enum SettingsService {
 
     // MARK: - 回收站保留天数
 
+    // v1.2.9 S2 修复：cache UserDefaults 值，策略与 autoSaveInterval 一致。
+    // 旧实现每次都读 UserDefaults + fallback 判断（虽然 UserDefaults 内部有缓存，
+    // 但 fallback 逻辑每次跑），与 autoSaveInterval 的缓存模式不一致。
+    // 新实现：首次 getter 从 UserDefaults 读，后续 getter 直接返回 cache；
+    // setter 同时更新 cache 和 UserDefaults。
+    private static var cachedTrashRetentionDays: Int = 30
+    private static var trashRetentionDaysLoaded: Bool = false
+
     static var trashRetentionDays: Int {
         get {
-            let value = UserDefaults.standard.integer(forKey: trashRetentionDaysKey)
-            return value > 0 ? value : 30
+            if !trashRetentionDaysLoaded {
+                let value = UserDefaults.standard.integer(forKey: trashRetentionDaysKey)
+                cachedTrashRetentionDays = value > 0 ? value : 30
+                trashRetentionDaysLoaded = true
+            }
+            return cachedTrashRetentionDays
         }
         set {
+            cachedTrashRetentionDays = newValue > 0 ? newValue : 30
+            trashRetentionDaysLoaded = true
             UserDefaults.standard.set(newValue, forKey: trashRetentionDaysKey)
         }
     }

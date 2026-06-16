@@ -15,30 +15,48 @@
 import Foundation
 
 struct CardFileIO {
+    /// v1.2.9 S1 修复：定义结构化错误，替代 force unwrap
+    enum CardFileIOError: LocalizedError {
+        case applicationSupportUnavailable
+
+        var errorDescription: String? {
+            switch self {
+            case .applicationSupportUnavailable:
+                return "无法获取 Application Support 目录（沙盒/MDM 限制下可能触发）。"
+            }
+        }
+    }
 
     // MARK: - 路径
 
     /// 数据根目录
-    static var dataRoot: URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+    /// v1.2.9 S1 修复：原 `FileManager.default.urls(...).first!` 在极端情况
+    /// （沙盒/MDM 异常）下会 crash。改为 throws，调用方可在 UI 层提示用户。
+    static func dataRoot() throws -> URL {
+        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            throw CardFileIOError.applicationSupportUnavailable
+        }
         return appSupport.appendingPathComponent("KaJi", isDirectory: true)
     }
 
     /// cards/ 目录（每张卡一个 .md）
-    static var cardsDir: URL {
-        dataRoot.appendingPathComponent("cards", isDirectory: true)
+    /// v1.2.9 S1 修复：throws 版本
+    static func cardsDir() throws -> URL {
+        try dataRoot().appendingPathComponent("cards", isDirectory: true)
     }
 
     /// 单卡 .md 路径
-    static func fileURL(for id: String) -> URL {
-        cardsDir.appendingPathComponent("\(id).md")
+    /// v1.2.9 S1 修复：throws 版本
+    static func fileURL(for id: String) throws -> URL {
+        try cardsDir().appendingPathComponent("\(id).md")
     }
 
     /// 列出 cards 目录下所有 .md 文件的 id（用于启动对账）
     static func listAllIDs() throws -> Set<String> {
-        try ensureDirectory(cardsDir)
+        let dir = try cardsDir()
+        try ensureDirectory(dir)
         let urls = try FileManager.default.contentsOfDirectory(
-            at: cardsDir,
+            at: dir,
             includingPropertiesForKeys: [.isRegularFileKey]
         )
         return Set(urls.compactMap { url in
@@ -53,8 +71,9 @@ struct CardFileIO {
     /// - Returns: 最终 .md URL
     @discardableResult
     static func write(_ card: Card) throws -> URL {
-        try ensureDirectory(cardsDir)
-        let url = fileURL(for: card.id)
+        let dir = try cardsDir()
+        try ensureDirectory(dir)
+        let url = try fileURL(for: card.id)
         let content = renderMarkdown(card)
         let tmp = url.appendingPathExtension("tmp")
         do {
@@ -69,7 +88,7 @@ struct CardFileIO {
 
     /// 从 .md 读卡（用于 SQLite 重建 / 备份恢复）
     static func read(id: String) throws -> Card? {
-        let url = fileURL(for: id)
+        let url = try fileURL(for: id)
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         let text = try String(contentsOf: url, encoding: .utf8)
         return try parseMarkdown(text)
@@ -77,7 +96,7 @@ struct CardFileIO {
 
     /// 删卡（移到回收站时不删 .md；彻底删时调用）
     static func delete(id: String) throws {
-        let url = fileURL(for: id)
+        let url = try fileURL(for: id)
         if FileManager.default.fileExists(atPath: url.path) {
             try FileManager.default.removeItem(at: url)
         }

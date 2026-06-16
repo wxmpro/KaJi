@@ -4,7 +4,7 @@
 //
 //  一张卡片。
 //  - id：17 位纯数字（YYYYMMDDHHMMSS + 3 位毫秒），保证全局唯一
-//  - type：CardType（11 种内置之一）
+//  - type：CardType（12 种内置之一，v1.2.9 T7 注释修正 — 原本误写 11 种）
 //  - title：标题（≤ 30 字符；空时自动取首字段前 30 字）
 //  - tags：[String]，≤ 5 个，每个 ≤ 10 字符
 //  - fields：[CardField]，EAV 模式

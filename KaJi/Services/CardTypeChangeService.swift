@@ -3,7 +3,12 @@
 //  KaJi
 //
 //  卡片类型切换：含 Undo/Redo、确认弹窗逻辑。
-//  与具体写盘解耦，只操作 EditorState 的 UI 状态并通过 editorState.saveImmediately 落库。
+//  与具体写盘解耦，只操作 data / alert 子 state 的 UI 状态并通过 data.saveImmediately 落库。
+//
+//  v1.2.9 T2 改造：构造签名从 (editorState) 改为 (data)，
+//  内部不再订阅完整 EditorState，只用 dataState 持有 currentCard / currentCardType /
+//  flushSave / saveImmediately / undoManager 和 alertState 写 pendingCardType /
+//  showingTypeChangeAlert。
 //
 
 import SwiftUI
@@ -11,15 +16,15 @@ import AppKit
 
 @MainActor
 final class CardTypeChangeService {
-    private weak var editorState: EditorState?
+    private weak var data: EditorDataState?
 
-    init(editorState: EditorState) {
-        self.editorState = editorState
+    init(data: EditorDataState) {
+        self.data = data
     }
 
     /// 当前卡片是否已有内容
     private func currentCardHasContent() -> Bool {
-        guard let card = editorState?.currentCard else { return false }
+        guard let card = data?.currentCard else { return false }
         if !card.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return true
         }
@@ -30,10 +35,10 @@ final class CardTypeChangeService {
 
     /// 用户请求切换卡片类型：有内容时弹出确认，无内容时直接切换
     func requestChange(to type: CardType) {
-        guard let editorState = editorState, type != editorState.currentCardType else { return }
+        guard let data = data, let alert = data.alert, type != data.currentCardType else { return }
         if currentCardHasContent() {
-            editorState.pendingCardType = type
-            editorState.showingTypeChangeAlert = true
+            alert.pendingCardType = type
+            alert.showingTypeChangeAlert = true
         } else {
             applyChange(to: type)
         }
@@ -41,45 +46,53 @@ final class CardTypeChangeService {
 
     /// 确认切换：清空字段并按新类型重建结构
     func confirmPendingChange() {
-        guard let editorState = editorState, let type = editorState.pendingCardType else { return }
+        guard let data = data, let alert = data.alert, let type = alert.pendingCardType else { return }
         applyChange(to: type)
-        editorState.pendingCardType = nil
+        alert.pendingCardType = nil
     }
 
     private func applyChange(to type: CardType) {
-        guard let editorState = editorState, var card = editorState.currentCard else { return }
-        let previousType = editorState.currentCardType
+        guard let data = data, var card = data.currentCard else { return }
+        let previousType = data.currentCardType
         let previousFields = card.fields
 
-        editorState.undoManager?.registerUndo(withTarget: editorState) { target in
+        // T1 P0 修复（v1.2.9）：先 flush 当前正在编辑的内容到 SQLite，避免类型切换后
+        // pending save 把刚切换的 fields 覆盖回旧内容。
+        data.flushSave()
+
+        data.undoManager?.registerUndo(withTarget: data) { target in
             target.undoCardTypeChange(to: previousType, fields: previousFields)
         }
-        editorState.undoManager?.setActionName("切换卡片类型")
+        data.undoManager?.setActionName("切换卡片类型")
 
-        editorState.currentCardType = type
+        data.currentCardType = type
         card.type = type.rawValue
         card.fields = type.fields.enumerated().map { idx, name in
             CardField(cardId: card.id, fieldName: name, fieldValue: "", fieldOrder: idx)
         }
-        editorState.currentCard = card
-        editorState.saveImmediately()
+        data.currentCard = card
+        data.saveImmediately()
     }
 
     /// Undo 入口：恢复卡片类型和字段
     func undoChange(to type: CardType, fields: [CardField]) {
-        guard let editorState = editorState, var card = editorState.currentCard else { return }
+        guard let data = data, var card = data.currentCard else { return }
 
-        let currentType = editorState.currentCardType
+        let currentType = data.currentCardType
         let currentFields = card.fields
-        editorState.undoManager?.registerUndo(withTarget: editorState) { target in
+
+        // T1 P0 修复（v1.2.9）：先 flush 取消 pending save，避免旧内容覆盖 undo 后的状态。
+        data.flushSave()
+
+        data.undoManager?.registerUndo(withTarget: data) { target in
             target.undoCardTypeChange(to: currentType, fields: currentFields)
         }
-        editorState.undoManager?.setActionName("切换卡片类型")
+        data.undoManager?.setActionName("切换卡片类型")
 
-        editorState.currentCardType = type
+        data.currentCardType = type
         card.type = type.rawValue
         card.fields = fields
-        editorState.currentCard = card
-        editorState.saveImmediately()
+        data.currentCard = card
+        data.saveImmediately()
     }
 }

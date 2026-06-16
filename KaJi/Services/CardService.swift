@@ -58,6 +58,34 @@ final class CardService: @unchecked Sendable {
         }.value
     }
 
+    // MARK: - 自动保存调度（v1.2.9 T2 E：从 PersistenceCoordinator 合并过来）
+    // 用 DispatchWorkItem 在 main queue 做 debounce / flush；
+    // service 是 @unchecked Sendable，但内部 state 只在 main queue 读写，
+    // 跨线程访问需在 caller 端保证在 @MainActor 调用（EditorDataState 已是 @MainActor）。
+    // @MainActor 标注：SettingsService.autoSaveInterval 是 @MainActor 隔离的，
+    // 必须从 main actor 上下文调用才能读到值。
+
+    @MainActor
+    private var saveWorkItem: DispatchWorkItem?
+
+    /// 防抖保存：取消上一个 pending 任务，延迟 interval 后执行
+    @MainActor
+    func debounceSave(action: @escaping () -> Void) {
+        saveWorkItem?.cancel()
+        let interval = SettingsService.autoSaveInterval
+        let work = DispatchWorkItem { action() }
+        saveWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + interval, execute: work)
+    }
+
+    /// 立即落库：取消 pending 并立刻执行
+    @MainActor
+    func flushSave(action: @escaping () -> Void) {
+        saveWorkItem?.cancel()
+        saveWorkItem = nil
+        action()
+    }
+
     // MARK: - 删除 / 恢复
 
     /// 移到回收站（同步执行：单条 SQLite UPDATE，足够快；Undo 注册前必须完成）

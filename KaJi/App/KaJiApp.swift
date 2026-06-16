@@ -19,6 +19,10 @@ struct KaJiApp: App {
         WindowGroup {
             MainView()
                 .environmentObject(appDelegate.editorState)
+                // v1.2.9 T2：注入细粒度子 state，View 可独立订阅对应 @Published。
+                .environmentObject(appDelegate.editorState.data)
+                .environmentObject(appDelegate.editorState.ui)
+                .environmentObject(appDelegate.editorState.alert)
                 .environmentObject(appDelegate.listState)
                 .environmentObject(appDelegate.statsState)
         }
@@ -43,7 +47,7 @@ struct KaJiApp: App {
 
             CommandGroup(after: .importExport) {
                 Button("导出当前卡片") {
-                    guard let card = appDelegate.editorState.currentCard else { return }
+                    guard let card = appDelegate.editorState.data.currentCard else { return }
                     ExportService.exportCard(card)
                 }
                 .keyboardShortcut("e", modifiers: .command)
@@ -71,7 +75,7 @@ struct KaJiApp: App {
                 Divider()
 
                 Button("删除") {
-                    guard let card = appDelegate.editorState.currentCard else { return }
+                    guard let card = appDelegate.editorState.data.currentCard else { return }
                     appDelegate.editorState.softDeleteCard(card)
                 }
                 .keyboardShortcut(.delete, modifiers: .command)

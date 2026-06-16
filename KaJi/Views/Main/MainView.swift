@@ -10,12 +10,15 @@
 import SwiftUI
 
 struct MainView: View {
+    // v1.2.9 T2：UI 态（sidebarColumnVisibility / searchKeyword）订阅 ui，
+    // editorState 保留用于 undoManager 转发和未来菜单快捷键。
     @EnvironmentObject var editorState: EditorState
     @EnvironmentObject var listState: ListState
+    @EnvironmentObject var ui: EditorUIState
     @Environment(\.undoManager) var undoManager
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $editorState.sidebarColumnVisibility) {
+        NavigationSplitView(columnVisibility: $ui.sidebarColumnVisibility) {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 180, ideal: 240, max: 400)
         } detail: {
@@ -23,7 +26,7 @@ struct MainView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .searchable(
-            text: $editorState.searchKeyword,
+            text: $ui.searchKeyword,
             placement: .toolbar,
             prompt: "搜索卡片..."
         )
@@ -36,9 +39,13 @@ struct MainView: View {
             }
         }
         .onSubmit(of: .search) {
-            let keyword = editorState.searchKeyword.trimmingCharacters(in: .whitespaces)
-            guard !keyword.isEmpty else { return }
-            listState.showList(.search(keyword))
+            let keyword = ui.searchKeyword.trimmingCharacters(in: .whitespaces)
+            if keyword.isEmpty {
+                // v1.2.9 T8 修复：清空搜索框按回车，回到"全部卡片"列表
+                listState.showList(.all)
+            } else {
+                listState.showList(.search(keyword))
+            }
         }
         .onAppear {
             editorState.undoManager = undoManager

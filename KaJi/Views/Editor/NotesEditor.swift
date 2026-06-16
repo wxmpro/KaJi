@@ -8,7 +8,10 @@
 import SwiftUI
 
 struct NotesEditor: View {
+    // v1.2.9 T2：告警态订阅 alert（showingTypeChangeAlert / pendingCardType），
+    // editorState 保留用于业务方法（copyAllContentToPasteboard / confirmPendingCardTypeChange）。
     @EnvironmentObject var editorState: EditorState
+    @EnvironmentObject var alert: EditorAlertState
     @State private var showingTypePicker = false
     @State private var newTagText = ""
     @State private var isAddingTag = false
@@ -27,7 +30,7 @@ struct NotesEditor: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(.top, KaJiLayout.headerTopPadding)  // 保留顶部 padding 平衡视觉
         }
-        .alert("切换卡片类型", isPresented: $editorState.showingTypeChangeAlert) {
+        .alert("切换卡片类型", isPresented: $alert.showingTypeChangeAlert) {
             Button("复制全部并切换", role: .none) {
                 editorState.copyAllContentToPasteboard()
                 editorState.confirmPendingCardTypeChange()
@@ -37,7 +40,7 @@ struct NotesEditor: View {
                 editorState.confirmPendingCardTypeChange()
             }
             Button("取消", role: .cancel) {
-                editorState.pendingCardType = nil
+                alert.pendingCardType = nil
             }
             .keyboardShortcut(.cancelAction)
         } message: {

@@ -3,17 +3,14 @@
 //  KaJi
 //
 //  GRDB.swift 数据库管理。
-//  5 张表（按数据库设计文档）：
+//  4 张表（v1.2.9 T7 注释修正 — 注释原本误写 5 张表）：
 //    1. cards          — 主表
 //    2. cardFields     — EAV 模式字段
 //    3. tags           — 标签
 //    4. cardTags       — 卡-标签 M:N
 //  搜索统一走 StatsState.cachedCards 内存 filter，不再维护 FTS5 虚拟表。
 //
-//  + 1 张 v1.0 回收站表实现：
-//    deletedCards     — deletedAt 非空的卡（启动时按设置保留天数清理）
-//
-//  v1.0 简化：deletedCards 不新建表，复用 cards 表 + deletedAt 字段。
+//  v1.0 简化：删除卡复用 cards 表 + deletedAt 字段（不新建表）。
 //  清理策略：启动时 `DELETE FROM cards WHERE deletedAt IS NOT NULL AND deletedAt < ?`
 //
 //  线程模型：
@@ -54,7 +51,8 @@ final class AppDatabase: @unchecked Sendable {
             dbWriter = try DatabaseQueue(path: ":memory:", configuration: config)
             isInMemory = true
         } else {
-            let dbURL = AppDatabase.dbURL
+            // v1.2.9 S1 修复：dbURL 改 throws，调用方在 init throws 链中处理
+            let dbURL = try AppDatabase.dbURL()
             try FileManager.default.createDirectory(
                 at: dbURL.deletingLastPathComponent(),
                 withIntermediateDirectories: true
@@ -67,8 +65,10 @@ final class AppDatabase: @unchecked Sendable {
         try migrator.migrate(dbWriter)
     }
 
-    static var dbURL: URL {
-        CardFileIO.dataRoot.appendingPathComponent("index.sqlite")
+    /// 数据库文件路径
+    /// v1.2.9 S1 修复：throws 版本
+    static func dbURL() throws -> URL {
+        try CardFileIO.dataRoot().appendingPathComponent("index.sqlite")
     }
 
     // MARK: - 迁移
