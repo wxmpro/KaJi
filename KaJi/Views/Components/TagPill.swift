@@ -18,13 +18,14 @@ struct TagPill: View {
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(
-                // v1.3.0：颜色统一走 KaJiColor.listRowHover 常量
+                // v1.3.2：颜色统一走 SemanticColor.resolve(for:)
                 Capsule()
-                    .fill(colorScheme == .dark ? KaJiColor.listRowHoverDark : KaJiColor.listRowHoverLight)
+                    .fill(KaJiColor.listRowHover.resolve(for: colorScheme))
             )
             .overlay(
                 Capsule()
-                    .stroke(Color(nsColor: .separatorColor).opacity(0.35), lineWidth: 0.5)
+                    // v1.3.2：分隔线统一走 KaJiColor.systemSeparator
+                    .stroke(KaJiColor.systemSeparator.opacity(0.35), lineWidth: 0.5)
             )
     }
 }

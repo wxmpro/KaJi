@@ -37,26 +37,66 @@ final class CardService: @unchecked Sendable {
     // MARK: - 新卡
 
     /// 生成一张新卡（不写库）
-    /// 异步原因：`AppDatabase.allIDs()` 是一次 SQLite 全表读，在 1k+ 卡片时
-    /// 在主线程跑会肉眼可感卡顿。挪到 detached utility 队列后，UI 完全不阻塞。
+    /// ★ v1.3.2：彻底改造 — 不再读 allIDs()（多进程下读到过期 snapshot）。
+    /// CardIDGenerator 进程内单调 + DB UNIQUE 约束兜底跨进程。
     /// 调用方（EditorState.startNewCard / init）用 `Task { @MainActor in try await ... }` 包裹即可。
     func generateNewCard(type: CardType) async throws -> Card {
-        let existing = try await Task.detached(priority: .userInitiated) {
-            try AppDatabase.shared.allIDs()
-        }.value
-        let id = try CardIDGenerator.next(existing: existing)
-        return Card.new(type: type, id: id, title: "", tags: [], fields: [:])
+        for _ in 1...10 {
+            let candidateId: String
+            do {
+                candidateId = try CardIDGenerator.next()
+            } catch {
+                throw KaJiError.unknown(error)
+            }
+            // 校验 ID 格式（防御性：CardIDGenerator 内已保证）
+            guard CardIDGenerator.isValid(candidateId) else {
+                throw KaJiError.database(.idConflictExhausted(attempts: 10))
+            }
+            return Card.new(type: type, id: candidateId, title: "", tags: [], fields: [:])
+        }
+        throw KaJiError.database(.idConflictExhausted(attempts: 10))
     }
 
     // MARK: - 持久化
 
     /// 写卡到 SQLite + .md：在后台 utility 队列执行
     /// SQLite 是强一致锚点；.md 是派生视图，写入失败会由启动对账修复
+    /// ★ v1.3.2：捕获 idConflict 重试 — 跨进程场景下第二进程与第一进程撞 ID 时自动重生成
     func persist(card: Card) async throws {
         let repo = repository
-        try await Task.detached(priority: .utility) {
-            _ = try repo.save(card: card)
-        }.value
+        for _ in 1...10 {
+            do {
+                try await Task.detached(priority: .utility) {
+                    _ = try repo.save(card: card)
+                }.value
+                return
+            } catch DatabaseError.idConflict {
+                // 跨进程冲突：保留 card 数据但重新生成 ID 后重试
+                let newId: String
+                do {
+                    newId = try CardIDGenerator.next()
+                } catch {
+                    throw KaJiError.unknown(error)
+                }
+                var updated = card
+                updated = Card(
+                    id: newId,
+                    type: updated.type,
+                    title: updated.title,
+                    tags: updated.tags,
+                    fields: updated.fields,
+                    createdAt: updated.createdAt,
+                    updatedAt: updated.updatedAt,
+                    deletedAt: updated.deletedAt,
+                    mdVersion: updated.mdVersion
+                )
+                try await Task.detached(priority: .utility) {
+                    _ = try repo.save(card: updated)
+                }.value
+                return
+            }
+        }
+        throw KaJiError.database(.idConflictExhausted(attempts: 10))
     }
 
     // MARK: - 自动保存调度（v1.2.9 T2 E：从 PersistenceCoordinator 合并过来）

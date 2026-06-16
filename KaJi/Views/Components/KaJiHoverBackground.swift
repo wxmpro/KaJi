@@ -25,7 +25,8 @@ struct KaJiHoverBackground: ViewModifier {
     }
 
     private var hoverColor: Color {
-        Color(nsColor: .controlColor)
+        // v1.3.2：hover 浮现色统一走 KaJiColor.systemControl
+        KaJiColor.systemControl
     }
 }
 

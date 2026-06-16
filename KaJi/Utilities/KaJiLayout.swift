@@ -17,9 +17,6 @@ enum KaJiLayout {
     /// 列表标题右缩进（为右上角搜索按钮留空）
     static let listTitleTrailingPadding: CGFloat = 62
 
-    /// 搜索浮层与窗口右边缘的距离
-    static let searchTrailingPadding: CGFloat = 46
-
     // MARK: - 顶部对齐
 
     /// NavigationHeader / SearchOverlay 向上偏移，与 traffic-lights 同一水平线

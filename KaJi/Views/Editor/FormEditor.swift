@@ -21,28 +21,23 @@ struct FormEditor: View {
     private let contentFontSize: CGFloat = 16
 
     private var cardBackground: Color {
-        colorScheme == .dark
-            ? Color(nsColor: .textBackgroundColor)
-            : Color.white
+        // v1.3.2：颜色统一走 SemanticColor.resolve(for:)
+        KaJiColor.cardBackground.resolve(for: colorScheme)
     }
 
     private var lineStrokeColor: Color {
-        // v1.3.0：颜色统一走 KaJiColor
-        colorScheme == .dark ? KaJiColor.cardFieldStrokeDark : KaJiColor.cardFieldStrokeLight
+        // v1.3.2：颜色统一走 SemanticColor.resolve(for:)
+        KaJiColor.cardFieldStroke.resolve(for: colorScheme)
     }
 
     private var shadowCardColor: Color {
-        // v1.3.0：颜色统一走 KaJiColor
-        colorScheme == .dark
-            ? KaJiColor.cardShadowDark
-            : KaJiColor.cardShadowLight
+        // v1.3.2：颜色统一走 SemanticColor.resolve(for:)
+        KaJiColor.cardShadow.resolve(for: colorScheme)
     }
 
     private var borderColor: Color {
-        // v1.3.0：颜色统一走 KaJiColor
-        colorScheme == .dark
-            ? KaJiColor.cardBorderDark
-            : KaJiColor.cardBorderLight
+        // v1.3.2：颜色统一走 SemanticColor.resolve(for:)
+        KaJiColor.cardBorder.resolve(for: colorScheme)
     }
 
     var body: some View {
@@ -110,7 +105,7 @@ struct FormEditor: View {
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                                     .stroke(borderColor, lineWidth: 0.5)
                             )
-                            .shadow(color: .black.opacity(colorScheme == .dark ? 0.35 : 0.12), radius: 10, x: 0, y: -3)
+                            .shadow(color: KaJiColor.cardShadowHover.resolve(for: colorScheme), radius: 10, x: 0, y: -3)
                     )
                     .padding(.horizontal, 12)
                     .padding(.bottom, 44)

@@ -20,8 +20,8 @@ final class EditorUIState: ObservableObject {
     @Published var sidebarColumnVisibility: NavigationSplitViewVisibility = .all
 
     func toggleSidebar() {
-        // v1.3.0：动画时长统一走 KaJiAnimation.sidebarToggle
-        withAnimation(KaJiAnimation.sidebarToggle) {
+        // v1.3.2：动画时长统一走 KaJiAnimation.modeSwitch
+        withAnimation(KaJiAnimation.modeSwitch) {
             sidebarColumnVisibility = (sidebarColumnVisibility == .all) ? .detailOnly : .all
         }
     }

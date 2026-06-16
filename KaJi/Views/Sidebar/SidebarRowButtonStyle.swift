@@ -24,12 +24,12 @@ struct SidebarRowButtonStyle: ButtonStyle {
     }
 
     private func fillColor(isPressed: Bool) -> Color {
-        // v1.3.0：颜色统一走 KaJiColor 常量
+        // v1.3.2：颜色统一走 SemanticColor.resolve(for:)
         if isPressed {
-            return colorScheme == .dark ? KaJiColor.cardBorderDark : KaJiColor.cardBorderLight
+            return KaJiColor.sidebarRowPressed.resolve(for: colorScheme)
         }
         if isHovering {
-            return colorScheme == .dark ? KaJiColor.listRowHoverDark : KaJiColor.listRowHoverLight
+            return KaJiColor.sidebarRowHover.resolve(for: colorScheme)
         }
         return .clear
     }

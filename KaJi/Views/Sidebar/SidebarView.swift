@@ -64,7 +64,7 @@ struct SidebarView: View {
                 isSelected: listState.rightPaneMode == .list && listState.listFilter == .all,
                 style: .large
             ) {
-                withAnimation(KaJiAnimation.editorModeSwitch) {
+                withAnimation(KaJiAnimation.modeSwitch) {
                     listState.showList(.all)
                 }
             }
@@ -82,7 +82,7 @@ struct SidebarView: View {
                     isSelected: selected,
                     style: .small
                 ) {
-                    withAnimation(KaJiAnimation.editorModeSwitch) {
+                    withAnimation(KaJiAnimation.modeSwitch) {
                         listState.showList(.type(type))
                     }
                 }
@@ -109,7 +109,7 @@ struct SidebarView: View {
                         isSelected: selected,
                         style: .small
                     ) {
-                        withAnimation(KaJiAnimation.editorModeSwitch) {
+                        withAnimation(KaJiAnimation.modeSwitch) {
                             listState.showList(.tag(tag))
                         }
                     }
@@ -137,7 +137,7 @@ struct SidebarView: View {
                 isSelected: selected,
                 style: .large
             ) {
-                withAnimation(KaJiAnimation.editorModeSwitch) {
+                withAnimation(KaJiAnimation.modeSwitch) {
                     listState.showList(.trash)
                 }
             }

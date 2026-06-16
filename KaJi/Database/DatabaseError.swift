@@ -23,6 +23,8 @@ enum DatabaseError: LocalizedError {
     case bootstrapFailed(underlying: Error)
     case migrationFailed(version: String, underlying: Error)
     case idConflict(cardId: String)
+    case idConflictExhausted(attempts: Int)   // v1.3.2 P0 补：跨进程 ID 冲突重试 N 次后耗尽
+    case transactionRollback(reason: String, underlying: Error?)   // v1.3.2 P0 补：IMMEDIATE 事务回滚
     case markdownWriteFailed(cardId: String, underlying: Error)
     case markdownParseFailed(reason: String)
     case markdownNoFrontmatter
@@ -53,6 +55,11 @@ enum DatabaseError: LocalizedError {
             return "数据库迁移失败 (v\(v))：\(err.localizedDescription)"
         case .idConflict(let id):
             return "ID 冲突 (\(id))"
+        case .idConflictExhausted(let attempts):
+            return "跨进程 ID 冲突：连续 \(attempts) 次重试仍冲突，请检查是否有其他 KaJi 实例异常占用"
+        case .transactionRollback(let reason, let err):
+            let suffix = err.map { "：\($0.localizedDescription)" } ?? ""
+            return "数据库事务回滚 (\(reason))\(suffix)"
         case .markdownWriteFailed(let id, let err):
             return ".md 写入失败 (\(id))：\(err.localizedDescription)"
         case .markdownParseFailed(let reason):

@@ -19,9 +19,12 @@
 //
 
 import Foundation
+import os
 @preconcurrency import GRDB
 
 final class AppDatabase: @unchecked Sendable {
+
+    private static let log = Logger(subsystem: "com.kaji.app", category: "appdatabase")
 
     /// 单例 — 用 try-catch + in-memory fallback 避免 fatalError 触发 Swift 6 assertion
     /// （之前 `static let ... fatalError` 在 Swift 6 strict concurrency 下会让 runtime 触发
@@ -31,7 +34,7 @@ final class AppDatabase: @unchecked Sendable {
         catch let fileError {
             // Fallback: in-memory Queue（不是 Pool — in-memory Pool 不支持 WAL 模式）
             // 数据不持久化但 App 不崩
-            print("[KaJi.DB] 文件 DB 失败: \(fileError). 用 in-memory fallback.")
+            log.error("文件 DB 失败: \(fileError.localizedDescription, privacy: .public). 用 in-memory fallback.")
             do { return try AppDatabase(useInMemory: true) }
             catch let memoryError {
                 fatalError("无法创建数据库（包括 in-memory fallback）: \(memoryError)")
@@ -59,6 +62,9 @@ final class AppDatabase: @unchecked Sendable {
             )
             var config = Configuration()
             config.label = "KaJi.DB"
+            // ★ v1.3.2：跨进程并发兜底 — 第二进程等 5s 不立即失败
+            //    GRDB IMMEDIATE 事务 + busy_timeout 协同，避免 SQLITE_BUSY 直接抛错
+            config.busyMode = .timeout(5)
             dbWriter = try DatabasePool(path: dbURL.path, configuration: config)
             isInMemory = false
         }

@@ -22,6 +22,8 @@ final class CardRepository: @unchecked Sendable {
     fileprivate let db: AppDatabase
     static let shared = CardRepository()
 
+    private static let log = Logger(subsystem: "com.kaji.app", category: "repository")
+
     private init(db: AppDatabase = .shared) { self.db = db }
 
     // MARK: - 读取
@@ -97,8 +99,16 @@ final class CardRepository: @unchecked Sendable {
             fileMtime: nil, fileHash: nil, fileSize: 0,
             mdVersion: card.mdVersion  // v1.3.0：写入当前 mdVersion
         )
-        // save = insert or update：兼容新建和更新，避免 update() 在记录不存在时抛错
-        try record.save(grdb)
+        // ★ v1.3.2：INSERT（不是 SAVE=OR REPLACE），失败说明 ID 冲突（多进程 race）。
+        //    旧逻辑 `record.save` 走 INSERT OR REPLACE，会级联删 cardFields/cardTags，
+        //    导致跨进程场景下另一进程的字段被静默删除。
+        do {
+            try record.insert(grdb)
+        } catch let grdbError as GRDB.DatabaseError
+            where grdbError.resultCode == .SQLITE_CONSTRAINT {
+            // 多进程同时写同一 ID — 抛错由 Service 层重试
+            throw DatabaseError.idConflict(cardId: card.id)
+        }
 
         // cardFields — 先删后插
         try CardFieldRecord
@@ -395,12 +405,12 @@ final class CardRepository: @unchecked Sendable {
                 for id in missingInDB {
                     do {
                         guard let card = try CardFileIO.read(id: id) else {
-                            print("[KaJi.Repository] 对账时未找到 .md: \(id)")
+                            Self.log.notice("对账时未找到 .md: \(id, privacy: .public)")
                             continue
                         }
                         try persist(card, in: grdb)
                     } catch {
-                        print("[KaJi.Repository] 对账时恢复 .md 到 SQLite 失败 (\(id)): \(error.localizedDescription)")
+                        Self.log.error("对账时恢复 .md 到 SQLite 失败 (\(id, privacy: .public)): \(error.localizedDescription, privacy: .public)")
                     }
                 }
             }
@@ -425,7 +435,7 @@ final class CardRepository: @unchecked Sendable {
                     await MarkdownWriteQueue.shared.enqueue(card)
                 }
             } catch {
-                print("[KaJi.Repository] 对账时 IN 查询失败: \(error.localizedDescription)")
+                Self.log.error("对账时 IN 查询失败: \(error.localizedDescription, privacy: .public)")
             }
         }
 
@@ -459,7 +469,7 @@ final class CardRepository: @unchecked Sendable {
                 return dict
             }
         } catch {
-            print("[KaJi.Repository] checkMarkdownVersionConsistency 拉取 SQLite 失败: \(error.localizedDescription)")
+            Self.log.error("checkMarkdownVersionConsistency 拉取 SQLite 失败: \(error.localizedDescription, privacy: .public)")
             return
         }
 
@@ -468,7 +478,7 @@ final class CardRepository: @unchecked Sendable {
         do {
             mdDir = try CardFileIO.cardsDir()
         } catch {
-            print("[KaJi.Repository] checkMarkdownVersionConsistency 取 cardsDir 失败: \(error.localizedDescription)")
+            Self.log.error("checkMarkdownVersionConsistency 取 cardsDir 失败: \(error.localizedDescription, privacy: .public)")
             return
         }
         let mdURLs = (try? FileManager.default.contentsOfDirectory(at: mdDir, includingPropertiesForKeys: nil)) ?? []

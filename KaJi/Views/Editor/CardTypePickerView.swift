@@ -29,7 +29,7 @@ struct CardTypePickerView: View {
                     .frame(width: 46, height: 42)
                     .background(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(selectedType == type ? Color(nsColor: .selectedControlColor) : Color.clear)
+                            .fill(selectedType == type ? KaJiColor.systemSelected : Color.clear)
                     )
                     .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }

@@ -16,8 +16,11 @@
 //
 
 import Foundation
+import os
 
 enum MarkdownFailureTracker {
+    private static let log = Logger(subsystem: "com.kaji.app", category: "markdown-failure")
+
     struct FailureRecord: Codable {
         let cardId: String
         let failedAt: Date
@@ -55,8 +58,8 @@ enum MarkdownFailureTracker {
             let data = try JSONEncoder().encode(record)
             try data.write(to: url, options: .atomic)
         } catch {
-            // .md_failures 目录写失败：print 兜底，不阻断主流程
-            print("[KaJi.MarkdownFailure] markFailed 失败 (\(id)): \(error)")
+            // .md_failures 目录写失败：log 兜底，不阻断主流程
+            log.error("markFailed 失败 (\(id, privacy: .public)): \(error.localizedDescription, privacy: .public)")
         }
     }
 

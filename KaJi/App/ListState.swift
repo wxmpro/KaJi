@@ -52,8 +52,8 @@ final class ListState: ObservableObject {
         // 打开编辑器前从 SQLite 读完整 Card（含 fields）
         guard let fullCard = try? CardRepository.shared.card(id: card.id) else { return }
         editorState.data.openCard(fullCard)
-        // v1.3.0：动画时长统一走 KaJiAnimation.editorModeSwitch
-        withAnimation(KaJiAnimation.editorModeSwitch) {
+        // v1.3.2：动画时长统一走 KaJiAnimation.modeSwitch
+        withAnimation(KaJiAnimation.modeSwitch) {
             rightPaneMode = .editor
         }
     }

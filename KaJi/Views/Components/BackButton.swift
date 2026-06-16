@@ -27,7 +27,7 @@ struct BackButton: View {
                 editorState.data.startNewCard(type: .free)
             } else {
                 // 在卡片详情页：返回 → 回到列表
-                withAnimation(KaJiAnimation.editorModeSwitch) {
+                withAnimation(KaJiAnimation.modeSwitch) {
                     listState.rightPaneMode = .list
                 }
             }

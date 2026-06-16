@@ -2,28 +2,35 @@
 //  KaJiColor.swift
 //  KaJi
 //
-//  v1.3.0 引入：统一色板常量，替换散落的硬编码颜色。
+//  v1.3.0 引入：统一色板常量。
+//  v1.3.2 升级：所有常量改为 SemanticColor（浅深模式双值），调用方 `.resolve(for: colorScheme)`
 //
 //  设计原则：
-//  - 命名按"角色"而非"颜色值"（cardShadowLight / listRowHoverLight）
-//  - Light / Dark 双色并列，view 通过 @Environment(\.colorScheme) 选择
-//  - 系统语义色（accentColor / separatorColor）保留，由 NSColor 系统解析
+//  - 命名按"角色"而非"颜色值"（cardShadow / listRowHover）
+//  - 浅深模式由 SemanticColor 自动解析
+//  - 系统语义色（accentColor / separatorColor）保留直接 Color 类型
 //
 
 import SwiftUI
 
 enum KaJiColor {
-    // MARK: - 卡片背景与边框
-    static let cardShadowLight = Color.gray.opacity(0.30)
-    static let cardShadowDark = Color.white.opacity(0.08)
-    static let cardBorderLight = Color.gray.opacity(0.35)
-    static let cardBorderDark = Color.white.opacity(0.15)
-    static let cardBackgroundLight = Color.white
-    static let cardBackgroundDark = Color(nsColor: .textBackgroundColor)
-    static let cardFieldStrokeLight = Color.black
-    static let cardFieldStrokeDark = Color.white.opacity(0.55)
+    // MARK: - 卡片
+    static let cardShadow      = SemanticColor(light: .gray.opacity(0.30),  dark: .white.opacity(0.08))
+    static let cardShadowHover = SemanticColor(light: .gray.opacity(0.12),  dark: .black.opacity(0.35))   // v1.3.2 新增：picker 浮层 hover 阴影
+    static let cardBorder      = SemanticColor(light: .gray.opacity(0.35),  dark: .white.opacity(0.15))
+    static let cardBackground  = SemanticColor(light: .white,               dark: Color(nsColor: .textBackgroundColor))
+    static let cardFieldStroke = SemanticColor(light: .black,               dark: .white.opacity(0.55))
 
-    // MARK: - 列表行
-    static let listRowHoverLight = Color.gray.opacity(0.20)
-    static let listRowHoverDark = Color.white.opacity(0.10)
+    // MARK: - 列表行 / 侧栏行
+    static let listRowHover      = SemanticColor(light: .gray.opacity(0.20), dark: .white.opacity(0.10))
+    static let listRowSelected   = SemanticColor(light: .gray.opacity(0.35), dark: .white.opacity(0.15))
+    static let sidebarRowHover   = SemanticColor(light: .gray.opacity(0.20), dark: .white.opacity(0.10))
+    static let sidebarRowPressed = SemanticColor(light: .gray.opacity(0.35), dark: .white.opacity(0.15))
+
+    // MARK: - 分割线 / 系统语义色
+    static let separator      = SemanticColor(light: .gray.opacity(0.25),    dark: .white.opacity(0.10))
+    static let systemAccent   = Color(nsColor: .controlAccentColor)
+    static let systemSeparator = Color(nsColor: .separatorColor)
+    static let systemControl  = Color(nsColor: .controlColor)                 // v1.3.2 新增：hover 浮现色
+    static let systemSelected = Color(nsColor: .selectedControlColor)         // v1.3.2 新增：picker 选中态
 }
