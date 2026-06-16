@@ -58,8 +58,9 @@ struct SidebarRow: View {
         }
         .buttonStyle(SidebarRowButtonStyle(colorScheme: colorScheme))
         .contextMenu {
+            // v1.3.0：直连 data.startNewCard（删 facade 后）
             Button("新建卡片") {
-                editorState.startNewCard(type: .free)
+                editorState.data.startNewCard(type: .free)
             }
         }
     }

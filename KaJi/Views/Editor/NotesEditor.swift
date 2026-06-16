@@ -31,13 +31,14 @@ struct NotesEditor: View {
             .padding(.top, KaJiLayout.headerTopPadding)  // 保留顶部 padding 平衡视觉
         }
         .alert("切换卡片类型", isPresented: $alert.showingTypeChangeAlert) {
+            // v1.3.0：直连 data.xxx（删 facade 后）
             Button("复制全部并切换", role: .none) {
-                editorState.copyAllContentToPasteboard()
-                editorState.confirmPendingCardTypeChange()
+                editorState.data.copyAllContentToPasteboard()
+                editorState.data.confirmPendingCardTypeChange()
             }
             .keyboardShortcut(.defaultAction)
             Button("直接切换", role: .destructive) {
-                editorState.confirmPendingCardTypeChange()
+                editorState.data.confirmPendingCardTypeChange()
             }
             Button("取消", role: .cancel) {
                 alert.pendingCardType = nil

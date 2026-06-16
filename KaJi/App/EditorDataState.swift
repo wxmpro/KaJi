@@ -43,7 +43,9 @@ final class EditorDataState: ObservableObject {
 
     // MARK: - 依赖
     private let cardService = CardService.shared
-    private let statsState: StatsState
+    // v1.3.0：weak 持有 statsState（避免循环引用，AppDelegate 才是 owner）
+    // 引用链：AppDelegate → EditorState → data（弱持）statsState
+    private weak var statsState: StatsState?
     weak var alert: EditorAlertState?
     weak var listState: ListState?
     private lazy var typeChangeService = CardTypeChangeService(data: self)
@@ -141,7 +143,8 @@ final class EditorDataState: ObservableObject {
                 lastSavedAt = Date()
                 alert?.saveError = nil
                 let stats = try await cardService.refreshStats()
-                statsState.update(with: stats)
+                // v1.3.0：weak statsState 加 guard let
+                statsState?.update(with: stats)
                 listState?.refreshFilteredCards()
             } catch {
                 alert?.saveError = "保存失败：\(error.localizedDescription)"
@@ -162,6 +165,13 @@ final class EditorDataState: ObservableObject {
             currentCard = nil
         }
         lifecycleService.softDelete(card)
+    }
+
+    /// v1.2.9 T5 入口：仅传 id 的软删除（CardListRow context menu 用）
+    /// service 内部从 SQLite 读完整 Card，再走原 softDelete 流程
+    func softDeleteCardByID(_ id: String) {
+        guard let card = try? CardRepository.shared.card(id: id) else { return }
+        softDeleteCard(card)
     }
 
     /// Undo 入口：从回收站恢复卡片

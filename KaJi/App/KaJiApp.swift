@@ -38,9 +38,10 @@ struct KaJiApp: App {
             // 旧版 `startNewCard` 同步阻塞主线程，Button handler 跑完前 SwiftUI
             // 不会触发默认 New；改成 async 后 handler 立刻返回，SwiftUI fallback
             // 到默认 New，结果每次 ⌘N 都开新窗口。
+            // v1.3.0：直连 data.startNewCard（删 facade 后）
             CommandGroup(replacing: .newItem) {
                 Button("新建卡片") {
-                    appDelegate.editorState.startNewCard(type: .free)
+                    appDelegate.editorState.data.startNewCard(type: .free)
                 }
                 .keyboardShortcut("n", modifiers: .command)
             }
@@ -76,15 +77,16 @@ struct KaJiApp: App {
 
                 Button("删除") {
                     guard let card = appDelegate.editorState.data.currentCard else { return }
-                    appDelegate.editorState.softDeleteCard(card)
+                    appDelegate.editorState.data.softDeleteCard(card)
                 }
                 .keyboardShortcut(.delete, modifiers: .command)
             }
 
             // MARK: View Menu
+            // v1.3.0：直连 ui.toggleSidebar（删 facade 后）
             CommandGroup(after: .sidebar) {
                 Button("切换侧栏") {
-                    appDelegate.editorState.toggleSidebar()
+                    appDelegate.editorState.ui.toggleSidebar()
                 }
                 .keyboardShortcut("s", modifiers: [.command, .control])
             }
@@ -124,7 +126,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        editorState.flushSave()
+        // v1.3.0：直连 data.flushSave（删 facade 后）
+        editorState.data.flushSave()
         return .terminateNow
     }
 

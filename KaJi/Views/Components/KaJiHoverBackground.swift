@@ -1,5 +1,5 @@
 //
-//  KajiHoverBackground.swift
+//  KaJiHoverBackground.swift
 //  KaJi
 //
 //  统一按钮 hover 样式：hover 时浮现系统 controlColor。
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct KajiHoverBackground: ViewModifier {
+struct KaJiHoverBackground: ViewModifier {
     var cornerRadius: CGFloat
     var restingBackground: Color
     @State private var isHovering = false
@@ -31,6 +31,6 @@ struct KajiHoverBackground: ViewModifier {
 
 extension View {
     func kajiHover(cornerRadius: CGFloat = 6, restingBackground: Color = .clear) -> some View {
-        modifier(KajiHoverBackground(cornerRadius: cornerRadius, restingBackground: restingBackground))
+        modifier(KaJiHoverBackground(cornerRadius: cornerRadius, restingBackground: restingBackground))
     }
 }

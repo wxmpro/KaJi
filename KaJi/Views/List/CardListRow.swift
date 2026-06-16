@@ -4,6 +4,8 @@
 //
 //  卡片列表单行。
 //
+//  v1.2.9 T5 改造：card: Card → card: CardSummary（轻量）
+//
 
 import SwiftUI
 
@@ -12,7 +14,7 @@ struct CardListRow: View {
     @EnvironmentObject var editorState: EditorState
     @Environment(\.colorScheme) private var colorScheme
     @State private var isHovering = false
-    let card: Card
+    let card: CardSummary
 
     var body: some View {
         // v1.2.6+ UI 新增：列表行 hover 效果（跟侧栏同色：light=Color.gray.opacity(0.20)，dark=Color.white.opacity(0.10)）
@@ -62,10 +64,10 @@ struct CardListRow: View {
         .padding(.horizontal, 12)
         .background(
             // v1.2.7：列表行 hover 背景改成圆角矩形（6pt 圆角，跟侧栏 SidebarRowButtonStyle 一致）
-            // 之前是直接 fill Color,显示为长方形,跟整张卡的"圆角矩形"风格不一致
+            // v1.3.0：颜色统一走 KaJiColor.listRowHover 常量
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(isHovering
-                    ? (colorScheme == .dark ? Color.white.opacity(0.10) : Color.gray.opacity(0.20))
+                    ? (colorScheme == .dark ? KaJiColor.listRowHoverDark : KaJiColor.listRowHoverLight)
                     : Color.clear)
         )
         .contentShape(Rectangle())
@@ -77,7 +79,9 @@ struct CardListRow: View {
                 listState.openCardFromList(card, editorState: editorState)
             }
             Button("移到回收站", role: .destructive) {
-                editorState.softDeleteCard(card)
+                // v1.2.9 T5：用 CardSummary.id 软删除（service 内部从 SQLite 读完整 Card）
+                // v1.3.0：直连 data.softDeleteCardByID（删 facade 后）
+                editorState.data.softDeleteCardByID(card.id)
             }
         }
     }

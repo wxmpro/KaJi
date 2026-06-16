@@ -108,6 +108,9 @@ struct CardFileIO {
     static func renderMarkdown(_ card: Card) -> String {
         var out = "---\n"
         out += "id: \(card.id)\n"
+        // v1.3.0：把当前 SQLite 行的 mdVersion 写进 frontmatter 第一行
+        // (id 之后)，方便 reconcile 启动时只读第一行就能判断 .md 是否落后
+        out += "mdVersion: \(card.mdVersion)\n"
         out += "type: \(card.type)\n"
         out += "title: \(yamlEscape(card.title))\n"
         out += "createdAt: \(iso8601(card.createdAt))\n"
@@ -134,12 +137,12 @@ struct CardFileIO {
         // 避免用户 body 中的水平分隔线被误当作 frontmatter 结束。
         let headerPrefix = "---\n"
         guard text.hasPrefix(headerPrefix) else {
-            throw NSError(domain: "CardFileIO", code: 1, userInfo: [NSLocalizedDescriptionKey: "无 frontmatter"])
+            throw DatabaseError.markdownNoFrontmatter
         }
 
         let bodyStartIndex = text.index(text.startIndex, offsetBy: headerPrefix.utf16.count)
         guard let separatorRange = text[bodyStartIndex...].range(of: "\n---\n") else {
-            throw NSError(domain: "CardFileIO", code: 1, userInfo: [NSLocalizedDescriptionKey: "无 frontmatter 结束标记"])
+            throw DatabaseError.markdownNoFrontmatterEnd
         }
 
         let fmStart = bodyStartIndex
@@ -152,9 +155,16 @@ struct CardFileIO {
         var createdAt = Date(); var updatedAt = Date()
         var deletedAt: Date?
         var tags: [String] = []
+        // v1.3.0：v1.2.9 老 .md 文件没有 mdVersion 字段，缺省 0（migration 兼容）
+        var mdVersion: Int64 = 0
         for line in fm.split(separator: "\n") {
             let l = String(line)
             if let v = l.stripping(prefix: "id:") { id = v.trimmingCharacters(in: .whitespaces) }
+            // v1.3.0：读 frontmatter.mdVersion
+            else if let v = l.stripping(prefix: "mdVersion:") {
+                let trimmed = v.trimmingCharacters(in: .whitespaces)
+                mdVersion = Int64(trimmed) ?? 0
+            }
             else if let v = l.stripping(prefix: "type:") { type = v.trimmingCharacters(in: .whitespaces) }
             else if let v = l.stripping(prefix: "title:") { title = yamlUnescape(v.trimmingCharacters(in: .whitespaces)) }
             else if let v = l.stripping(prefix: "createdAt:") {
@@ -209,7 +219,8 @@ struct CardFileIO {
         return Card(
             id: id, type: type.isEmpty ? CardType.free.rawValue : type,
             title: title, tags: tags, fields: fields,
-            createdAt: createdAt, updatedAt: updatedAt, deletedAt: deletedAt
+            createdAt: createdAt, updatedAt: updatedAt, deletedAt: deletedAt,
+            mdVersion: mdVersion
         )
     }
 
@@ -227,6 +238,12 @@ struct CardFileIO {
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f
     }()
+    // v1.2.9 T5 修复：fallback formatter 静态缓存
+    nonisolated(unsafe) private static let isoFormatterFallback: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
 
     private static func iso8601(_ d: Date) -> String {
         Self.isoFormatter.string(from: d)
@@ -236,12 +253,9 @@ struct CardFileIO {
         // 优化（v1.3.0 P0-2）：复用上面的 `isoFormatter` 静态缓存，避免每次解析
         // 都 new 一个 ISO8601DateFormatter。reconcile 期间每个 .md 的 frontmatter
         // 解析会调 4-5 次 parseISO，1k+ 卡库时启动期累计可达 ~700ms。
-        // ISO8601DateFormatter 在 Apple 文档中标为线程安全（immutable），单线程内
-        // 反复 date(from:) 安全。第一次失败（字符串无 fractional seconds）才 new fallback。
+        // v1.2.9 T5 进一步修复：fallback formatter 也静态缓存
         if let d = isoFormatter.date(from: s) { return d }
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime]
-        return f.date(from: s)
+        return isoFormatterFallback.date(from: s)
     }
 
     private static func yamlEscape(_ s: String) -> String {

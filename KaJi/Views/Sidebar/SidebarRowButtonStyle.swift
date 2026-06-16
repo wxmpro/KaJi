@@ -24,15 +24,12 @@ struct SidebarRowButtonStyle: ButtonStyle {
     }
 
     private func fillColor(isPressed: Bool) -> Color {
-        // v1.2.6+ UI 调整：候选 A
-        // 旧：Color(nsColor: .controlColor).opacity(0.55/0.80)（light 模式下接近白色）
-        // 新：固定灰色（light 模式 Color.gray.opacity(0.20)，dark 模式 Color.white.opacity(0.10)）
-        // 用户记得之前是"灰色"——这是恢复性调整
+        // v1.3.0：颜色统一走 KaJiColor 常量
         if isPressed {
-            return colorScheme == .dark ? Color.white.opacity(0.15) : Color.gray.opacity(0.30)
+            return colorScheme == .dark ? KaJiColor.cardBorderDark : KaJiColor.cardBorderLight
         }
         if isHovering {
-            return colorScheme == .dark ? Color.white.opacity(0.10) : Color.gray.opacity(0.20)
+            return colorScheme == .dark ? KaJiColor.listRowHoverDark : KaJiColor.listRowHoverLight
         }
         return .clear
     }

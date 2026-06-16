@@ -25,6 +25,8 @@ struct Card: Identifiable, Hashable, Codable {
     let createdAt: Date           // 创建时间
     var updatedAt: Date           // 最后修改时间
     var deletedAt: Date?          // 回收站时间
+    // v1.3.0：每次 SQLite 写 +1；MarkdownWriteQueue 用以检测 .md 是否需要重写
+    var mdVersion: Int64 = 0
 
     // MARK: - 派生
 

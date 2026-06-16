@@ -19,7 +19,8 @@ struct BackButton: View {
         Button {
             if listState.rightPaneMode == .list {
                 // 在列表页：返回 → 新建卡片
-                editorState.startNewCard(type: .free)
+                // v1.3.0：直连 data.startNewCard（删 facade 后）
+                editorState.data.startNewCard(type: .free)
             } else {
                 // 在卡片详情页：返回 → 回到列表
                 listState.rightPaneMode = .list

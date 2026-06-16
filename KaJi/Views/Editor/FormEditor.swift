@@ -27,19 +27,22 @@ struct FormEditor: View {
     }
 
     private var lineStrokeColor: Color {
-        colorScheme == .dark ? .white.opacity(0.55) : .black
+        // v1.3.0：颜色统一走 KaJiColor
+        colorScheme == .dark ? KaJiColor.cardFieldStrokeDark : KaJiColor.cardFieldStrokeLight
     }
 
     private var shadowCardColor: Color {
+        // v1.3.0：颜色统一走 KaJiColor
         colorScheme == .dark
-            ? Color.white.opacity(0.08)
-            : Color.gray.opacity(0.30)
+            ? KaJiColor.cardShadowDark
+            : KaJiColor.cardShadowLight
     }
 
     private var borderColor: Color {
+        // v1.3.0：颜色统一走 KaJiColor
         colorScheme == .dark
-            ? Color.white.opacity(0.15)
-            : Color.gray.opacity(0.35)
+            ? KaJiColor.cardBorderDark
+            : KaJiColor.cardBorderLight
     }
 
     var body: some View {

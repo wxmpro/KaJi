@@ -50,7 +50,7 @@ struct CardListView: View {
                     }
                 )) {
                     ForEach(cards) { card in
-                        CardListRow(card: card)
+                        CardListRow(card: card)  // v1.2.9 T5：传 CardSummary
                             .tag(card.id)
                     }
                 }

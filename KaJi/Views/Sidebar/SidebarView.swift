@@ -47,7 +47,8 @@ struct SidebarView: View {
                 isSelected: false,
                 style: .large
             ) {
-                editorState.startNewCard(type: .free)
+                // v1.3.0：直连 data.startNewCard（删 facade 后）
+                editorState.data.startNewCard(type: .free)
             }
         }
         .listRowSeparator(.hidden)
@@ -63,7 +64,7 @@ struct SidebarView: View {
                 isSelected: listState.rightPaneMode == .list && listState.listFilter == .all,
                 style: .large
             ) {
-                withAnimation(.easeInOut(duration: 0.18)) {
+                withAnimation(KaJiAnimation.editorModeSwitch) {
                     listState.showList(.all)
                 }
             }
@@ -81,7 +82,7 @@ struct SidebarView: View {
                     isSelected: selected,
                     style: .small
                 ) {
-                    withAnimation(.easeInOut(duration: 0.18)) {
+                    withAnimation(KaJiAnimation.editorModeSwitch) {
                         listState.showList(.type(type))
                     }
                 }
@@ -108,7 +109,7 @@ struct SidebarView: View {
                         isSelected: selected,
                         style: .small
                     ) {
-                        withAnimation(.easeInOut(duration: 0.18)) {
+                        withAnimation(KaJiAnimation.editorModeSwitch) {
                             listState.showList(.tag(tag))
                         }
                     }
@@ -136,7 +137,7 @@ struct SidebarView: View {
                 isSelected: selected,
                 style: .large
             ) {
-                withAnimation(.easeInOut(duration: 0.18)) {
+                withAnimation(KaJiAnimation.editorModeSwitch) {
                     listState.showList(.trash)
                 }
             }

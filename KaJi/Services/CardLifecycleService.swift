@@ -19,7 +19,8 @@ final class CardLifecycleService {
     private weak var statsState: StatsState?
     private let cardService: CardService
 
-    init(data: EditorDataState, statsState: StatsState, cardService: CardService = .shared) {
+    // v1.3.0：statsState 改 optional（与 EditorDataState.weak var statsState: StatsState? 一致）
+    init(data: EditorDataState, statsState: StatsState?, cardService: CardService = .shared) {
         self.data = data
         self.statsState = statsState
         self.cardService = cardService

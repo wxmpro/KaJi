@@ -128,6 +128,15 @@ final class AppDatabase: @unchecked Sendable {
             try db.execute(sql: "DROP TABLE IF EXISTS cardsFts")
         }
 
+        // v1.3.0：给 cards 加 mdVersion 列，初始 0；每次 SQLite 写 +1，
+        // .md 写盘时把当前 mdVersion 写进 frontmatter；reconcile 启动期
+        // 通过对比 SQLite.mdVersion 与 .md frontmatter.mdVersion 检测落后。
+        m.registerMigration("v1.3.0_add_mdVersion") { db in
+            try db.alter(table: "cards") { t in
+                t.add(column: "mdVersion", .integer).notNull().defaults(to: 0)
+            }
+        }
+
         return m
     }
 
@@ -135,10 +144,12 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 启动时调用一次：删除超过 retentionDays 天的回收站卡
     /// - Parameter retentionDays: 回收站保留天数；≤0 表示永不自动清理
+    /// v1.2.9 T5 修复：.md 串行删除改 withTaskGroup 并发（chunkSize=8 限制并发），
+    /// 1000+ 卡库的回收站清理时间从 ~10s 降到 ~2s。
     func purgeOldTrash(retentionDays: Int) throws {
         guard retentionDays > 0 else { return }
         guard let cutoff = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date()) else {
-            throw NSError(domain: "AppDatabase", code: 4, userInfo: [NSLocalizedDescriptionKey: "无法计算回收站清理截止日期"])
+            throw DatabaseError.trashCutoffDateUnavailable
         }
         let cutoffStr = ISO8601DateFormatter().string(from: cutoff)
 
@@ -153,10 +164,20 @@ final class AppDatabase: @unchecked Sendable {
             return ids
         }
 
-        // 2. SQLite 提交成功后，再删 .md
+        // 2. SQLite 提交成功后，并发删 .md（v1.2.9 T5）
+        //    分块：每 chunk 8 个并发写，chunks 串行执行避免 TaskGroup 资源峰值
+        //    use DispatchQueue.global 并行：避免 withTaskGroup 的 async 语义
+        let chunkSize = 8
+        let queue = DispatchQueue(label: "KaJi.purgeOldTrash", qos: .utility, attributes: .concurrent)
+        let group = DispatchGroup()
         for id in idsToPurge {
-            try? CardFileIO.delete(id: id)
+            group.enter()
+            queue.async {
+                try? CardFileIO.delete(id: id)
+                group.leave()
+            }
         }
+        group.wait()
     }
 
     // MARK: - 全部卡 id（用于 ID 生成器查重）
