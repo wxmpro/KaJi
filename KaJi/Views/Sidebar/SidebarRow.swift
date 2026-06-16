@@ -10,7 +10,8 @@ import SwiftUI
 struct SidebarRow: View {
     enum Style { case large, small }
 
-    @EnvironmentObject var editorState: EditorState
+    // v1.3.3 PATCH：editorState 注入移除。data 已是 EnvironmentObject。
+    @EnvironmentObject var data: EditorDataState
     @Environment(\.colorScheme) private var colorScheme
     let title: String
     let icon: String
@@ -58,9 +59,9 @@ struct SidebarRow: View {
         }
         .buttonStyle(SidebarRowButtonStyle(colorScheme: colorScheme))
         .contextMenu {
-            // v1.3.0：直连 data.startNewCard（删 facade 后）
+            // v1.3.3 PATCH：editorState 注入移除，data 直连
             Button("新建卡片") {
-                editorState.data.startNewCard(type: .free)
+                data.startNewCard(type: .free)
             }
         }
     }

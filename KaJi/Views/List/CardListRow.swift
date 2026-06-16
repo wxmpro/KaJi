@@ -14,7 +14,7 @@ import SwiftUI
 
 struct CardListRow: View {
     @EnvironmentObject var listState: ListState
-    @EnvironmentObject var editorState: EditorState
+    // v1.3.3 PATCH：editorState 注入移除。"打开卡片"流程走 data.openCard 直连。
     @EnvironmentObject var data: EditorDataState
     @Environment(\.colorScheme) private var colorScheme
 
@@ -26,9 +26,9 @@ struct CardListRow: View {
 
     var body: some View {
         Button {
-            // 与原 List(selection:) 行为一致：设置选中 + 加载到编辑器
-            data.selectedCardID = card.id
-            listState.openCardFromList(card, editorState: editorState)
+            // v1.3.3 PATCH：editorState 间接层移除。端到端走 data + listState。
+            // 从 SQLite 读完整 Card（含 fields）→ data.openCard → 切到 editor 模式。
+            openCardFromRow()
         } label: {
             HStack(spacing: 0) {
                 // 左侧垂直彩色条
@@ -79,12 +79,23 @@ struct CardListRow: View {
         .buttonStyle(KaJiListRowButtonStyle(colorScheme: colorScheme, isSelected: isSelected))
         .contextMenu {
             Button("打开") {
-                listState.openCardFromList(card, editorState: editorState)
+                openCardFromRow()
             }
             Button("移到回收站", role: .destructive) {
-                // v1.3.0：直连 data.softDeleteCardByID（删 facade 后）
-                editorState.data.softDeleteCardByID(card.id)
+                // v1.3.3 PATCH：data 直连（editorState 注入已移除）
+                data.softDeleteCardByID(card.id)
             }
+        }
+    }
+
+    /// v1.3.3 PATCH：把 ListState.openCardFromList 的逻辑搬到 View 端，端到端不走 editorState。
+    /// 从 SQLite 读完整 Card → data.openCard → 切到 editor 模式。
+    private func openCardFromRow() {
+        data.selectedCardID = card.id
+        guard let fullCard = try? CardRepository.shared.card(id: card.id) else { return }
+        data.openCard(fullCard)
+        withAnimation(KaJiAnimation.modeSwitch) {
+            listState.rightPaneMode = .editor
         }
     }
 }

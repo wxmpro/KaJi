@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct SidebarView: View {
-    @EnvironmentObject var editorState: EditorState
+    // v1.3.3 PATCH：editorState 注入移除。data 已是 EnvironmentObject，"新建卡片"调用走 data 直连。
+    @EnvironmentObject var data: EditorDataState
     @EnvironmentObject var listState: ListState
     @EnvironmentObject var statsState: StatsState
 
@@ -47,8 +48,8 @@ struct SidebarView: View {
                 isSelected: false,
                 style: .large
             ) {
-                // v1.3.0：直连 data.startNewCard（删 facade 后）
-                editorState.data.startNewCard(type: .free)
+                // v1.3.3 PATCH：editorState 注入移除，data 直连
+                data.startNewCard(type: .free)
             }
         }
         .listRowSeparator(.hidden)

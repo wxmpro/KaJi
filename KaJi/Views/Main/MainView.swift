@@ -13,10 +13,10 @@
 import SwiftUI
 
 struct MainView: View {
-    // v1.2.9 T2：UI 态（sidebarColumnVisibility / searchKeyword）订阅 ui，
-    // editorState 保留用于 undoManager 转发和未来菜单快捷键。
-    @EnvironmentObject var editorState: EditorState
+    // v1.3.3 PATCH：editorState 注入移除。undoManager 桥改由 data 承载（data 已是 EnvironmentObject）。
+    // UI 态（sidebarColumnVisibility / searchKeyword）订阅 ui；数据态业务方法走 data。
     @EnvironmentObject var listState: ListState
+    @EnvironmentObject var data: EditorDataState
     @EnvironmentObject var ui: EditorUIState
     @Environment(\.undoManager) var undoManager
 
@@ -51,11 +51,12 @@ struct MainView: View {
             }
         }
         .onAppear {
-            editorState.undoManager = undoManager
+            // v1.3.3 PATCH：undoManager 桥挂在 data 上，KaJiApp 顶层菜单通过 appDelegate.data 访问
+            data.undoManager = undoManager
             configureWindowChrome()
         }
         .onDisappear {
-            editorState.undoManager = nil
+            data.undoManager = nil
         }
     }
 

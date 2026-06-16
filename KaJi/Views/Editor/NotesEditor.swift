@@ -8,9 +8,8 @@
 import SwiftUI
 
 struct NotesEditor: View {
-    // v1.2.9 T2：告警态订阅 alert（showingTypeChangeAlert / pendingCardType），
-    // editorState 保留用于业务方法（copyAllContentToPasteboard / confirmPendingCardTypeChange）。
-    @EnvironmentObject var editorState: EditorState
+    // v1.3.3 PATCH：editorState 注入移除。告警态订阅 alert，业务方法（copyAllContentToPasteboard / confirmPendingCardTypeChange）走 data 直连。
+    @EnvironmentObject var data: EditorDataState
     @EnvironmentObject var alert: EditorAlertState
     @State private var showingTypePicker = false
     @State private var newTagText = ""
@@ -31,14 +30,14 @@ struct NotesEditor: View {
             .padding(.top, KaJiLayout.headerTopPadding)  // 保留顶部 padding 平衡视觉
         }
         .alert("切换卡片类型", isPresented: $alert.showingTypeChangeAlert) {
-            // v1.3.0：直连 data.xxx（删 facade 后）
+            // v1.3.3 PATCH：data 直连（editorState 注入已移除）
             Button("复制全部并切换", role: .none) {
-                editorState.data.copyAllContentToPasteboard()
-                editorState.data.confirmPendingCardTypeChange()
+                data.copyAllContentToPasteboard()
+                data.confirmPendingCardTypeChange()
             }
             .keyboardShortcut(.defaultAction)
             Button("直接切换", role: .destructive) {
-                editorState.data.confirmPendingCardTypeChange()
+                data.confirmPendingCardTypeChange()
             }
             Button("取消", role: .cancel) {
                 alert.pendingCardType = nil

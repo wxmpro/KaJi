@@ -17,14 +17,15 @@ import SwiftUI
 
 struct BackButton: View {
     @EnvironmentObject var listState: ListState
-    @EnvironmentObject var editorState: EditorState
+    // v1.3.3 PATCH：editorState 注入移除，data 已是 EnvironmentObject。
+    @EnvironmentObject var data: EditorDataState
 
     var body: some View {
         Button {
             if listState.rightPaneMode == .list {
                 // 在列表页：返回 → 新建卡片
-                // v1.3.0：直连 data.startNewCard（删 facade 后）
-                editorState.data.startNewCard(type: .free)
+                // v1.3.3 PATCH：data 直连（editorState 注入已移除）
+                data.startNewCard(type: .free)
             } else {
                 // 在卡片详情页：返回 → 回到列表
                 withAnimation(KaJiAnimation.modeSwitch) {

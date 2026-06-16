@@ -13,7 +13,7 @@ import SwiftUI
 
 struct CardListView: View {
     @EnvironmentObject var listState: ListState
-    @EnvironmentObject var editorState: EditorState
+    // v1.3.3 PATCH：editorState 注入移除（View 自身未直接使用，data 仅注入给 CardListRow）
     // v1.2.9 T2：selection 走 data（数据态）。
     // v1.2.9 T3：改用独立 selectedCardID（String?），不再订阅 currentCard
     // 避免输入字符触发 List 重建导致高亮漂移。

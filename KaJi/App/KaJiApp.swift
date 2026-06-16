@@ -21,7 +21,7 @@ struct KaJiApp: App {
     var body: some Scene {
         WindowGroup {
             MainView()
-                .environmentObject(appDelegate.editorState)
+                // v1.3.3 PATCH：editorState 注入移除（7 View 已不订阅它）
                 // v1.2.9 T2：注入细粒度子 state，View 可独立订阅对应 @Published。
                 .environmentObject(appDelegate.editorState.data)
                 .environmentObject(appDelegate.editorState.ui)
@@ -42,16 +42,17 @@ struct KaJiApp: App {
             // 不会触发默认 New；改成 async 后 handler 立刻返回，SwiftUI fallback
             // 到默认 New，结果每次 ⌘N 都开新窗口。
             // v1.3.0：直连 data.startNewCard（删 facade 后）
+            // v1.3.3 PATCH：editorState 间接层移除，依赖链 4 → 3 层
             CommandGroup(replacing: .newItem) {
                 Button("新建卡片") {
-                    appDelegate.editorState.data.startNewCard(type: .free)
+                    appDelegate.data.startNewCard(type: .free)
                 }
                 .keyboardShortcut("n", modifiers: .command)
             }
 
             CommandGroup(after: .importExport) {
                 Button("导出当前卡片") {
-                    guard let card = appDelegate.editorState.data.currentCard else { return }
+                    guard let card = appDelegate.data.currentCard else { return }
                     ExportService.exportCard(card)
                 }
                 .keyboardShortcut("e", modifiers: .command)
@@ -63,14 +64,15 @@ struct KaJiApp: App {
             }
 
             // MARK: Edit Menu
+            // v1.3.3 PATCH：undoManager 桥已迁移到 data，菜单走 appDelegate.data.undoManager
             CommandGroup(replacing: .undoRedo) {
                 Button("撤销") {
-                    appDelegate.editorState.undoManager?.undo()
+                    appDelegate.data.undoManager?.undo()
                 }
                 .keyboardShortcut("z", modifiers: .command)
 
                 Button("重做") {
-                    appDelegate.editorState.undoManager?.redo()
+                    appDelegate.data.undoManager?.redo()
                 }
                 .keyboardShortcut("Z", modifiers: [.command, .shift])
             }
@@ -79,17 +81,18 @@ struct KaJiApp: App {
                 Divider()
 
                 Button("删除") {
-                    guard let card = appDelegate.editorState.data.currentCard else { return }
-                    appDelegate.editorState.data.softDeleteCard(card)
+                    guard let card = appDelegate.data.currentCard else { return }
+                    appDelegate.data.softDeleteCard(card)
                 }
                 .keyboardShortcut(.delete, modifiers: .command)
             }
 
             // MARK: View Menu
             // v1.3.0：直连 ui.toggleSidebar（删 facade 后）
+            // v1.3.3 PATCH：editorState 间接层移除，依赖链 4 → 3 层
             CommandGroup(after: .sidebar) {
                 Button("切换侧栏") {
-                    appDelegate.editorState.ui.toggleSidebar()
+                    appDelegate.ui.toggleSidebar()
                 }
                 .keyboardShortcut("s", modifiers: [.command, .control])
             }
@@ -117,6 +120,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) lazy var listState = ListState(statsState: statsState)
     private(set) lazy var editorState = EditorState(statsState: statsState, listState: listState)
 
+    // v1.3.3 PATCH：editorState 间接层移除，3 层访问器暴露给 KaJiApp 菜单
+    var data: EditorDataState { editorState.data }
+    var ui: EditorUIState { editorState.ui }
+
     override init() {
         super.init()
     }
@@ -130,7 +137,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         // v1.3.0：直连 data.flushSave（删 facade 后）
-        editorState.data.flushSave()
+        // v1.3.3 PATCH：依赖链 4 → 3 层
+        data.flushSave()
         return .terminateNow
     }
 

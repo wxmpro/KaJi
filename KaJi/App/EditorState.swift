@@ -2,7 +2,7 @@
 //  EditorState.swift
 //  KaJi
 //
-//  编辑器与当前卡片状态 — 容器层。
+//  编辑器与当前卡片状态 — 启动期容器。
 //
 //  v1.2.9 T2 改造：原 11 个 @Published + 12 个方法全挤在一个类里，导致输入时
 //  整棵 SwiftUI 视图树重建。按生命周期拆为 3 个独立 ObservableObject：
@@ -11,13 +11,14 @@
 //    - EditorAlertState   告警态（showingTypeChangeAlert / pendingCardType / saveError / ...）
 //
 //  v1.3.0：删除 v1.2.9 临时加的 11 个 facade 转发方法；调用方已全部迁到
-//  data / ui / alert 子 state 直连。本容器现在只负责：
-//    - 持有 3 个子 state（强引用）
-//    - bootstrap（reconcile + purgeOldTrash + 生成首卡）
-//    - undoManager（由 MainView.onAppear 注入，Undo 菜单仍走 editorState.undoManager）
+//  data / ui / alert 子 state 直连。
 //
-//  EditorState 仍为 ObservableObject（让 @EnvironmentObject var editorState 仍能注入），
-//  不暴露任何 @Published，因此不会触发 objectWillChange。
+//  v1.3.3 PATCH：进一步瘦身为"启动期编排容器"。
+//    - 删 undoManager 字段（已迁移到 EditorDataState 持有，由 MainView.onAppear 注入）
+//    - 删 cardService 字段（直接调 CardService.shared）
+//    - 容器唯一职责：①持有 3 个子 state 强引用 ②init 期构造顺序编排 ③bootstrap 跨 state 启动
+//    - 7 个 View 不再注入本容器；KaJiApp 顶层菜单走 data/ui 3 层链
+//    - EditorState 仍为 ObservableObject（保证 API 兼容），但无 @Published 不触发 objectWillChange
 //
 
 import SwiftUI
@@ -30,33 +31,23 @@ final class EditorState: ObservableObject {
     let ui: EditorUIState
     let alert: EditorAlertState
 
-    // MARK: - 依赖
-    private let cardService = CardService.shared
-
-    // MARK: - 容器持状态
-    /// UndoManager 由 SwiftUI 环境注入（MainView.onAppear 设置）
-    /// 保留在容器中：KaJiApp 顶层菜单的撤销/重做走 editorState.undoManager
-    var undoManager: UndoManager?
-
     init(statsState: StatsState, listState: ListState) {
-        // 1. 初始化子 state
+        // 1. 初始化子 state（顺序敏感：alert 先于 data，data 用 weak 引用 alert）
         self.alert = EditorAlertState()
         self.data = EditorDataState(statsState: statsState, listState: listState, alert: alert)
         self.ui = EditorUIState()
-
-        // 2. 同步初始 isInMemoryDB
         alert.isInMemoryDB = AppDatabase.shared.isInMemory
 
-        // 3. 启动 bootstrap（reconcile + purgeOldTrash + 生成首卡）
+        // 2. 启动 bootstrap（reconcile + purgeOldTrash + 生成首卡）
         //    v1.2.8 串行化逻辑保留：reconcile 完成后才 generateNewCard，避免同一毫秒 ID 冲突。
         //    0 UI 视觉变化：用户感知的是"启动后首卡出现"，不是"启动后立刻看到"。
         //    v1.3.0：bootstrap 改 async（reconcile 走 MarkdownWriteQueue）
         Task { @MainActor [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             do {
-                try await self.cardService.bootstrap(retentionDays: SettingsService.trashRetentionDays)
+                try await CardService.shared.bootstrap(retentionDays: SettingsService.trashRetentionDays)
                 statsState.rebuildStats()
-                let card = try await self.cardService.generateNewCard(type: .free)
+                let card = try await CardService.shared.generateNewCard(type: .free)
                 self.data.currentCard = card
                 self.data.currentCardType = .free
                 self.data.currentCardTags = []

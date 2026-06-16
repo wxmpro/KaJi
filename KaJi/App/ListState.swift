@@ -45,19 +45,6 @@ final class ListState: ObservableObject {
         rightPaneMode = .list
     }
 
-    /// 列表行点击 → 进入编辑
-    /// v1.2.9 T5：从 [CardSummary] 构造轻量 Card 供 openCard 编辑器使用
-    /// v1.3.0：直连 editorState.data.openCard（删 facade 后）
-    func openCardFromList(_ card: CardSummary, editorState: EditorState) {
-        // 打开编辑器前从 SQLite 读完整 Card（含 fields）
-        guard let fullCard = try? CardRepository.shared.card(id: card.id) else { return }
-        editorState.data.openCard(fullCard)
-        // v1.3.2：动画时长统一走 KaJiAnimation.modeSwitch
-        withAnimation(KaJiAnimation.modeSwitch) {
-            rightPaneMode = .editor
-        }
-    }
-
     /// 重新计算并缓存当前筛选条件下的卡片
     /// v1.2.9 T5 配套修复：值相等时**不**触发 objectWillChange
     func refreshFilteredCards() {
