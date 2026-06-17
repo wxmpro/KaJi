@@ -26,6 +26,7 @@
 		3E6244F89B67DDF82771DE3B /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 779A271A1B8E8EC1EBF80ABF /* GRDB */; };
 		3F83D0177AC4BD5B052E1573 /* CardLifecycleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1536CBD99F2A9B3B09E7D1B2 /* CardLifecycleService.swift */; };
 		B1AC2B2B1A2B1A2B1A2B1A2B /* BackButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1AC2B2C1A2C1A2C1A2C1A2C /* BackButton.swift */; };
+		D0C5B4A31A3F1E0C2D4E5F60 /* DeleteCardButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C5B4A41A3F1E0C2D4E5F61 /* DeleteCardButton.swift */; };
 		4532EEE3BC391DC2DAC197AE /* CardRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A4616229289AE1DE903BD24 /* CardRecord.swift */; };
 		F9511BB6D43A405EAEA349B21660C1F9 /* EditorState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EFEFFEA868D4598BC6E09106A9D32C5 /* EditorState.swift */; };
 		C125A52B0EA44C398BA8105398F026E6 /* ListState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E1F131C1AA640789E62DD1B9818530B /* ListState.swift */; };
@@ -90,6 +91,7 @@
 		785F909EF4BDD3325862CE2A /* KaJiLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiLayout.swift; sourceTree = "<group>"; };
 		835C9B4A682ADB75BF679FB6 /* NotesEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesEditor.swift; sourceTree = "<group>"; };
 		B1AC2B2C1A2C1A2C1A2C1A2C /* BackButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackButton.swift; sourceTree = "<group>"; };
+		D0C5B4A41A3F1E0C2D4E5F61 /* DeleteCardButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleteCardButton.swift; sourceTree = "<group>"; };
 		9CE95E491876197E909A86B0 /* CardFileIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardFileIO.swift; sourceTree = "<group>"; };
 		9F741B3A0BFC712111BEE2D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A2AB17E85BF57933CCADA200 /* SidebarRowButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarRowButtonStyle.swift; sourceTree = "<group>"; };
@@ -255,6 +257,7 @@
 			children = (
 				47612C79664152B4925BA53B /* KaJiHoverBackground.swift */,
 				B1AC2B2C1A2C1A2C1A2C1A2C /* BackButton.swift */,
+				D0C5B4A41A3F1E0C2D4E5F61 /* DeleteCardButton.swift */,
 				AABBCC0001F0E0E0E0E0E0E0 /* KaJiListRowButtonStyle.swift */,
 				EBFA0ED78BDDA942EBEA38DB /* TagPill.swift */,
 			);
@@ -383,6 +386,7 @@
 				98EB08BCF4B447FA8A69A325 /* EditorDataState.swift in Sources */,
 				A506B368E84598D6C89B8961 /* Card.swift in Sources */,
 				B1AC2B2B1A2B1A2B1A2B1A2B /* BackButton.swift in Sources */,
+				D0C5B4A31A3F1E0C2D4E5F60 /* DeleteCardButton.swift in Sources */,
 				DEE197EBEFEBBD91A9F64939 /* CardField.swift in Sources */,
 				52A8226BC8124A72B263382E /* CardSummary.swift in Sources */,
 				0C02A7BFB8E94E78A3A13CFF /* CardSearchIndex.swift in Sources */,
@@ -482,7 +486,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -505,7 +509,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.3.3;
+				MARKETING_VERSION = 1.3.4;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -570,7 +574,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -587,7 +591,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.3.3;
+				MARKETING_VERSION = 1.3.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;

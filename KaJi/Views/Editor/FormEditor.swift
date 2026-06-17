@@ -40,6 +40,11 @@ struct FormEditor: View {
         KaJiColor.cardBorder.resolve(for: colorScheme)
     }
 
+    /// v1.3.4 PATCH：回收站中的卡片只读（可看详情，不可编辑）
+    private var isReadOnly: Bool {
+        data.currentCard?.deletedAt != nil
+    }
+
     var body: some View {
         // v1.2.6+ UI：把圆角矩形放回 ZStack 顶层,整个 ZStack 加 .padding(.bottom, 32)
         // 让背景圆角矩形 + typeButton / UUID / 标签 全部跟着底部上移 32pt
@@ -127,6 +132,7 @@ struct FormEditor: View {
 
     private var typeButton: some View {
         Button {
+            guard !isReadOnly else { return }
             showingTypePicker = true
         } label: {
             HStack(spacing: 4) {
@@ -142,6 +148,8 @@ struct FormEditor: View {
             .padding(.trailing, 10)
         }
         .buttonStyle(.plain)
+        // v1.3.4 PATCH：回收站卡片只读，禁用类型切换
+        .disabled(isReadOnly)
     }
 
     private var ruledPaper: some View {
@@ -187,6 +195,8 @@ struct FormEditor: View {
             .background(Color.clear)
             .frame(minHeight: lineHeight * 3, alignment: .topLeading)
             .fixedSize(horizontal: false, vertical: true)
+            // v1.3.4 PATCH：回收站卡片只读
+            .disabled(isReadOnly)
     }
 
     private var bottomMetaRow: some View {
@@ -196,29 +206,34 @@ struct FormEditor: View {
                 ForEach(data.currentCardTags, id: \.self) { tag in
                     TagPill(tag: tag)
                         .contextMenu {
-                            Button("删除标签", role: .destructive) {
-                                removeTag(tag)
+                            // v1.3.4 PATCH：回收站卡片只读，禁用标签删除
+                            if !isReadOnly {
+                                Button("删除标签", role: .destructive) {
+                                    removeTag(tag)
+                                }
                             }
                         }
                 }
-                if isAddingTag {
-                    TextField("标签", text: $newTagText)
-                        .textFieldStyle(.plain)
-                        .frame(width: 80)
-                        .onSubmit {
-                            addTag()
+                if !isReadOnly {
+                    if isAddingTag {
+                        TextField("标签", text: $newTagText)
+                            .textFieldStyle(.plain)
+                            .frame(width: 80)
+                            .onSubmit {
+                                addTag()
+                            }
+                    } else {
+                        Button {
+                            isAddingTag = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 18, height: 18)
                         }
-                } else {
-                    Button {
-                        isAddingTag = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 18, height: 18)
+                        .buttonStyle(.plain)
+                        .kajiHover(cornerRadius: 9, restingBackground: .clear)
                     }
-                    .buttonStyle(.plain)
-                    .kajiHover(cornerRadius: 9, restingBackground: .clear)
                 }
             }
 
@@ -236,6 +251,10 @@ struct FormEditor: View {
         Binding(
             get: { data.currentCard?.title ?? "" },
             set: { newValue in
+                // v1.3.4 PATCH：无 UUID 草稿上开始输入时立即生成 UUID
+                if data.currentCard == nil {
+                    data.ensureCurrentCardID()
+                }
                 guard var card = data.currentCard else { return }
                 card.title = newValue
                 data.currentCard = card
@@ -250,6 +269,10 @@ struct FormEditor: View {
                 data.currentCard?.value(ofField: fieldName) ?? ""
             },
             set: { newValue in
+                // v1.3.4 PATCH：无 UUID 草稿上开始输入时立即生成 UUID
+                if data.currentCard == nil {
+                    data.ensureCurrentCardID()
+                }
                 guard var card = data.currentCard else { return }
                 if let idx = card.fields.firstIndex(where: { $0.fieldName == fieldName }) {
                     card.fields[idx].fieldValue = newValue
@@ -282,6 +305,8 @@ struct FormEditor: View {
             return
         }
         data.currentCardTags.append(trimmed)
+        // v1.3.4 PATCH：添加标签也视为开始编辑，无 UUID 草稿立即生成 UUID
+        data.ensureCurrentCardID()
         if var card = data.currentCard {
             card.tags = data.currentCardTags
             data.currentCard = card

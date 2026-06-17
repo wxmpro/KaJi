@@ -47,12 +47,12 @@ final class EditorState: ObservableObject {
             do {
                 try await CardService.shared.bootstrap(retentionDays: SettingsService.trashRetentionDays)
                 statsState.rebuildStats()
-                let card = try await CardService.shared.generateNewCard(type: .free)
-                self.data.currentCard = card
+                // v1.3.4 PATCH：启动后不生成带 UUID 的卡，显示无 UUID 自由卡草稿
+                self.data.currentCard = nil
                 self.data.currentCardType = .free
                 self.data.currentCardTags = []
             } catch {
-                self.alert.saveError = "无法生成新卡编码：\(error.localizedDescription)"
+                self.alert.saveError = "启动失败：\(error.localizedDescription)"
                 self.data.currentCard = nil
                 self.data.currentCardType = .free
                 self.data.currentCardTags = []

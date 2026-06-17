@@ -28,6 +28,8 @@ final class CardTypeChangeService {
         if !card.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return true
         }
+        // v1.3.4 PATCH：标签也算内容，避免只加标签时切换类型被静默清空
+        if !card.tags.isEmpty { return true }
         return card.fields.contains {
             !$0.fieldValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
@@ -36,6 +38,13 @@ final class CardTypeChangeService {
     /// 用户请求切换卡片类型：有内容时弹出确认，无内容时直接切换
     func requestChange(to type: CardType) {
         guard let data = data, let alert = data.alert, type != data.currentCardType else { return }
+
+        // v1.3.4 PATCH：无 UUID 草稿直接切换类型，不弹窗、不生成 UUID
+        if data.currentCard == nil {
+            data.currentCardType = type
+            return
+        }
+
         if currentCardHasContent() {
             alert.pendingCardType = type
             alert.showingTypeChangeAlert = true

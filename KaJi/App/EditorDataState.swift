@@ -59,23 +59,29 @@ final class EditorDataState: ObservableObject {
 
     // MARK: - 业务方法（数据态）
 
-    /// 开一张新卡（屏 1 用）— 给定类型，默认自由卡
+    /// 开一张新卡 — 同步设置草稿状态，不生成 UUID
+    /// v1.3.4 PATCH：无 UUID 草稿语义，避免空卡立即进入回收站
     func startNewCard(type: CardType = .free) {
-        Task { @MainActor in
-            do {
-                let card = try await cardService.generateNewCard(type: type)
-                currentCard = card
-                currentCardType = type
-                currentCardTags = []
-                // v1.2.9 T3：新卡还没有持久化 id 之前不入 selection,
-                // 等 openCard(_:) 由 list 选中触发；这里保持 nil
-                alert?.saveError = nil
-                listState?.listFilter = nil
-                listState?.refreshFilteredCards()
-                listState?.rightPaneMode = .editor
-            } catch {
-                alert?.saveError = "无法生成新卡编码：\(error.localizedDescription)"
-            }
+        currentCard = nil
+        currentCardType = type
+        currentCardTags = []
+        alert?.saveError = nil
+        withAnimation(KaJiAnimation.modeSwitch) {
+            listState?.listFilter = nil
+            listState?.refreshFilteredCards()
+            listState?.rightPaneMode = .editor
+        }
+    }
+
+    /// 当用户在无 UUID 草稿上开始输入时，立即生成 UUID 并创建 Card。
+    /// 只在 currentCard == nil 时调用；已有卡时不操作。
+    func ensureCurrentCardID() {
+        guard currentCard == nil else { return }
+        do {
+            let id = try CardIDGenerator.next()
+            currentCard = Card.new(type: currentCardType, id: id, title: "", tags: currentCardTags, fields: [:])
+        } catch {
+            alert?.saveError = "无法生成卡片编码：\(error.localizedDescription)"
         }
     }
 
@@ -124,9 +130,19 @@ final class EditorDataState: ObservableObject {
     }
 
     private func persistCurrentCard() {
+        // v1.3.4 PATCH：无 UUID 草稿直接丢弃，不写库
         guard var c = currentCard else { return }
         c.type = currentCardType.rawValue
         c.tags = currentCardTags
+
+        // v1.3.4 PATCH：空卡自动删除 — 已持久化且内容 trim 全空 → 走软删（带 undo 注册）
+        // 未持久化的空卡直接丢弃，避免无意义记录进入主库/回收站
+        if c.isEmpty {
+            if hasBeenPersisted(c) {
+                softDeleteCard(c)
+            }
+            return
+        }
 
         // 3500 字符截断（title + 所有字段名 + 字段值 + 标签）
         if ContentLimit.isOverLimit(card: c) {
@@ -152,6 +168,12 @@ final class EditorDataState: ObservableObject {
         }
     }
 
+    /// v1.3.4 PATCH：判断卡是否已在 DB 中（用于空卡自动删除的 hasBeenPersisted 守卫）
+    /// 用 1 次单 row 查询（< 1ms），避免新空卡自循环入回收站。
+    private func hasBeenPersisted(_ card: Card) -> Bool {
+        (try? CardRepository.shared.card(id: card.id)) != nil
+    }
+
     // MARK: - 卡片生命周期
 
     /// 列表行/菜单删除入口：带 UndoManager 注册
@@ -160,9 +182,11 @@ final class EditorDataState: ObservableObject {
         if selectedCardID == card.id {
             selectedCardID = nil
         }
-        // 如果删的是当前编辑的卡，同步清空 currentCard
+        // 如果删的是当前编辑的卡，同步清空 currentCard 并回到无 UUID 自由卡草稿
         if currentCard?.id == card.id {
             currentCard = nil
+            currentCardType = .free
+            currentCardTags = []
         }
         lifecycleService.softDelete(card)
     }

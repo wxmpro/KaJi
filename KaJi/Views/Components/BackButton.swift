@@ -28,6 +28,8 @@ struct BackButton: View {
                 data.startNewCard(type: .free)
             } else {
                 // 在卡片详情页：返回 → 回到列表
+                // v1.3.4 PATCH：离场前强制 flush，保证 debounce 内未 fire 的编辑/空卡检测立即执行
+                data.flushSave()
                 withAnimation(KaJiAnimation.modeSwitch) {
                     listState.rightPaneMode = .list
                 }

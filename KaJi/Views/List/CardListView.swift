@@ -34,10 +34,16 @@ struct CardListView: View {
                 .padding(.top, KaJiLayout.headerTopPadding)  // 保留顶部 padding 平衡视觉
 
             if cards.isEmpty {
+                // v1.3.4 PATCH（修复 Bug⑤ 衍生）：回收站空态文案区分
+                // 之前所有 filter 都显示"暂无卡片"，让用户误以为回收站不是列表
+                let isTrash = listState.listFilter == .trash
                 ContentUnavailableView {
-                    Label("暂无卡片", systemImage: "rectangle.stack")
+                    Label(isTrash ? "回收站为空" : "暂无卡片",
+                          systemImage: isTrash ? "trash" : "rectangle.stack")
                 } description: {
-                    Text("在「\(listState.listFilterTitle)」下没有卡片")
+                    Text(isTrash
+                         ? "没有已删除的卡片"
+                         : "在「\(listState.listFilterTitle)」下没有卡片")
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {

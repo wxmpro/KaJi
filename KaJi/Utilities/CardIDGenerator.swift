@@ -46,32 +46,39 @@ struct CardIDGenerator: Sendable {
     /// - 进程内永不重（monotonic counter）
     /// - 跨进程唯一性靠 DB UNIQUE 约束 + 重试（由 CardService 处理）
     static func next() throws -> String {
-        // 1. 取 monotonic clock（不受系统时钟回退影响）
-        let ns = DispatchTime.now().uptimeNanoseconds
-        let ms = ns / 1_000_000
+        // 1. 取 wall clock 毫秒（用于日期显示）
+        let now = Date()
+        let ms = UInt64(now.timeIntervalSince1970 * 1000)
 
-        // 2. 进程内单调递增
+        // 2. 进程内单调递增（低 20 位计数器）
+        //    v1.3.4 PATCH：修复 1970 年 ID 问题。原实现用 uptimeNanoseconds 导致
+        //    Date(timeIntervalSince1970:) 生成 1970 年日期。改用 wall clock 毫秒。
+        //    当时钟回退时，不重置计数器，继续递增，避免同一毫秒 ID 重复。
         let seq = counter.withLock { c -> UInt32 in
             let lastMs  = (c >> 20) & 0x0000_0FFF_FFFF_FFFF
             let lastSeq = c & 0xF_FFFF
-            let curMs   = UInt64(ms & 0x0000_0FFF_FFFF_FFFF)
+            let curMs   = ms & 0x0000_0FFF_FFFF_FFFF
+
+            let nextSeq: UInt64
             if curMs == lastMs {
                 // 同毫秒：序列号 +1
-                let next = lastSeq &+ 1
-                c = (curMs << 20) | (next & 0xF_FFFF)
-                return UInt32(next & 0xFFF)   // 取低 12 位 = 0..4095（拼成 3 位用截断 mod 1000）
-            } else {
+                nextSeq = (lastSeq &+ 1) & 0xF_FFFF
+            } else if curMs > lastMs {
                 // 新毫秒：序列号归零
-                c = curMs << 20
-                return 0
+                nextSeq = 0
+            } else {
+                // 时钟回退：继续递增，避免与已生成 ID 冲突
+                nextSeq = (lastSeq &+ 1) & 0xF_FFFF
             }
+            c = (curMs << 20) | nextSeq
+            return UInt32(nextSeq & 0xFFF)   // 取低 12 位 → 0..4095，再模 1000 拼 3 位
         }
 
         // 3. 用 Calendar 提取 YYYYMMDDHHMMSS（6 个字段 = 14 位）
-        let date = Date(timeIntervalSince1970: TimeInterval(ms) / 1000)
+        //    v1.3.4 PATCH：用系统当前时区，让用户看到的 UUID 日期/时间与本机一致。
         var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(identifier: "UTC") ?? .current   // 用 UTC 避免时区漂移
-        let comps = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
+        cal.timeZone = .current
+        let comps = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: now)
         guard let y = comps.year, let m = comps.month, let d = comps.day,
               let h = comps.hour, let mi = comps.minute, let s = comps.second else {
             throw IDError.systemClockMalfunction

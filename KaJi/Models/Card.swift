@@ -58,6 +58,18 @@ struct Card: Identifiable, Hashable, Codable {
     /// 14 位显示用编码（去掉 3 位毫秒）
     var displayID: String { String(id.prefix(14)) }
 
+    /// v1.3.4 PATCH：卡片是否内容为空（用于空卡自动删除判定）
+    /// 复用 `CardTypeChangeService.currentCardHasContent` 的 trim+isEmpty 模式并取反。
+    /// 判定标准：title trim 空 + tags 空 + 全部 fieldValue trim 空。
+    /// 注意：单纯 `title.isEmpty` 不够，因为用户可能输入全空格。
+    var isEmpty: Bool {
+        if !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return false }
+        if !tags.isEmpty { return false }
+        return fields.allSatisfy {
+            $0.fieldValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
     // MARK: - 工厂方法
 
     /// 构造一张新卡（不写库）

@@ -34,6 +34,12 @@ struct MainView: View {
             prompt: "搜索卡片..."
         )
         .toolbar {
+            // v1.3.4 PATCH：编辑器删除按钮（修复 Bug④）
+            // destructiveAction placement 让 SwiftUI 自动渲染红色 destructive 样式
+            // 放在 BackButton 之前（返回键永远最右）
+            ToolbarItem(placement: .destructiveAction) {
+                DeleteCardButton()
+            }
             // v1.2.6+ UI 重构：返回键从主内容顶部 NavigationHeader 移到 toolbar 右侧
             // .cancellationAction placement 会把按钮放在 searchable 右侧
             // (toolbar 最右),跟 macOS 原生习惯一致

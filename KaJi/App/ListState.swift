@@ -9,6 +9,7 @@
 //
 
 import SwiftUI
+import Combine
 
 @MainActor
 final class ListState: ObservableObject {
@@ -33,9 +34,19 @@ final class ListState: ObservableObject {
 
     private let statsState: StatsState
     private let cardService = CardService.shared
+    private var cancellables = Set<AnyCancellable>()
 
     init(statsState: StatsState) {
         self.statsState = statsState
+        // v1.3.4 PATCH：订阅 statsState.objectWillChange，但用 DispatchQueue.main.async
+        // 把刷新推迟到下一个 runloop，确保 statsState.cachedSummaries 已更新为新值。
+        statsState.objectWillChange
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.refreshFilteredCards()
+                }
+            }
+            .store(in: &cancellables)
     }
 
     /// 进入列表模式（侧栏点击类型/标签/回收站时调用）

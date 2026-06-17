@@ -78,18 +78,30 @@ struct CardListRow: View {
         }
         .buttonStyle(KaJiListRowButtonStyle(colorScheme: colorScheme, isSelected: isSelected))
         .contextMenu {
+            // v1.3.4 PATCH：回收站中的卡允许打开查看详情，但 FormEditor 会禁用编辑
             Button("打开") {
                 openCardFromRow()
             }
-            Button("移到回收站", role: .destructive) {
-                // v1.3.3 PATCH：data 直连（editorState 注入已移除）
-                data.softDeleteCardByID(card.id)
+            // v1.3.4 PATCH（修复 Bug⑥）：按 listFilter 分支
+            //   .trash 模式：显示"恢复"，从 SQLite 读完整 Card 走 undo 注册链
+            //   其他模式：保留"移到回收站"
+            if listState.listFilter == .trash {
+                Button("恢复") {
+                    guard let fullCard = try? CardRepository.shared.card(id: card.id) else { return }
+                    data.restoreCard(fullCard)
+                }
+            } else {
+                Button("移到回收站", role: .destructive) {
+                    // v1.3.3 PATCH：data 直连（editorState 注入已移除）
+                    data.softDeleteCardByID(card.id)
+                }
             }
         }
     }
 
     /// v1.3.3 PATCH：把 ListState.openCardFromList 的逻辑搬到 View 端，端到端不走 editorState。
     /// 从 SQLite 读完整 Card → data.openCard → 切到 editor 模式。
+    /// v1.3.4 PATCH：回收站中的卡允许进入 editor 查看详情，FormEditor 内部按 deletedAt 禁用编辑。
     private func openCardFromRow() {
         data.selectedCardID = card.id
         guard let fullCard = try? CardRepository.shared.card(id: card.id) else { return }

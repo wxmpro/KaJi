@@ -87,7 +87,11 @@ final class CardRepository: @unchecked Sendable {
         return c
     }
 
-    /// 内部：在指定数据库事务内写入/更新卡片记录（INSERT OR REPLACE）
+    /// 内部：在指定数据库事务内写入/更新卡片记录。
+    /// v1.3.4 PATCH：修复 v1.3.2 只 INSERT 导致已存在卡无法更新的严重 bug。
+    ///   - 已存在卡：先 UPDATE cards；子表（cardFields/cardTags）先删后插。
+    ///   - 新卡：UPDATE 影响 0 行，再 INSERT。
+    ///   - 多进程 race 仍由 CardService 捕获 SQLITE_CONSTRAINT 重试。
     private func persist(_ card: Card, in grdb: Database) throws {
         // v1.2.9 S1 修复：fileURL 改 throws
         let filePath = try CardFileIO.fileURL(for: card.id).path
@@ -99,18 +103,40 @@ final class CardRepository: @unchecked Sendable {
             fileMtime: nil, fileHash: nil, fileSize: 0,
             mdVersion: card.mdVersion  // v1.3.0：写入当前 mdVersion
         )
-        // ★ v1.3.2：INSERT（不是 SAVE=OR REPLACE），失败说明 ID 冲突（多进程 race）。
-        //    旧逻辑 `record.save` 走 INSERT OR REPLACE，会级联删 cardFields/cardTags，
-        //    导致跨进程场景下另一进程的字段被静默删除。
-        do {
-            try record.insert(grdb)
-        } catch let grdbError as GRDB.DatabaseError
-            where grdbError.resultCode == .SQLITE_CONSTRAINT {
-            // 多进程同时写同一 ID — 抛错由 Service 层重试
-            throw DatabaseError.idConflict(cardId: card.id)
+
+        // 1. 主表：先 UPDATE，不存在再 INSERT。
+        //    避免 v1.3.2 只用 INSERT 导致编辑已存在卡时主键冲突、被误判为新卡的问题。
+        try grdb.execute(sql: """
+            UPDATE cards SET
+                type = ?,
+                title = ?,
+                createdAt = ?,
+                updatedAt = ?,
+                deletedAt = ?,
+                filePath = ?,
+                fileMtime = ?,
+                fileHash = ?,
+                fileSize = ?,
+                mdVersion = ?
+            WHERE id = ?
+            """, arguments: [
+                record.type, record.title, record.createdAt, record.updatedAt, record.deletedAt,
+                record.filePath, record.fileMtime, record.fileHash, record.fileSize, record.mdVersion,
+                record.id
+            ])
+        let updated = grdb.changesCount
+
+        if updated == 0 {
+            do {
+                try record.insert(grdb)
+            } catch let grdbError as GRDB.DatabaseError
+                where grdbError.resultCode == .SQLITE_CONSTRAINT {
+                // 多进程同时写同一 ID — 抛错由 Service 层重试
+                throw DatabaseError.idConflict(cardId: card.id)
+            }
         }
 
-        // cardFields — 先删后插
+        // 2. cardFields — 先删后插
         try CardFieldRecord
             .filter(Column("cardId") == card.id)
             .deleteAll(grdb)
@@ -122,7 +148,7 @@ final class CardRepository: @unchecked Sendable {
             try fieldRec.insert(grdb)
         }
 
-        // cardTags — 先删后插
+        // 3. cardTags — 先删后插
         try CardTagRecord
             .filter(Column("cardId") == card.id)
             .deleteAll(grdb)
@@ -295,10 +321,11 @@ final class CardRepository: @unchecked Sendable {
 
         // 3. summaries：仅查轻量字段，tags + fields 单独批量查
         //    v1.3.0：拼 searchText（title + tags + 字段值预拼接）
+        //    v1.3.4 PATCH：summaries 必须包含 deleted 卡，否则回收站永远为空。
+        //    主列表/搜索在 ListState.filteredCards 中按 deletedAt 过滤。
         let summaries = try db.dbWriter.read { grdb -> [CardSummary] in
             let recs = try Row.fetchAll(grdb, sql: """
                 SELECT id, type, title, updatedAt, deletedAt FROM cards
-                WHERE deletedAt IS NULL
                 ORDER BY updatedAt DESC
                 """)
             guard !recs.isEmpty else { return [] }
