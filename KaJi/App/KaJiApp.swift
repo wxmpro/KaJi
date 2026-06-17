@@ -10,6 +10,11 @@
 //  v1.3.1：保留 toolbar 范式；那条 1px 分隔线在 AppDelegate.configure 中
 //  通过 window.toolbar?.showsBaselineSeparator = false 消除。
 //
+//  v1.4.0：
+//  - @EnvironmentObject → @Environment（@Observable 细粒度订阅）
+//  - 删 EditorState 中间层，AppDelegate 直接持有 5 个 state
+//  - 命令组直接走 appDelegate.data / appDelegate.ui
+//
 
 import SwiftUI
 import AppKit
@@ -21,13 +26,11 @@ struct KaJiApp: App {
     var body: some Scene {
         WindowGroup {
             MainView()
-                // v1.3.3 PATCH：editorState 注入移除（7 View 已不订阅它）
-                // v1.2.9 T2：注入细粒度子 state，View 可独立订阅对应 @Published。
-                .environmentObject(appDelegate.editorState.data)
-                .environmentObject(appDelegate.editorState.ui)
-                .environmentObject(appDelegate.editorState.alert)
-                .environmentObject(appDelegate.listState)
-                .environmentObject(appDelegate.statsState)
+                .environment(appDelegate.data)
+                .environment(appDelegate.ui)
+                .environment(appDelegate.alertState)
+                .environment(appDelegate.listState)
+                .environment(appDelegate.statsState)
         }
         .windowToolbarStyle(.unifiedCompact(showsTitle: false))
         .windowStyle(.automatic)
@@ -35,17 +38,9 @@ struct KaJiApp: App {
         .defaultPosition(.center)
         .commands {
             // MARK: File Menu
-            // 用 `replacing: .newItem` 替换 WindowGroup 默认的"新建窗口"项，
-            // 让 ⌘N 唯一作用是"新建卡片"（不开新窗口）。
-            // 之前用 `after: .newItem` 时，WindowGroup 的默认 New 仍然存在，
-            // 旧版 `startNewCard` 同步阻塞主线程，Button handler 跑完前 SwiftUI
-            // 不会触发默认 New；改成 async 后 handler 立刻返回，SwiftUI fallback
-            // 到默认 New，结果每次 ⌘N 都开新窗口。
-            // v1.3.0：直连 data.startNewCard（删 facade 后）
-            // v1.3.3 PATCH：editorState 间接层移除，依赖链 4 → 3 层
             CommandGroup(replacing: .newItem) {
                 Button("新建卡片") {
-                    appDelegate.data.startNewCard(type: .free)
+                    appDelegate.data.startNewDraft(type: .free)
                 }
                 .keyboardShortcut("n", modifiers: .command)
             }
@@ -64,7 +59,6 @@ struct KaJiApp: App {
             }
 
             // MARK: Edit Menu
-            // v1.3.3 PATCH：undoManager 桥已迁移到 data，菜单走 appDelegate.data.undoManager
             CommandGroup(replacing: .undoRedo) {
                 Button("撤销") {
                     appDelegate.data.undoManager?.undo()
@@ -81,15 +75,12 @@ struct KaJiApp: App {
                 Divider()
 
                 Button("删除") {
-                    guard let card = appDelegate.data.currentCard else { return }
-                    appDelegate.data.softDeleteCard(card)
+                    appDelegate.data.softDeleteDraft()
                 }
                 .keyboardShortcut(.delete, modifiers: .command)
             }
 
             // MARK: View Menu
-            // v1.3.0：直连 ui.toggleSidebar（删 facade 后）
-            // v1.3.3 PATCH：editorState 间接层移除，依赖链 4 → 3 层
             CommandGroup(after: .sidebar) {
                 Button("切换侧栏") {
                     appDelegate.ui.toggleSidebar()
@@ -114,17 +105,26 @@ struct KaJiApp: App {
 }
 
 /// AppDelegate
+/// v1.4.0：接管原 EditorState 的启动期职责（reconcile + purge + 首卡初始化）
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private(set) lazy var statsState = StatsState()
-    private(set) lazy var listState = ListState(statsState: statsState)
-    private(set) lazy var editorState = EditorState(statsState: statsState, listState: listState)
-
-    // v1.3.3 PATCH：editorState 间接层移除，3 层访问器暴露给 KaJiApp 菜单
-    var data: EditorDataState { editorState.data }
-    var ui: EditorUIState { editorState.ui }
+    // v1.4.0：直接持有 5 个 state，无中间层
+    let statsState: StatsState
+    let listState: ListState
+    let alertState: EditorAlertState
+    let data: EditorDataState
+    let ui: EditorUIState
 
     override init() {
+        self.statsState = StatsState()
+        self.listState = ListState(statsState: statsState)
+        self.alertState = EditorAlertState()
+        self.ui = EditorUIState()
+        self.data = EditorDataState(
+            statsState: statsState,
+            listState: listState,
+            alert: alertState
+        )
         super.init()
     }
 
@@ -133,12 +133,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         SettingsService.restoreThemeOnLaunch()
         configureWindows()
+        bootstrap()
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        // v1.3.0：直连 data.flushSave（删 facade 后）
-        // v1.3.3 PATCH：依赖链 4 → 3 层
-        data.flushSave()
+        // 退出前 flush：触发当前 draft 立即 commit
+        Task { @MainActor in
+            _ = await data.commitDraft { _ in }
+        }
         return .terminateNow
     }
 
@@ -146,10 +148,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         true
     }
 
+    // MARK: - 启动期 bootstrap
+
+    private func bootstrap() {
+        alertState.isInMemoryDB = AppDatabase.shared.isInMemory
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                try await CardService.shared.bootstrap(retentionDays: SettingsService.trashRetentionDays)
+                statsState.rebuildStats()
+                // v1.4.0：保持 draft = .empty()（启动后不生成带 UUID 的卡）
+                self.data.draft = .empty()
+            } catch {
+                self.alertState.saveError = "启动失败：\(error.localizedDescription)"
+                self.data.draft = .empty()
+            }
+        }
+    }
+
     // MARK: - 窗口 chrome 配置
-    // v1.3.1：加 window.toolbar?.showsBaselineSeparator = false 消除那条 1px 分隔线
-    // 这是 NSToolbar 自带的 baseline line，与 unified toolbar 无关
-    // 之前错误归因到 .windowToolbarStyle(.unifiedCompact)，实际是 NSWindow API 控制
 
     private func configureWindows() {
         NSApp.windows.forEach(configure)
@@ -159,7 +176,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = ""
         window.titlebarSeparatorStyle = .none
         // v1.3.1 P0 关键修复：消除 toolbar 下方那条 1px 分隔线
-        // 用户反馈的"侧栏和右栏内容区分开的那条线"就是 NSToolbar 的 baseline separator
         window.toolbar?.showsBaselineSeparator = false
     }
 }

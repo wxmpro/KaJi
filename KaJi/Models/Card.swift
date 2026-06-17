@@ -70,6 +70,11 @@ struct Card: Identifiable, Hashable, Codable {
         }
     }
 
+    /// v1.4.0：判断是否为占位卡
+    var isPlaceholder: Bool {
+        id == Card.placeholderID
+    }
+
     // MARK: - 工厂方法
 
     /// 构造一张新卡（不写库）
@@ -90,6 +95,26 @@ struct Card: Identifiable, Hashable, Codable {
             createdAt: now, updatedAt: now, deletedAt: nil
         )
     }
+}
+
+// MARK: - v1.4.0：占位卡
+
+extension Card {
+    /// v1.4.0：占位卡 ID（17 位 0，UI 永远不显示）
+    static let placeholderID = String(repeating: "0", count: 17)
+
+    /// v1.4.0：占位卡（无 UUID，未持久化）。UI 永远不显示 placeholder 的 ID。
+    /// type 默认 .free；可在 commitDraft 时根据 draft.cardType 调整
+    static let placeholder = Card(
+        id: placeholderID,
+        type: CardType.free.rawValue,
+        title: "",
+        tags: [],
+        fields: [],
+        createdAt: .distantPast,
+        updatedAt: .distantPast,
+        deletedAt: nil
+    )
 }
 
 // MARK: - 便捷：JSON 编码

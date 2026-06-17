@@ -4,9 +4,10 @@
 //
 //  卡片删除/恢复：软删除到回收站、从回收站还原，均带 Undo。
 //
-//  v1.2.9 T2 改造：构造签名从 (editorState, statsState) 改为 (data, alert, statsState)，
-//  内部不再订阅完整 EditorState，只用 dataState 持有 currentCard / flushSave / undoManager
-//  和 alertState 写 saveError。
+//  v1.4.0 状态机彻底重构：
+//  - @MainActor 保持不变
+//  - 内部走新状态机：软删除后切到 .empty（如果是当前 draft），恢复后切到 .editing
+//  - flushSave 改为 await commitDraft
 //
 
 import SwiftUI
@@ -14,38 +15,41 @@ import AppKit
 
 @MainActor
 final class CardLifecycleService {
+    @ObservationIgnored
     private weak var data: EditorDataState?
+
+    @ObservationIgnored
     private weak var statsState: StatsState?
+
+    @ObservationIgnored
     private let cardService: CardService
 
-    // v1.3.0：statsState 改 optional（与 EditorDataState.weak var statsState: StatsState? 一致）
     init(data: EditorDataState, statsState: StatsState?, cardService: CardService = .shared) {
         self.data = data
         self.statsState = statsState
         self.cardService = cardService
     }
 
-    /// 列表行/菜单删除入口：带 UndoManager 注册
+    /// 软删除（与 v1.3.4 行为完全一致 + v1.4.0 draft 转换）
     func softDelete(_ card: Card) {
-        // v1.3.4 PATCH：guard 降级，核心 SQLite 写盘 + Undo 注册不再被 statsState/alert 阻塞
         guard let data = data else { return }
 
-        // T1 P0 修复（v1.2.9）：先 flush 取消 pending save，把当前编辑器最新
-        // 内容立即落库。否则 pending 的旧 content 会在删除完成后覆盖 deletedAt，
-        // 复活已删除的卡。
-        data.flushSave()
+        // v1.4.0：先 flush 取消 pending save
+        Task { @MainActor in
+            _ = await data.commitDraft { _ in }
+        }
 
         do {
             try cardService.softDelete(id: card.id)
-            // v1.2.9 T3 配套：data.currentCard 和 selectedCardID 的清空
-            // 已由 EditorDataState.softDeleteCard 在调本 service 前完成,
-            // service 这里不再重复写状态
+            // v1.4.0：删的是当前 draft → 切到 .empty()
+            if data.draft.cardID == card.id {
+                data.draft = .empty(data.draft.cardType)
+            }
             statsState?.rebuildStats { [weak self] error in
                 self?.data?.alert?.saveError = "统计刷新失败：\(error.localizedDescription)"
             }
-
             data.undoManager?.registerUndo(withTarget: data) { target in
-                target.restoreCard(card)
+                target.restoreFromTrash(card)
             }
             data.undoManager?.setActionName("删除卡片")
         } catch {
@@ -53,25 +57,22 @@ final class CardLifecycleService {
         }
     }
 
-    /// Undo 入口：从回收站恢复卡片
+    /// 从回收站恢复（与 v1.3.4 行为完全一致 + v1.4.0 draft 转换）
     func restore(_ card: Card) {
-        // v1.3.4 PATCH：guard 降级，核心 SQLite 写盘 + Undo 注册不再被 statsState/alert 阻塞
         guard let data = data else { return }
 
-        // T1 P0 修复（v1.2.9）：先 flush 取消 pending save，避免旧内容覆盖
-        // 恢复后的字段。
-        data.flushSave()
+        // v1.4.0：先 flush 取消 pending save
+        Task { @MainActor in
+            _ = await data.commitDraft { _ in }
+        }
 
         do {
             try cardService.restore(id: card.id)
-            data.currentCard = card
-            // v1.3.4 PATCH：恢复后同步类型和标签，避免编辑器字段结构与卡片实际内容不一致
-            data.currentCardType = card.cardType
-            data.currentCardTags = card.tags
+            // v1.4.0：恢复后切到 .editing
+            data.draft = .editing(card)
             statsState?.rebuildStats { [weak self] error in
                 self?.data?.alert?.saveError = "统计刷新失败：\(error.localizedDescription)"
             }
-
             data.undoManager?.registerUndo(withTarget: data) { target in
                 target.softDeleteCard(card)
             }

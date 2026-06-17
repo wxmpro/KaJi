@@ -4,27 +4,26 @@
 //
 //  告警/弹窗状态层。
 //  v1.2.9 T2 改造：原 EditorState 中跨"数据/UI/告警"三类的 11 个 @Published
-//  按生命周期拆分到 3 个独立 ObservableObject。本文件承载：
-//    - 类型切换确认弹窗（showingTypeChangeAlert / pendingCardType）
-//    - 数据层告警（saveError / lastSavedAt / isInMemoryDB）
-//
-//  不影响视觉和交互；View 改用 @EnvironmentObject var alert 订阅后，
-//  编辑器输入字符时不再触发告警相关的视图重绘。
+//  按生命周期拆分到 3 个独立 ObservableObject。
+//  v1.4.0：
+//  - 迁移到 @Observable
+//  - 删除 lastSavedAt（v1.3.4 死字段，0 引用）
+//  - 重命名注释：仅保留真正的告警字段
 //
 
 import SwiftUI
 
+@Observable
 @MainActor
-final class EditorAlertState: ObservableObject {
+final class EditorAlertState {
     // MARK: - 类型切换弹窗
-    @Published var showingTypeChangeAlert: Bool = false
-    @Published var pendingCardType: CardType? = nil
+    var showingTypeChangeAlert: Bool = false
+    var pendingCardType: CardType? = nil
 
-    // MARK: - 数据层告警
-    @Published var saveError: String?
-    @Published var lastSavedAt: Date?
+    // MARK: - 错误告警
+    var saveError: String?
 
-    /// 数据库是否处于 in-memory 模式（fallback）。启动后不变，用普通 var
-    /// 节省一次 objectWillChange 通知。
+    /// 数据库是否处于 in-memory 模式（fallback）。启动后不变。
+    @ObservationIgnored
     var isInMemoryDB: Bool = false
 }

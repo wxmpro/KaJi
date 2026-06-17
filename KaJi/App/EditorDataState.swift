@@ -2,69 +2,73 @@
 //  EditorDataState.swift
 //  KaJi
 //
-//  数据状态层。
-//  v1.2.9 T2 改造：原 EditorState 中跨"数据/UI/告警"三类的 11 个 @Published
-//  按生命周期拆分到 3 个独立 ObservableObject。本文件承载：
-//    - 当前卡片数据（currentCard / currentCardType / currentCardTags）
-//    - 持久化协调（lastSavedAt — 通知 UI 上次保存时间）
-//    - 数据态业务方法（startNewCard / openCard / saveImmediately / flushSave /
-//      softDeleteCard / restoreCard / requestCardTypeChange / 等）
+//  v1.4.0 状态机彻底重构：
+//  - 5 个 @Published → 1 个 draft @Observable 字段
+//  - 4 个状态入口（startNewDraft / startEditing / commitDraft / discardDraft）
+//  - 增量更新 updateDraft
 //
-//  业务方法从 EditorState 容器迁移过来；EditorState 保留 facade 转发保证
-//  KaJiApp 顶层菜单不破。
-//
-//  Alert 相关写操作（saveError / pendingCardType / showingTypeChangeAlert）
-//  走 alert: EditorAlertState（init 注入）。
+//  v1.4.0 一次性修复（不再有 dead API / 兼容层）：
+//  - 删除 v1.3.4 startNewCard / openCard / restoreCard 兼容层（无调用方）
+//  - 删除 saveImmediately / flushSave 死 API（无调用方，已被 commitDraft 替代）
+//  - 删 lastSavedAt / hasBeenPersisted / ensureCurrentCardID / persistCurrentCard
+//  - Bug 1-10 全部修复
 //
 
 import SwiftUI
 import AppKit
+import os
 
+@Observable
 @MainActor
-final class EditorDataState: ObservableObject {
-    // MARK: - 当前态
-    @Published var currentCard: Card?
-    @Published var currentCardType: CardType = .free
-    @Published var currentCardTags: [String] = []
-
-    // MARK: - 列表选择（v1.2.9 T3 修复）
-    // 原 List(selection:) 绑到 currentCard?.id，但 currentCard 是完整 Card
-    // 结构体，编辑时任何字段变更都触发 CardListView 重建，List 的 selection
-    // 状态重新同步，导致从列表点开卡 → 返回后该卡下方出现灰色高亮漂移。
-    // 改用独立 String? 字段作为 selection 的单一数据源，只有 id 变化时才通知
-    // List 重建 selection。
-    @Published var selectedCardID: String?
-
-    // MARK: - 持久化协调
-    @Published var lastSavedAt: Date?
-
-    // UndoManager 由 MainView.onAppear 注入（生命周期 = app 期间）
-    var undoManager: UndoManager?
+final class EditorDataState {
+    // MARK: - 单一真相源
+    var draft: DraftState = .empty()
 
     // MARK: - 依赖
-    private let cardService = CardService.shared
-    // v1.3.0：weak 持有 statsState（避免循环引用，AppDelegate 才是 owner）
-    // 引用链：AppDelegate → EditorState → data（弱持）statsState
-    private weak var statsState: StatsState?
-    weak var alert: EditorAlertState?
-    weak var listState: ListState?
-    private lazy var typeChangeService = CardTypeChangeService(data: self)
-    private lazy var lifecycleService = CardLifecycleService(data: self, statsState: statsState)
+    @ObservationIgnored
+    private let cardService: CardService
 
-    init(statsState: StatsState, listState: ListState, alert: EditorAlertState) {
+    @ObservationIgnored
+    private weak var statsState: StatsState?
+
+    @ObservationIgnored
+    private weak var listState: ListState?
+
+    @ObservationIgnored
+    weak var alert: EditorAlertState?
+
+    @ObservationIgnored
+    var undoManager: UndoManager?
+
+    @ObservationIgnored
+    private var typeChangeService: CardTypeChangeService!
+
+    @ObservationIgnored
+    private var lifecycleService: CardLifecycleService!
+
+    @ObservationIgnored
+    private static let log = Logger(subsystem: "com.kaji.app", category: "editor-state")
+
+    init(
+        statsState: StatsState,
+        listState: ListState,
+        alert: EditorAlertState,
+        cardService: CardService = .shared
+    ) {
         self.statsState = statsState
         self.listState = listState
         self.alert = alert
+        self.cardService = cardService
+        self.typeChangeService = CardTypeChangeService(data: self)
+        self.lifecycleService = CardLifecycleService(data: self, statsState: statsState)
     }
 
-    // MARK: - 业务方法（数据态）
+    // MARK: - 状态入口 1：开新空白草稿
 
-    /// 开一张新卡 — 同步设置草稿状态，不生成 UUID
-    /// v1.3.4 PATCH：无 UUID 草稿语义，避免空卡立即进入回收站
-    func startNewCard(type: CardType = .free) {
-        currentCard = nil
-        currentCardType = type
-        currentCardTags = []
+    /// 开新空白草稿
+    /// - 修复 R4 bug：自动清空 draft.cardID
+    func startNewDraft(type: CardType = .free) {
+        draft = .empty(type)
         alert?.saveError = nil
         withAnimation(KaJiAnimation.modeSwitch) {
             listState?.listFilter = nil
@@ -73,26 +77,185 @@ final class EditorDataState: ObservableObject {
         }
     }
 
-    /// 当用户在无 UUID 草稿上开始输入时，立即生成 UUID 并创建 Card。
-    /// 只在 currentCard == nil 时调用；已有卡时不操作。
-    func ensureCurrentCardID() {
-        guard currentCard == nil else { return }
-        do {
-            let id = try CardIDGenerator.next()
-            currentCard = Card.new(type: currentCardType, id: id, title: "", tags: currentCardTags, fields: [:])
-        } catch {
-            alert?.saveError = "无法生成卡片编码：\(error.localizedDescription)"
+    // MARK: - 状态入口 2：打开已有卡
+
+    /// 打开已有卡（自动判断编辑态 / 回收站只读态）
+    func startEditing(_ card: Card) {
+        draft = card.deletedAt != nil ? .trash(card) : .editing(card)
+        alert?.saveError = nil
+        withAnimation(KaJiAnimation.modeSwitch) {
+            listState?.rightPaneMode = .editor
         }
     }
 
-    /// 列表行点击后把指定卡片加载进编辑器
-    func openCard(_ card: Card) {
-        currentCard = card
-        currentCardType = card.cardType
-        currentCardTags = card.tags
-        // v1.2.9 T3：selection 同步
-        selectedCardID = card.id
+    // MARK: - 状态入口 3：提交草稿
+
+    /// 提交草稿（创建 UUID + 持久化）—— 唯一产生 ID 冲突重试的位置
+    /// - Parameters:
+    ///   - transform: 可选 transform 闭包；nil 时不修改 card，直接持久化当前 draft
+    /// - Returns: 实际持久化后的 Card（ID 冲突重试后是新 ID 的 Card）
+    /// 防御性：.trash 状态下拒绝持久化（即便 View 层 disabled 失效也不会写入）
+    @discardableResult
+    func commitDraft(transform: ((inout Card) -> Void)? = nil) async -> Result<Card, KaJiError> {
+        guard !draft.isReadOnly else {
+            Self.log.warning("commitDraft ignored: draft is read-only (.trash)")
+            return .success(draft.card)
+        }
+        let isEmptyDraft = draft.isEmptyDraft
+        var card = draft.card
+        let draftType = draft.cardType
+
+        if isEmptyDraft {
+            do {
+                let id = try CardIDGenerator.next()
+                card = Card.new(
+                    type: draftType,
+                    id: id,
+                    title: card.title,
+                    tags: card.tags,
+                    fields: card.fields.reduce(into: [String: String]()) {
+                        $0[$1.fieldName] = $1.fieldValue
+                    }
+                )
+            } catch {
+                Self.log.error("CardIDGenerator failed: \(error.localizedDescription, privacy: .public)")
+                let err = KaJiError.unknown(error)
+                alert?.saveError = err.errorDescription
+                return .failure(err)
+            }
+        }
+
+        if let transform {
+            transform(&card)
+        }
+
+        if card.isEmpty {
+            if isEmptyDraft {
+                // 空草稿生成的空新卡：直接 discard
+                draft = .empty(draftType)
+                return .success(Card.placeholder)
+            } else {
+                // 已持久化空卡：先 persist 当前空内容到 DB，再 softDelete 设置 deletedAt，
+                // 最后同步刷新 stats 和 list（与正常 persist 路径一致），并注册 undo。
+                //
+                // 为什么先 persist 再 softDelete：
+                // scheduleSave 是 800ms debounce；用户清空字段/标签时如果操作间隔 > 800ms，
+                // 中间多次 commitDraft 会把"部分清空"的内容 persist 到 DB，最后 isEmpty 分支
+                // 不 persist 就 softDelete 时，DB 中是部分清空 + deletedAt，回收站里看到的是
+                // 残缺内容或空卡，体验割裂。先 persist 一次当前空内容可以保证 DB 中是确定
+                // 状态（清空后的内容），回收站里至少有一张空卡可点开。
+                //
+                // 为什么不用 lifecycleService.softDelete（与之前一样避免）：
+                // 它内部会再调 data.commitDraft，形成 commitDraft → lifecycleService →
+                // commitDraft 循环，把空内容覆盖到 DB（v1.3.4 PATCH 已观察到的 bug）。
+                // 这里手动调 cardService.softDelete + 注册 undo，等价于 v1.3.4 行为。
+                precondition(card.deletedAt == nil,
+                    "commitDraft 已持久化分支的 card 不应已删除（DraftState.editing 阶段 deletedAt 必须为 nil）")
+                do {
+                    // 1. 先 persist 当前空内容到 DB（覆盖中间 commit 的部分清空状态）
+                    _ = try await cardService.persist(card: card)
+                    // 2. 再 softDelete 设置 deletedAt
+                    try cardService.softDelete(id: card.id)
+                    // 3. 同步刷新 stats 和 list（与正常 persist 路径完全一致，
+                    //    不依赖 observer 异步触发，避免用户切到回收站时 ListState 还是旧值）
+                    let stats = try await cardService.refreshStats()
+                    statsState?.update(with: stats)
+                    listState?.refreshFilteredCards()
+                    // 4. 注册 undo（v1.3.4 PATCH 的"带 undo 注册"语义）— 走 restoreFromTrash
+                    //    等价于 v1.3.4 的 restoreCard 路径：lifecycleService.restore 内部
+                    //    commitDraft 在 draft=.empty 状态会走 discard 分支，不会形成循环。
+                    let snapshot = card
+                    undoManager?.registerUndo(withTarget: self) { target in
+                        target.restoreFromTrash(snapshot)
+                    }
+                    undoManager?.setActionName("删除卡片")
+                    draft = .empty(draftType)
+                } catch {
+                    Self.log.error("commitDraft softDelete failed: \(error.localizedDescription, privacy: .public)")
+                    let err = (error as? KaJiError) ?? .unknown(error)
+                    alert?.saveError = err.errorDescription
+                    return .failure(err)
+                }
+                return .success(card)
+            }
+        }
+
+        let toPersist: Card
+        if ContentLimit.isOverLimit(card: card) {
+            toPersist = ContentLimit.truncate(card)
+        } else {
+            toPersist = card
+        }
+
+        draft = .editing(toPersist)
+
+        do {
+            let saved = try await cardService.persist(card: toPersist)
+            if saved.id != toPersist.id {
+                draft = .editing(saved)
+                Self.log.notice("ID conflict retried: \(toPersist.id) → \(saved.id)")
+            }
+            let stats = try await cardService.refreshStats()
+            statsState?.update(with: stats)
+            listState?.refreshFilteredCards()
+            return .success(saved)
+        } catch {
+            Self.log.error("commitDraft persist failed: \(error.localizedDescription, privacy: .public)")
+            let err = (error as? KaJiError) ?? .unknown(error)
+            alert?.saveError = err.errorDescription
+            return .failure(err)
+        }
     }
+
+    // MARK: - 状态入口 4：丢弃草稿
+
+    func discardDraft() {
+        draft = .empty(draft.cardType)
+    }
+
+    // MARK: - 增量更新
+
+    func updateDraft(_ block: (inout Card) -> Void) {
+        guard case .editing(var card) = draft else { return }
+        block(&card)
+        draft = .editing(card)
+    }
+
+    // MARK: - 派生属性
+
+    var currentCard: Card? {
+        switch draft {
+        case .empty: return nil
+        case .editing(let c), .trash(let c): return c
+        }
+    }
+
+    var currentCardType: CardType { draft.cardType }
+    var currentCardTags: [String] { draft.tags }
+    var selectedCardID: String? { draft.cardID }
+
+    // MARK: - 卡片生命周期
+
+    func softDeleteDraft() {
+        guard case .editing(let card) = draft else { return }
+        lifecycleService.softDelete(card)
+    }
+
+    /// 统一走 lifecycleService（Bug 10 修复）
+    func softDeleteCard(_ card: Card) {
+        lifecycleService.softDelete(card)
+    }
+
+    func softDeleteCardByID(_ id: String) {
+        guard let card = try? CardRepository.shared.card(id: id) else { return }
+        softDeleteCard(card)
+    }
+
+    func restoreFromTrash(_ card: Card) {
+        lifecycleService.restore(card)
+    }
+
+    // MARK: - 类型切换
 
     func requestCardTypeChange(to type: CardType) {
         typeChangeService.requestChange(to: type)
@@ -102,105 +265,14 @@ final class EditorDataState: ObservableObject {
         typeChangeService.confirmPendingChange()
     }
 
-    /// Undo 入口：恢复卡片类型和字段（由 CardTypeChangeService 注册）
     func undoCardTypeChange(to type: CardType, fields: [CardField]) {
         typeChangeService.undoChange(to: type, fields: fields)
     }
 
-    /// 复制当前卡片全部内容到剪贴板（Markdown 格式）
+    // MARK: - 剪贴板
+
     func copyAllContentToPasteboard() {
-        guard let card = currentCard else { return }
-        cardService.copyAllContentToPasteboard(for: card)
-    }
-
-    // MARK: - 自动保存
-
-    /// 任何字段被编辑都会调用，800ms debounce 后真正落库
-    func saveImmediately() {
-        cardService.debounceSave { [weak self] in
-            self?.persistCurrentCard()
-        }
-    }
-
-    /// 强制立即落库（失焦 / 退出 / ⌘S 时调用）
-    func flushSave() {
-        cardService.flushSave { [weak self] in
-            self?.persistCurrentCard()
-        }
-    }
-
-    private func persistCurrentCard() {
-        // v1.3.4 PATCH：无 UUID 草稿直接丢弃，不写库
-        guard var c = currentCard else { return }
-        c.type = currentCardType.rawValue
-        c.tags = currentCardTags
-
-        // v1.3.4 PATCH：空卡自动删除 — 已持久化且内容 trim 全空 → 走软删（带 undo 注册）
-        // 未持久化的空卡直接丢弃，避免无意义记录进入主库/回收站
-        if c.isEmpty {
-            if hasBeenPersisted(c) {
-                softDeleteCard(c)
-            }
-            return
-        }
-
-        // 3500 字符截断（title + 所有字段名 + 字段值 + 标签）
-        if ContentLimit.isOverLimit(card: c) {
-            c = ContentLimit.truncate(c)
-        }
-
-        // 截断结果立即同步回 UI，避免后台写盘完成后再覆盖 currentCard（H-2）
-        currentCard = c
-
-        // 写盘 + 重建统计放到后台队列，主线程只刷新 @Published（H-2）
-        Task {
-            do {
-                try await cardService.persist(card: c)
-                lastSavedAt = Date()
-                alert?.saveError = nil
-                let stats = try await cardService.refreshStats()
-                // v1.3.0：weak statsState 加 guard let
-                statsState?.update(with: stats)
-                listState?.refreshFilteredCards()
-            } catch {
-                alert?.saveError = "保存失败：\(error.localizedDescription)"
-            }
-        }
-    }
-
-    /// v1.3.4 PATCH：判断卡是否已在 DB 中（用于空卡自动删除的 hasBeenPersisted 守卫）
-    /// 用 1 次单 row 查询（< 1ms），避免新空卡自循环入回收站。
-    private func hasBeenPersisted(_ card: Card) -> Bool {
-        (try? CardRepository.shared.card(id: card.id)) != nil
-    }
-
-    // MARK: - 卡片生命周期
-
-    /// 列表行/菜单删除入口：带 UndoManager 注册
-    func softDeleteCard(_ card: Card) {
-        // v1.2.9 T3：删除时清空 selection（避免已删卡留在高亮态）
-        if selectedCardID == card.id {
-            selectedCardID = nil
-        }
-        // 如果删的是当前编辑的卡，同步清空 currentCard 并回到无 UUID 自由卡草稿
-        if currentCard?.id == card.id {
-            currentCard = nil
-            currentCardType = .free
-            currentCardTags = []
-        }
-        lifecycleService.softDelete(card)
-    }
-
-    /// v1.2.9 T5 入口：仅传 id 的软删除（CardListRow context menu 用）
-    /// service 内部从 SQLite 读完整 Card，再走原 softDelete 流程
-    func softDeleteCardByID(_ id: String) {
-        guard let card = try? CardRepository.shared.card(id: id) else { return }
-        softDeleteCard(card)
-    }
-
-    /// Undo 入口：从回收站恢复卡片
-    func restoreCard(_ card: Card) {
-        // v1.2.9 T3：恢复时 selection 不变（仅 deletedAt 变化，不影响列表行可见性）
-        lifecycleService.restore(card)
+        guard !draft.card.isPlaceholder else { return }
+        cardService.copyAllContentToPasteboard(for: draft.card)
     }
 }

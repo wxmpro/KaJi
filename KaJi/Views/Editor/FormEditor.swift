@@ -2,59 +2,53 @@
 //  FormEditor.swift
 //  KaJi
 //
-//  表单化编辑器：左标签栏 + 右输入区。
+//  v1.4.0 状态机彻底重构（局部 @State + onChange 模式）：
+//  - title / fieldValues / tags 改用本地 @State
+//  - 通过 scheduleSave 同步到 data（首次立即 / 后续 800ms debounce）
+//
+//  v1.4.0 Bug 修复：
+//  - Bug 2: buildFields 保留原 card.fields 的 fieldOrder
+//  - Bug 8: scheduleSave 串行化（saveToken 防并发 commitDraft）
 //
 
 import SwiftUI
 
 struct FormEditor: View {
-    // v1.2.9 T2：数据态订阅 data（currentCard / currentCardType / currentCardTags），
-    // 输入字符时只 FormEditor 自身重建，不再触发整棵树。
-    @EnvironmentObject var data: EditorDataState
+    @Environment(EditorDataState.self) private var data
+
+    // 本地 @State
+    @State private var title: String = ""
+    @State private var fieldValues: [String: String] = [:]
+    @State private var tags: [String] = []
+
+    // 同步任务（Bug 8 修复：saveToken 串行化）
+    @State private var saveTask: Task<Void, Never>?
+    @State private var saveToken: Int = 0  // 每次 scheduleSave 递增；旧 Task 检查 token 后退出
+    @State private var lastSyncedCardID: String? = nil
+
     @Binding var showingTypePicker: Bool
     @Binding var newTagText: String
     @Binding var isAddingTag: Bool
-    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.colorScheme) private var colorScheme
+
+    // 派生
+    private var card: Card { data.draft.card }
+    private var isReadOnly: Bool { data.draft.isReadOnly }
+    private var currentFields: [String] { card.cardType.fields }
+    private var displayID: String {
+        card.isPlaceholder ? "" : card.displayID
+    }
 
     private let labelWidth: CGFloat = 56
     private let lineHeight: CGFloat = 24
     private let contentFontSize: CGFloat = 16
 
-    private var cardBackground: Color {
-        // v1.3.2：颜色统一走 SemanticColor.resolve(for:)
-        KaJiColor.cardBackground.resolve(for: colorScheme)
-    }
-
-    private var lineStrokeColor: Color {
-        // v1.3.2：颜色统一走 SemanticColor.resolve(for:)
-        KaJiColor.cardFieldStroke.resolve(for: colorScheme)
-    }
-
-    private var shadowCardColor: Color {
-        // v1.3.2：颜色统一走 SemanticColor.resolve(for:)
-        KaJiColor.cardShadow.resolve(for: colorScheme)
-    }
-
-    private var borderColor: Color {
-        // v1.3.2：颜色统一走 SemanticColor.resolve(for:)
-        KaJiColor.cardBorder.resolve(for: colorScheme)
-    }
-
-    /// v1.3.4 PATCH：回收站中的卡片只读（可看详情，不可编辑）
-    private var isReadOnly: Bool {
-        data.currentCard?.deletedAt != nil
-    }
-
     var body: some View {
-        // v1.2.6+ UI：把圆角矩形放回 ZStack 顶层,整个 ZStack 加 .padding(.bottom, 32)
-        // 让背景圆角矩形 + typeButton / UUID / 标签 全部跟着底部上移 32pt
         ZStack(alignment: .topLeading) {
-            // 下层卡片（向右+上偏移 4pt，露出主卡片的"上+右"边）
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(shadowCardColor)
                 .offset(x: 4, y: -4)
 
-            // 上层主卡片
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(cardBackground)
                 .overlay(
@@ -62,12 +56,10 @@ struct FormEditor: View {
                         .stroke(borderColor, lineWidth: 0.5)
                 )
 
-            // 内容：左侧标签栏 + 右侧输入区（横线只在右侧）
             HStack(spacing: 0) {
-                // 左侧标签栏
                 VStack(spacing: 0) {
                     labelView("标题")
-                    ForEach(data.currentCardType.fields, id: \.self) { field in
+                    ForEach(currentFields, id: \.self) { field in
                         labelView(field)
                     }
                     Spacer()
@@ -76,7 +68,6 @@ struct FormEditor: View {
                 .frame(width: labelWidth)
                 .padding(.leading, 12)
 
-                // 右侧输入区
                 ZStack(alignment: .topLeading) {
                     ruledPaper
                     inputsColumn
@@ -86,18 +77,15 @@ struct FormEditor: View {
             .padding(.top, 30)
             .padding(.bottom, 12)
 
-            // 卡片类型选择浮动层
             if showingTypePicker {
                 Rectangle()
                     .fill(Color.clear)
                     .contentShape(Rectangle())
-                    .onTapGesture {
-                        showingTypePicker = false
-                    }
+                    .onTapGesture { showingTypePicker = false }
 
                 VStack {
                     Spacer()
-                    CardTypePickerView(selectedType: data.currentCardType) { type in
+                    CardTypePickerView(selectedType: card.cardType) { type in
                         data.requestCardTypeChange(to: type)
                         showingTypePicker = false
                     }
@@ -118,8 +106,81 @@ struct FormEditor: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.bottom, 32)  // ← 关键:整个 ZStack 缩进 32pt
+        .padding(.bottom, 32)
+        .onChange(of: data.draft.cardID) { _, newID in
+            if newID != lastSyncedCardID {
+                initializeLocalState()
+            }
+        }
+        .onAppear { initializeLocalState() }
     }
+
+    private func initializeLocalState() {
+        title = card.title
+        fieldValues = Dictionary(uniqueKeysWithValues: card.fields.map { ($0.fieldName, $0.fieldValue) })
+        tags = card.tags
+        lastSyncedCardID = card.id
+    }
+
+    /// 同步本地 state → data
+    /// Bug 8 修复：saveToken 串行化，避免并发 commitDraft
+    /// 防御性守卫：isReadOnly 时拒绝保存（即使 SwiftUI disabled 失效也不会持久化）
+    private func scheduleSave() {
+        guard !isReadOnly else { return }
+        if card.isPlaceholder {
+            // 首次输入：立即 commitDraft（创建 UUID + 持久化）
+            let token = saveToken
+            Task { @MainActor in
+                guard token == saveToken else { return }
+                _ = await data.commitDraft { draft in
+                    draft.title = title
+                    draft.fields = buildFieldsPreservingOrder(for: draft)
+                    draft.tags = tags
+                }
+            }
+            return
+        }
+
+        // 后续输入：800ms debounce
+        saveToken += 1
+        let token = saveToken
+        saveTask?.cancel()
+        saveTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(Int(SettingsService.autoSaveInterval * 1000)))
+            guard !Task.isCancelled, token == saveToken else { return }
+            // 先 updateDraft 应用本地 state 到 draft
+            data.updateDraft { draft in
+                draft.title = title
+                draft.fields = buildFieldsPreservingOrder(for: draft)
+                draft.tags = tags
+            }
+            // 再 commit 持久化（nil transform = 直接持久化当前 draft）
+            _ = await data.commitDraft()
+        }
+    }
+
+    /// Bug 2 修复：保留原 card.fields 的 fieldOrder，仅更新 fieldValue
+    /// - 如果原 fields 存在：保留其 fieldOrder 和字段值
+    /// - 如果原 fields 不存在（如 placeholder）：用 currentFields 枚举生成
+    private func buildFieldsPreservingOrder(for draft: Card) -> [CardField] {
+        let existingFields = draft.fields
+        let existingMap = Dictionary(uniqueKeysWithValues: existingFields.map { ($0.fieldName, $0) })
+
+        // 按 currentFields 顺序（用户看到的字段顺序）生成
+        return currentFields.enumerated().map { idx, name in
+            let value = fieldValues[name] ?? existingMap[name]?.fieldValue ?? ""
+            // 保留原 fieldOrder（如果存在），否则用 currentFields 的 idx
+            let order = existingMap[name]?.fieldOrder ?? idx
+            return CardField(
+                cardId: draft.id,
+                fieldName: name,
+                fieldValue: value,
+                fieldOrder: order
+            )
+        }
+    }
+
+    // MARK: - 子 view
 
     private func labelView(_ text: String) -> some View {
         Text(text)
@@ -137,9 +198,9 @@ struct FormEditor: View {
         } label: {
             HStack(spacing: 4) {
                 Circle()
-                    .fill(data.currentCardType.color)
+                    .fill(card.cardType.color)
                     .frame(width: 6, height: 6)
-                Text(data.currentCardType.rawValue)
+                Text(card.cardType.rawValue)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.primary)
             }
@@ -148,7 +209,6 @@ struct FormEditor: View {
             .padding(.trailing, 10)
         }
         .buttonStyle(.plain)
-        // v1.3.4 PATCH：回收站卡片只读，禁用类型切换
         .disabled(isReadOnly)
     }
 
@@ -172,22 +232,30 @@ struct FormEditor: View {
 
     private var inputsColumn: some View {
         VStack(spacing: 0) {
-            // 标题输入
-            fieldEditor(text: titleBinding)
+            fieldEditor(text: $title, onChange: { _, new in
+                title = new
+                scheduleSave()
+            })
 
-            // 动态字段
-            ForEach(data.currentCardType.fields, id: \.self) { fieldName in
-                fieldEditor(text: fieldBinding(for: fieldName))
+            ForEach(currentFields, id: \.self) { fieldName in
+                fieldEditor(
+                    text: bindingForField(fieldName),
+                    onChange: { _, _ in
+                        scheduleSave()
+                    }
+                )
             }
 
             Spacer()
 
-            // 底部行：标签 + UUID
             bottomMetaRow
         }
     }
 
-    private func fieldEditor(text: Binding<String>) -> some View {
+    private func fieldEditor(
+        text: Binding<String>,
+        onChange: @escaping (String, String) -> Void
+    ) -> some View {
         TextEditor(text: text)
             .font(.system(size: contentFontSize))
             .lineSpacing(6)
@@ -195,33 +263,26 @@ struct FormEditor: View {
             .background(Color.clear)
             .frame(minHeight: lineHeight * 3, alignment: .topLeading)
             .fixedSize(horizontal: false, vertical: true)
-            // v1.3.4 PATCH：回收站卡片只读
             .disabled(isReadOnly)
+            .onChange(of: text.wrappedValue) { old, new in
+                onChange(old, new)
+            }
     }
 
     private var bottomMetaRow: some View {
         HStack(spacing: 8) {
-            // 标签区
             HStack(spacing: 4) {
-                ForEach(data.currentCardTags, id: \.self) { tag in
-                    TagPill(tag: tag)
-                        .contextMenu {
-                            // v1.3.4 PATCH：回收站卡片只读，禁用标签删除
-                            if !isReadOnly {
-                                Button("删除标签", role: .destructive) {
-                                    removeTag(tag)
-                                }
-                            }
-                        }
+                ForEach(tags, id: \.self) { tag in
+                    RemovableTagPill(tag: tag, canRemove: !isReadOnly) {
+                        removeTag(tag)
+                    }
                 }
                 if !isReadOnly {
                     if isAddingTag {
                         TextField("标签", text: $newTagText)
                             .textFieldStyle(.plain)
                             .frame(width: 80)
-                            .onSubmit {
-                                addTag()
-                            }
+                            .onSubmit { addTag() }
                     } else {
                         Button {
                             isAddingTag = true
@@ -239,7 +300,7 @@ struct FormEditor: View {
 
             Spacer()
 
-            Text(data.currentCard?.displayID ?? "")
+            Text(displayID)
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
@@ -247,81 +308,50 @@ struct FormEditor: View {
         .frame(height: lineHeight)
     }
 
-    private var titleBinding: Binding<String> {
+    private func bindingForField(_ fieldName: String) -> Binding<String> {
         Binding(
-            get: { data.currentCard?.title ?? "" },
-            set: { newValue in
-                // v1.3.4 PATCH：无 UUID 草稿上开始输入时立即生成 UUID
-                if data.currentCard == nil {
-                    data.ensureCurrentCardID()
-                }
-                guard var card = data.currentCard else { return }
-                card.title = newValue
-                data.currentCard = card
-                data.saveImmediately()
-            }
-        )
-    }
-
-    private func fieldBinding(for fieldName: String) -> Binding<String> {
-        Binding(
-            get: {
-                data.currentCard?.value(ofField: fieldName) ?? ""
-            },
-            set: { newValue in
-                // v1.3.4 PATCH：无 UUID 草稿上开始输入时立即生成 UUID
-                if data.currentCard == nil {
-                    data.ensureCurrentCardID()
-                }
-                guard var card = data.currentCard else { return }
-                if let idx = card.fields.firstIndex(where: { $0.fieldName == fieldName }) {
-                    card.fields[idx].fieldValue = newValue
-                } else {
-                    let order = card.fields.count
-                    card.fields.append(
-                        CardField(cardId: card.id, fieldName: fieldName, fieldValue: newValue, fieldOrder: order)
-                    )
-                }
-                data.currentCard = card
-                data.saveImmediately()
-            }
+            get: { fieldValues[fieldName, default: ""] },
+            set: { fieldValues[fieldName, default: ""] = $0 }
         )
     }
 
     private func addTag() {
+        guard !isReadOnly else { return }
         let trimmed = newTagText.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else {
             isAddingTag = false
             newTagText = ""
             return
         }
-        // v1.2.8 P2-3 修复：append 前去重（忽略大小写），防止库内出现重复 tag
-        guard !data.currentCardTags.contains(where: {
-            $0.caseInsensitiveCompare(trimmed) == .orderedSame
-        }) else {
-            // 已存在，清空输入框并退出输入态，不重复添加
+        guard !tags.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) else {
             newTagText = ""
             isAddingTag = false
             return
         }
-        data.currentCardTags.append(trimmed)
-        // v1.3.4 PATCH：添加标签也视为开始编辑，无 UUID 草稿立即生成 UUID
-        data.ensureCurrentCardID()
-        if var card = data.currentCard {
-            card.tags = data.currentCardTags
-            data.currentCard = card
-            data.saveImmediately()
-        }
+        tags.append(trimmed)
         newTagText = ""
         isAddingTag = false
+        scheduleSave()
     }
 
     private func removeTag(_ tag: String) {
-        data.currentCardTags.removeAll { $0 == tag }
-        if var card = data.currentCard {
-            card.tags = data.currentCardTags
-            data.currentCard = card
-            data.saveImmediately()
-        }
+        guard !isReadOnly else { return }
+        tags.removeAll { $0 == tag }
+        scheduleSave()
+    }
+
+    // MARK: - 颜色
+
+    private var cardBackground: Color {
+        KaJiColor.cardBackground.resolve(for: colorScheme)
+    }
+    private var lineStrokeColor: Color {
+        KaJiColor.cardFieldStroke.resolve(for: colorScheme)
+    }
+    private var shadowCardColor: Color {
+        KaJiColor.cardShadow.resolve(for: colorScheme)
+    }
+    private var borderColor: Color {
+        KaJiColor.cardBorder.resolve(for: colorScheme)
     }
 }

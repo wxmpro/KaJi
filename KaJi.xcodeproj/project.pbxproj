@@ -28,7 +28,7 @@
 		B1AC2B2B1A2B1A2B1A2B1A2B /* BackButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1AC2B2C1A2C1A2C1A2C1A2C /* BackButton.swift */; };
 		D0C5B4A31A3F1E0C2D4E5F60 /* DeleteCardButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C5B4A41A3F1E0C2D4E5F61 /* DeleteCardButton.swift */; };
 		4532EEE3BC391DC2DAC197AE /* CardRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A4616229289AE1DE903BD24 /* CardRecord.swift */; };
-		F9511BB6D43A405EAEA349B21660C1F9 /* EditorState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EFEFFEA868D4598BC6E09106A9D32C5 /* EditorState.swift */; };
+		DD0001F0E0E0E0E0E0E0E001 /* DraftState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0002F0E0E0E0E0E0E0E002 /* DraftState.swift */; };
 		C125A52B0EA44C398BA8105398F026E6 /* ListState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E1F131C1AA640789E62DD1B9818530B /* ListState.swift */; };
 		1D1FCAAEBB2F43298360E0175A00ED32 /* StatsState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAB8D9070E354D148D863593A3FD04D1 /* StatsState.swift */; };
 		7C5DA8257EB2C228A849E895 /* CardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60F46A35E904ABF137D03552 /* CardRepository.swift */; };
@@ -50,6 +50,7 @@
 		DE07670AB3C5E00CB28CAD8C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1AD77866E3925FC7D31C5E0 /* SettingsView.swift */; };
 		DEE197EBEFEBBD91A9F64939 /* CardField.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE706C53BA6C1856A9781F63 /* CardField.swift */; };
 		F13E1FCE2C351691C9E40159 /* TagPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBFA0ED78BDDA942EBEA38DB /* TagPill.swift */; };
+		EE0001F0E0E0E0E0E0E0E001 /* RemovableTagPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0002F0E0E0E0E0E0E0E002 /* RemovableTagPill.swift */; };
 		F423DE0FE152E2ADAB4B0A11 /* ContentLimit.swift in Sources */ = {isa = PBXBuildFile; fileRef = E546D7FFEB130D7DD5217111 /* ContentLimit.swift */; };
 		F46F58ADE5EDFCD8D6BD5616 /* ListFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701910040469901400ED7260 /* ListFilter.swift */; };
 		F7BAE71F5032DCF452AD5B9D /* CardTypeChangeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A7BCF285D1FC16090347EBC /* CardTypeChangeService.swift */; };
@@ -103,7 +104,8 @@
 		CCD9140953A0EFC4A19583E5 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
 		E546D7FFEB130D7DD5217111 /* ContentLimit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentLimit.swift; sourceTree = "<group>"; };
 		EBFA0ED78BDDA942EBEA38DB /* TagPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagPill.swift; sourceTree = "<group>"; };
-		2EFEFFEA868D4598BC6E09106A9D32C5 /* EditorState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorState.swift; sourceTree = "<group>"; };
+		EE0002F0E0E0E0E0E0E0E002 /* RemovableTagPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemovableTagPill.swift; sourceTree = "<group>"; };
+		DD0002F0E0E0E0E0E0E0E002 /* DraftState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftState.swift; sourceTree = "<group>"; };
 		5E1F131C1AA640789E62DD1B9818530B /* ListState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListState.swift; sourceTree = "<group>"; };
 		DAB8D9070E354D148D863593A3FD04D1 /* StatsState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsState.swift; sourceTree = "<group>"; };
 		0991EFB98085DECE913C3288 /* MarkdownWriteQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownWriteQueue.swift; sourceTree = "<group>"; };
@@ -154,7 +156,6 @@
 		4A678DBDCEDA13CEEA647585 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				2EFEFFEA868D4598BC6E09106A9D32C5 /* EditorState.swift */,
 				E63B4450F7FC452B99B44511 /* EditorAlertState.swift */,
 				FC9C897D5FE54FEAB61E097E /* EditorUIState.swift */,
 				36DB9C2EDA44449682E0F92D /* EditorDataState.swift */,
@@ -185,6 +186,7 @@
 		7D807E9F250550463269DA6E /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				DD0002F0E0E0E0E0E0E0E002 /* DraftState.swift */,
 				A84AB7B6767CC5810E228175 /* Card.swift */,
 				AE706C53BA6C1856A9781F63 /* CardField.swift */,
 				C2C2B4B24CA43949D4AA46CF /* CardType.swift */,
@@ -260,6 +262,7 @@
 				D0C5B4A41A3F1E0C2D4E5F61 /* DeleteCardButton.swift */,
 				AABBCC0001F0E0E0E0E0E0E0 /* KaJiListRowButtonStyle.swift */,
 				EBFA0ED78BDDA942EBEA38DB /* TagPill.swift */,
+				EE0002F0E0E0E0E0E0E0E002 /* RemovableTagPill.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -380,7 +383,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9F30FC57C2B0F84213BFDB54 /* AppDatabase.swift in Sources */,
-				F9511BB6D43A405EAEA349B21660C1F9 /* EditorState.swift in Sources */,
+				DD0001F0E0E0E0E0E0E0E001 /* DraftState.swift in Sources */,
 				4C03139C116F46D09A742A13 /* EditorAlertState.swift in Sources */,
 				EB35101A73A742AEBE7DE37B /* EditorUIState.swift in Sources */,
 				98EB08BCF4B447FA8A69A325 /* EditorDataState.swift in Sources */,
@@ -421,6 +424,7 @@
 				9B4940E50A6D2CD1F65C5BD4 /* SidebarRowButtonStyle.swift in Sources */,
 				06BBCC976ECC1D5F9B72B90D /* SidebarView.swift in Sources */,
 				F13E1FCE2C351691C9E40159 /* TagPill.swift in Sources */,
+				EE0001F0E0E0E0E0E0E0E001 /* RemovableTagPill.swift in Sources */,
 				C4A21AA09C1AA97E8E00BDF4 /* MarkdownWriteQueue.swift in Sources */,
 				0B326CF037FDC7DF8FCCF4A0 /* DatabaseError.swift in Sources */,
 				AABBCC0003F0E0E0E0E0E0E1 /* MarkdownError.swift in Sources */,
@@ -486,7 +490,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 19;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -509,7 +513,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.3.4;
+				MARKETING_VERSION = 1.4.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -574,7 +578,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 19;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -591,7 +595,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.3.4;
+				MARKETING_VERSION = 1.4.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;

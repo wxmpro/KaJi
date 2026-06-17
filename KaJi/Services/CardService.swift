@@ -62,14 +62,14 @@ final class CardService: @unchecked Sendable {
     /// 写卡到 SQLite + .md：在后台 utility 队列执行
     /// SQLite 是强一致锚点；.md 是派生视图，写入失败会由启动对账修复
     /// ★ v1.3.2：捕获 idConflict 重试 — 跨进程场景下第二进程与第一进程撞 ID 时自动重生成
-    func persist(card: Card) async throws {
+    /// ★ v1.4.0：返回实际写入的 Card（处理 ID 冲突重试后的新 ID）
+    func persist(card: Card) async throws -> Card {
         let repo = repository
         for _ in 1...10 {
             do {
-                try await Task.detached(priority: .utility) {
-                    _ = try repo.save(card: card)
+                return try await Task.detached(priority: .utility) {
+                    try repo.save(card: card)
                 }.value
-                return
             } catch DatabaseError.idConflict {
                 // 跨进程冲突：保留 card 数据但重新生成 ID 后重试
                 let newId: String
@@ -90,10 +90,9 @@ final class CardService: @unchecked Sendable {
                     deletedAt: updated.deletedAt,
                     mdVersion: updated.mdVersion
                 )
-                try await Task.detached(priority: .utility) {
-                    _ = try repo.save(card: updated)
+                return try await Task.detached(priority: .utility) {
+                    try repo.save(card: updated)
                 }.value
-                return
             }
         }
         throw KaJiError.database(.idConflictExhausted(attempts: 10))

@@ -3,12 +3,13 @@
 //  KaJi
 //
 //  列表区域上方的筛选标题。
+//  v1.4.0：@EnvironmentObject → @Environment
 //
 
 import SwiftUI
 
 struct ListFilterTitle: View {
-    @EnvironmentObject var listState: ListState
+    @Environment(ListState.self) private var listState
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {

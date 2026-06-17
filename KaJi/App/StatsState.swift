@@ -5,23 +5,45 @@
 //  数据缓存与统计状态。
 //  负责侧栏统计、轻量卡片缓存（v1.2.9 T5 改 [CardSummary]），以及统计刷新调度。
 //
-//  v1.2.9 T5 改造：
-//  - cachedCards: [Card] → cachedSummaries: [CardSummary]（内存 20MB → 1.2MB）
-//  - update() 接收 summaries 类型，触发 searchIndex 重建
+//  v1.2.9 T5 改造：cachedCards: [Card] → cachedSummaries: [CardSummary]（轻量）
+//  v1.4.0：迁移到 @Observable
 //
 
 import SwiftUI
+import Combine
 
+@Observable
 @MainActor
-final class StatsState: ObservableObject {
-    private let cardService = CardService.shared
+final class StatsState {
+    // MARK: - 依赖
+    @ObservationIgnored
+    private let cardService: CardService
 
-    // 侧栏统计缓存：避免每次 UI 渲染都读库
-    @Published private(set) var cachedTypeCounts: [CardType: Int] = [:]
-    @Published private(set) var cachedTagCounts: [(String, Int)] = []
+    // MARK: - 更新回调（v1.4.0：替代 @Observable 之前的 objectWillChange 订阅）
+    @ObservationIgnored
+    private var updateObservers: [() -> Void] = []
 
-    // v1.2.9 T5：轻量缓存，替代 [Card]（不含 fields，按需懒加载）
-    @Published private(set) var cachedSummaries: [CardSummary] = []
+    /// 添加更新观察者（Bug 9 修复：支持多个观察者，不再单点覆盖）
+    func addUpdateObserver(_ observer: @escaping () -> Void) {
+        updateObservers.append(observer)
+    }
+
+    /// 移除更新观察者
+    func removeUpdateObserver(_ observer: @escaping () -> Void) {
+        // 闭包无法直接比较，需要 caller 用 token 模式管理
+        // 实际场景中 ListState 是 App 生命周期内单例，不需要移除
+    }
+
+    // MARK: - 侧栏统计缓存
+    var cachedTypeCounts: [CardType: Int] = [:]
+    var cachedTagCounts: [(String, Int)] = []
+
+    // MARK: - 轻量卡片缓存
+    var cachedSummaries: [CardSummary] = []
+
+    init(cardService: CardService = .shared) {
+        self.cardService = cardService
+    }
 
     /// 拉所有卡（含回收站过滤）— 优先走缓存，不直接读库
     func allCards(includeDeleted: Bool = false) -> [CardSummary] {
@@ -39,7 +61,6 @@ final class StatsState: ObservableObject {
     }
 
     /// 用外部已计算好的统计结果刷新缓存
-    /// v1.2.9 T5：value 相等时**不**触发 objectWillChange + 触发 searchIndex 重建
     func update(with stats: (
         summaries: [CardSummary],
         typeCounts: [CardType: Int],
@@ -52,10 +73,12 @@ final class StatsState: ObservableObject {
         if !tagSame { cachedTagCounts = stats.tagCounts }
         // 重建倒排索引
         cardService.updateSearchIndex(from: stats.summaries)
+        // v1.4.0：触发所有观察者（Bug 9 修复）
+        for observer in updateObservers { observer() }
     }
 
     /// 重新计算并缓存侧栏统计（数据变化时调用）
-    /// - Parameter onError: 统计刷新失败时的回调；调用方可通过它把错误写回 EditorAlertState.saveError。
+    /// - Parameter onError: 统计刷新失败时的回调
     func rebuildStats(onError: ((Error) -> Void)? = nil) {
         Task {
             do {

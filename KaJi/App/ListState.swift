@@ -6,47 +6,50 @@
 //  负责列表筛选、右栏 editor/list 切换、当前 filter 下卡片缓存。
 //
 //  v1.2.9 T5 改造：cachedFilteredCards: [Card] → [CardSummary]（轻量）
+//  v1.4.0：迁移到 @Observable；用 StatsState.onUpdate 回调替代 objectWillChange 订阅
 //
 
 import SwiftUI
-import Combine
 
+@Observable
 @MainActor
-final class ListState: ObservableObject {
+final class ListState {
     // MARK: - 右栏模式
-    // .editor = 当前编辑的卡（NotesEditor）
-    // .list   = 卡片列表（CardListView），由侧栏类型/标签/回收站触发
     enum RightPaneMode: Equatable {
         case editor
         case list
     }
 
-    @Published var rightPaneMode: RightPaneMode = .editor
+    // MARK: - 列表筛选来源
+    var listFilter: ListFilter? = nil
 
-    // 列表筛选来源（独立模型：Models/ListFilter.swift）
-    @Published var listFilter: ListFilter? = nil
+    // MARK: - 当前筛选条件下的轻量卡片缓存
+    var cachedFilteredCards: [CardSummary] = []
 
-    // v1.2.9 T5：当前筛选条件下的轻量卡片缓存
-    @Published private(set) var cachedFilteredCards: [CardSummary] = []
+    // MARK: - 右栏模式（@Observable 跟踪）
+    var rightPaneMode: RightPaneMode = .editor
 
-    // 列表筛选对应的展示标题（用于顶部条）
+    /// 列表筛选对应的展示标题
     var listFilterTitle: String { listFilter?.title ?? "" }
 
+    // MARK: - 依赖（@ObservationIgnored）
+    @ObservationIgnored
     private let statsState: StatsState
-    private let cardService = CardService.shared
-    private var cancellables = Set<AnyCancellable>()
 
-    init(statsState: StatsState) {
+    @ObservationIgnored
+    private let cardService: CardService
+
+    init(statsState: StatsState, cardService: CardService = .shared) {
         self.statsState = statsState
-        // v1.3.4 PATCH：订阅 statsState.objectWillChange，但用 DispatchQueue.main.async
-        // 把刷新推迟到下一个 runloop，确保 statsState.cachedSummaries 已更新为新值。
-        statsState.objectWillChange
-            .sink { [weak self] _ in
-                DispatchQueue.main.async {
-                    self?.refreshFilteredCards()
-                }
+        self.cardService = cardService
+        // v1.4.0：替代 v1.3.4 的 objectWillChange 订阅（@Observable 没有 objectWillChange）
+        // Bug 9 修复：使用 addUpdateObserver 数组化 API，支持多个观察者
+        // 用 DispatchQueue.main.async 把刷新推迟到下一个 runloop，确保 cachedSummaries 已更新为新值
+        statsState.addUpdateObserver { [weak self] in
+            DispatchQueue.main.async {
+                self?.refreshFilteredCards()
             }
-            .store(in: &cancellables)
+        }
     }
 
     /// 进入列表模式（侧栏点击类型/标签/回收站时调用）

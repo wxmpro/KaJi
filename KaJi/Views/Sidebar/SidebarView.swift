@@ -8,10 +8,10 @@
 import SwiftUI
 
 struct SidebarView: View {
-    // v1.3.3 PATCH：editorState 注入移除。data 已是 EnvironmentObject，"新建卡片"调用走 data 直连。
-    @EnvironmentObject var data: EditorDataState
-    @EnvironmentObject var listState: ListState
-    @EnvironmentObject var statsState: StatsState
+    // v1.4.0：@EnvironmentObject → @Environment（@Observable 细粒度订阅）
+    @Environment(EditorDataState.self) private var data
+    @Environment(ListState.self) private var listState
+    @Environment(StatsState.self) private var statsState
 
     var body: some View {
         // 预计算标签统计：避免在 List 行闭包里反复读库
@@ -48,8 +48,8 @@ struct SidebarView: View {
                 isSelected: false,
                 style: .large
             ) {
-                // v1.3.3 PATCH：editorState 注入移除，data 直连
-                data.startNewCard(type: .free)
+                // v1.4.0：data.startNewDraft
+                data.startNewDraft(type: .free)
             }
         }
         .listRowSeparator(.hidden)

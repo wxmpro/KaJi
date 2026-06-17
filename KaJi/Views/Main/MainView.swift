@@ -6,21 +6,21 @@
 //  使用 .windowToolbarStyle(.unifiedCompact) + .searchable(placement: .toolbar)
 //  实现 traffic-lights 视觉上落在侧栏顶部 + 原生 toolbar 搜索。
 //
-//  v1.3.1：那 1px 分隔线由 NSToolbar.showsBaselineSeparator 控制，
-//  在 AppDelegate.configure 中设为 false 即可消除。
+//  v1.3.1：那 1px 分隔线由 NSToolbar.showsBaselineSeparator 控制。
+//  v1.4.0：@EnvironmentObject → @Environment（@Observable 细粒度订阅）
 //
 
 import SwiftUI
 
 struct MainView: View {
-    // v1.3.3 PATCH：editorState 注入移除。undoManager 桥改由 data 承载（data 已是 EnvironmentObject）。
-    // UI 态（sidebarColumnVisibility / searchKeyword）订阅 ui；数据态业务方法走 data。
-    @EnvironmentObject var listState: ListState
-    @EnvironmentObject var data: EditorDataState
-    @EnvironmentObject var ui: EditorUIState
-    @Environment(\.undoManager) var undoManager
+    // v1.4.0：@Environment(Type.self) 注入（@Observable 自动追踪）
+    @Environment(ListState.self) private var listState
+    @Environment(EditorDataState.self) private var data
+    @Environment(EditorUIState.self) private var ui
+    @Environment(\.undoManager) private var undoManager
 
     var body: some View {
+        @Bindable var ui = ui  // 子 view 持 @Bindable（按 v1.3.1 教训：根 view 不持 @Bindable）
         NavigationSplitView(columnVisibility: $ui.sidebarColumnVisibility) {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 180, ideal: 240, max: 400)
@@ -34,15 +34,9 @@ struct MainView: View {
             prompt: "搜索卡片..."
         )
         .toolbar {
-            // v1.3.4 PATCH：编辑器删除按钮（修复 Bug④）
-            // destructiveAction placement 让 SwiftUI 自动渲染红色 destructive 样式
-            // 放在 BackButton 之前（返回键永远最右）
             ToolbarItem(placement: .destructiveAction) {
                 DeleteCardButton()
             }
-            // v1.2.6+ UI 重构：返回键从主内容顶部 NavigationHeader 移到 toolbar 右侧
-            // .cancellationAction placement 会把按钮放在 searchable 右侧
-            // (toolbar 最右),跟 macOS 原生习惯一致
             ToolbarItem(placement: .cancellationAction) {
                 BackButton()
             }
@@ -50,14 +44,12 @@ struct MainView: View {
         .onSubmit(of: .search) {
             let keyword = ui.searchKeyword.trimmingCharacters(in: .whitespaces)
             if keyword.isEmpty {
-                // v1.2.9 T8 修复：清空搜索框按回车，回到"全部卡片"列表
                 listState.showList(.all)
             } else {
                 listState.showList(.search(keyword))
             }
         }
         .onAppear {
-            // v1.3.3 PATCH：undoManager 桥挂在 data 上，KaJiApp 顶层菜单通过 appDelegate.data 访问
             data.undoManager = undoManager
             configureWindowChrome()
         }
@@ -66,7 +58,6 @@ struct MainView: View {
         }
     }
 
-    /// 配置窗口 chrome：移除 titlebar 底部横线、清空标题，实现更干净的原生外观。
     private func configureWindowChrome() {
         NSApp.windows.forEach { window in
             window.title = ""
