@@ -203,8 +203,9 @@ final class CardService: @unchecked Sendable {
     }
 
     /// 外部调用入口：刷新搜索索引（StatsState.update 触发，在主线程）
+    /// v1.5.0：改增量同步（sync）替代全量 rebuild，未变化的卡跳过 tokenize
     func updateSearchIndex(from summaries: [CardSummary]) {
-        searchIndex.rebuild(from: summaries)
+        searchIndex.sync(to: summaries)
     }
 
     // MARK: - 剪贴板

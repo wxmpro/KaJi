@@ -188,7 +188,8 @@ final class EditorDataState {
                     try cardService.softDeletePreservingContent(snapshot)
                     let stats = try await cardService.refreshStats()
                     statsState?.update(with: stats)
-                    listState?.refreshFilteredCards()
+                    // v1.5.0：删除显式 refreshFilteredCards —— update(with:) 已通过
+                    // StatsState observer 在下一帧触发列表刷新，避免双重 O(N) 过滤
                     undoManager?.registerUndo(withTarget: self) { target in
                         target.restoreFromTrash(snapshot)
                     }
@@ -224,7 +225,7 @@ final class EditorDataState {
             refreshEditSessionOrigin(with: saved)
             let stats = try await cardService.refreshStats()
             statsState?.update(with: stats)
-            listState?.refreshFilteredCards()
+            // v1.5.0：删除显式 refreshFilteredCards —— 同上，由 observer 驱动
             return .success(saved)
         } catch {
             Self.log.error("commitDraft persist failed: \(error.localizedDescription, privacy: .public)")
