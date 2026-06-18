@@ -12,6 +12,7 @@ import SwiftUI
 struct CardListView: View {
     @Environment(ListState.self) private var listState
     @Environment(EditorDataState.self) private var data
+    @Environment(StatsState.self) private var statsState
 
     var body: some View {
         let cards = listState.cachedFilteredCards
@@ -23,7 +24,16 @@ struct CardListView: View {
                 .offset(y: KaJiLayout.listTitleTopOffset)
                 .padding(.top, KaJiLayout.headerTopPadding)
 
-            if cards.isEmpty {
+            if statsState.isBootstrapping {
+                // v1.6.0（批次5/群5）：启动加载态，避免空白窗口被误认为卡死
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("正在加载卡片库...")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if cards.isEmpty {
                 let isTrash = listState.listFilter == .trash
                 ContentUnavailableView {
                     Label(isTrash ? "回收站为空" : "暂无卡片",

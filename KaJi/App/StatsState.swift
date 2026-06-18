@@ -41,6 +41,10 @@ final class StatsState {
     // MARK: - 轻量卡片缓存
     var cachedSummaries: [CardSummary] = []
 
+    /// v1.6.0（批次5/群5）：启动加载态。bootstrap 关键阶段 + 首屏统计加载完成前为 true，
+    /// 列表/侧栏据此显示「正在加载卡片库...」，避免空白窗口被误认为卡死。
+    var isBootstrapping: Bool = true
+
     init(cardService: CardService = .shared) {
         self.cardService = cardService
     }

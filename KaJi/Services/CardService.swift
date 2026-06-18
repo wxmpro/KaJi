@@ -24,13 +24,23 @@ final class CardService: @unchecked Sendable {
 
     // MARK: - 启动与清理
 
-    /// 启动清理：在后台 utility 队列执行回收站 purge
-    /// - Parameter retentionDays: 回收站保留天数，由 SettingsService 提供
-    /// v1.3.0：reconcile 改为 async，调用方需要 await
-    func bootstrap(retentionDays: Int) async throws {
+    /// v1.6.0（批次5/群5）：关键对账 —— 仅恢复「.md 有但 DB 没有」的卡，
+    /// 影响首屏数据完整性，必须在首屏渲染前同步完成。开销极小。
+    func bootstrapCritical() async throws {
+        let repo = repository
+        try await Task.detached(priority: .userInitiated) {
+            try await repo.reconcileCritical()
+        }.value
+    }
+
+    /// v1.6.0（批次5/群5）：延迟对账 + 回收站清理 —— 纯 .md 派生修复 + purge，
+    /// 不影响首屏 DB 数据，在首屏渲染后以低优先级后台执行。
+    /// 含 P0 的全量 mdVersion 扫描（已移出首屏关键路径）。
+    func bootstrapDeferred(retentionDays: Int) async throws {
         let repo = repository
         try await Task.detached(priority: .utility) {
-            try await repo.bootstrap(retentionDays: retentionDays)
+            try await repo.reconcileDeferred()
+            try repo.purgeOldTrashPublic(retentionDays: retentionDays)
         }.value
     }
 

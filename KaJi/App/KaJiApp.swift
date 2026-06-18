@@ -155,12 +155,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                try await CardService.shared.bootstrap(retentionDays: SettingsService.trashRetentionDays)
-                statsState.rebuildStats()
-                // v1.4.0：保持 draft = .empty()（启动后不生成带 UUID 的卡）
+                // v1.6.0（批次5/群5）：
+                // 1. 关键对账（恢复 .md 有但 DB 无的卡，影响首屏完整性）— 同步等
+                try await CardService.shared.bootstrapCritical()
+                // 2. 首屏数据加载 — 完成即清 loading 态，列表/侧栏立即可用
+                let stats = try await CardService.shared.refreshStats()
+                self.statsState.update(with: stats)
+                self.statsState.isBootstrapping = false
                 self.data.draft = .empty()
+                // 3. 延迟对账（纯 .md 修复 + 全量 mdVersion 扫描 + purge）—
+                //    移出首屏关键路径，后台低优先级跑，不阻塞用户
+                Task.detached(priority: .utility) {
+                    do {
+                        try await CardService.shared.bootstrapDeferred(
+                            retentionDays: await SettingsService.trashRetentionDays
+                        )
+                    } catch {
+                        await MainActor.run {
+                            self.alertState.saveError = "后台对账失败：\(error.localizedDescription)"
+                        }
+                    }
+                }
             } catch {
                 self.alertState.saveError = "启动失败：\(error.localizedDescription)"
+                self.statsState.isBootstrapping = false
                 self.data.draft = .empty()
             }
         }

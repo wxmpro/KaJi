@@ -437,17 +437,17 @@ final class CardRepository: @unchecked Sendable {
     /// - SQLite 有但 .md 没有：从 SQLite 重建 .md
     /// - 两边 ID 集合完全一致：仍要校验 mdVersion（v1.3.0）
     /// - mdVersion 落后：从 SQLite 重建对应 .md
-    func reconcile() async throws {
+    ///
+    /// 关键对账（影响首屏 DB 数据完整性，必须在首屏渲染前同步完成）：
+    /// 仅处理「.md 有但 SQLite 没有」—— 把 .md 恢复进 DB，否则首屏会漏卡。
+    /// 通常 missingInDB 为空集，开销极小（listAllIDs + allIDs 各一次）。
+    func reconcileCritical() async throws {
         let mdIDs = try CardFileIO.listAllIDs()
         let dbIDs = try db.allIDs()
 
-        // 1. v1.3.0：即便两边 ID 集合完全一致，也要校验 mdVersion
-        //    （旧版 v1.2.9 在 ID 集合完全一致时直接 return，错过 .md 落后场景）
-        // 2. .md 有但 SQLite 没有：从 .md 恢复
+        // .md 有但 SQLite 没有：从 .md 恢复（影响首屏数据完整性）
         let missingInDB = mdIDs.subtracting(dbIDs)
         if !missingInDB.isEmpty {
-            // v1.3.0：reconcile 是 async，any DatabaseWriter 协议在 async 上下文中
-            // 选 async 重载 → 加 await
             try await db.dbWriter.write { grdb in
                 for id in missingInDB {
                     do {
@@ -462,16 +462,22 @@ final class CardRepository: @unchecked Sendable {
                 }
             }
         }
+    }
 
-        // 3. SQLite 有但 .md 没有：从 SQLite 重建 .md
-        // v1.2.9 T5 优化：原 v1.3.0 P0-3 方案（一次 allCards + dictionary 查）
-        // 仍要 hydrate 全库 fields/tags。改为精确 IN 查询：只 hydrate 缺失卡。
+    /// 延迟对账（纯 .md 派生视图修复，不影响首屏 DB 数据，可在首屏后后台低优先级跑）：
+    /// - SQLite 有但 .md 没有：补写 .md
+    /// - mdVersion 校验：逐 .md 读首行比对（10万卡时的 P0 瓶颈，移出关键路径）
+    /// - retryFailures：重试之前写入失败的 .md
+    func reconcileDeferred() async throws {
+        let mdIDs = try CardFileIO.listAllIDs()
+        let dbIDs = try db.allIDs()
+
+        // SQLite 有但 .md 没有：从 SQLite 重建 .md（只补 .md，不影响 DB）
         let missingInMD = dbIDs.subtracting(mdIDs)
         if !missingInMD.isEmpty {
             let placeholders = missingInMD.map { _ in "?" }.joined(separator: ",")
             let args = StatementArguments(missingInMD)
             do {
-                // v1.3.0：async 上下文中加 await
                 let cards = try await db.dbWriter.read { grdb in
                     let recs = try CardRecord.fetchAll(grdb, sql: """
                         SELECT * FROM cards WHERE id IN (\(placeholders))
@@ -486,14 +492,10 @@ final class CardRepository: @unchecked Sendable {
             }
         }
 
-        // 4. v1.3.0：mdVersion 校验（终极一致性保障）
-        //    即便两边 ID 集合完全一致，也要逐 .md 检查 frontmatter.mdVersion
-        //    是否落后于 SQLite.mdVersion；落后则入队重写
+        // mdVersion 校验（终极一致性保障；P0 瓶颈，已移出首屏关键路径）
         try checkMarkdownVersionConsistency()
 
-        // 5. v1.2.9 T4：扫 .md_failures 目录，重试之前写入失败的 .md
-        //    失败标记持久化到 .md_failures/<id>.failure，reconcile 启动时统一重试
-        //    v1.3.0：改为走 MarkdownWriteQueue.retryFailures() 串行重试
+        // 扫 .md_failures 目录，重试之前写入失败的 .md
         await MarkdownWriteQueue.shared.retryFailures()
     }
 
@@ -569,14 +571,10 @@ final class CardRepository: @unchecked Sendable {
 
     // MARK: - 公共辅助
 
-    /// 启动时跑一次：对账 + 清理超过保留天数的回收站卡
-    /// v1.3.0：reconcile 改为 async（要走 MarkdownWriteQueue）
-    func bootstrap(retentionDays: Int) async throws {
-        try await reconcile()
+    /// v1.6.0：供 CardService.bootstrapDeferred 调用的 purge 转发
+    func purgeOldTrashPublic(retentionDays: Int) throws {
         try db.purgeOldTrash(retentionDays: retentionDays)
     }
-
-    // MARK: - 公共辅助
 
     /// DB 是否处于 in-memory 模式（fallback）— UI 层可以展示警告
     var isInMemory: Bool { db.isInMemory }
