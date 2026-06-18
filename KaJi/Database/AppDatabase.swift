@@ -175,7 +175,8 @@ final class AppDatabase: @unchecked Sendable {
     /// - Parameter retentionDays: 回收站保留天数；≤0 表示永不自动清理
     /// v1.2.9 T5 修复：.md 串行删除改 withTaskGroup 并发（chunkSize=8 限制并发），
     /// 1000+ 卡库的回收站清理时间从 ~10s 降到 ~2s。
-    func purgeOldTrash(retentionDays: Int) throws {
+    /// v1.6.1 PERF-3：用 withTaskGroup 限流（=8 并发）替代 DispatchQueue 无限并发；删除死代码 chunkSize
+    func purgeOldTrash(retentionDays: Int) async throws {
         guard retentionDays > 0 else { return }
         guard let cutoff = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date()) else {
             throw DatabaseError.trashCutoffDateUnavailable
@@ -183,7 +184,8 @@ final class AppDatabase: @unchecked Sendable {
         let cutoffStr = ISO8601DateFormatter().string(from: cutoff)
 
         // 1. 先删 SQLite（在写事务内）；cardFields / cardTags 由级联自动清理
-        let idsToPurge = try dbWriter.write { db -> [String] in
+        // v1.6.1：在 async 函数中 dbWriter.write 会被解析为异步重载，需 await
+        let idsToPurge = try await dbWriter.write { db -> [String] in
             let ids = try String.fetchAll(db, sql: """
                 SELECT id FROM cards WHERE deletedAt IS NOT NULL AND deletedAt < ?
                 """, arguments: [cutoffStr])
@@ -193,20 +195,28 @@ final class AppDatabase: @unchecked Sendable {
             return ids
         }
 
-        // 2. SQLite 提交成功后，并发删 .md（v1.2.9 T5）
-        //    分块：每 chunk 8 个并发写，chunks 串行执行避免 TaskGroup 资源峰值
-        //    use DispatchQueue.global 并行：避免 withTaskGroup 的 async 语义
-        let chunkSize = 8
-        let queue = DispatchQueue(label: "KaJi.purgeOldTrash", qos: .utility, attributes: .concurrent)
-        let group = DispatchGroup()
-        for id in idsToPurge {
-            group.enter()
-            queue.async {
-                try? CardFileIO.delete(id: id)
-                group.leave()
+        // 2. SQLite 提交成功后，并发删 .md（v1.6.1 限流 8 并发）
+        await withTaskGroup(of: Void.self) { group in
+            var iterator = idsToPurge.makeIterator()
+            let maxConcurrent = 8
+            var inFlight = 0
+
+            func enqueueNext() {
+                guard let id = iterator.next() else { return }
+                inFlight += 1
+                group.addTask {
+                    try? CardFileIO.delete(id: id)
+                }
+            }
+
+            for _ in 0..<min(maxConcurrent, idsToPurge.count) { enqueueNext() }
+
+            while inFlight > 0 {
+                await group.next()
+                inFlight -= 1
+                enqueueNext()
             }
         }
-        group.wait()
     }
 
     // MARK: - 全部卡 id（用于 ID 生成器查重）

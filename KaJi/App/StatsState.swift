@@ -21,17 +21,19 @@ final class StatsState {
 
     // MARK: - 更新回调（v1.4.0：替代 @Observable 之前的 objectWillChange 订阅）
     @ObservationIgnored
-    private var updateObservers: [() -> Void] = []
+    private var updateObservers: [UUID: () -> Void] = [:]
 
-    /// 添加更新观察者（Bug 9 修复：支持多个观察者，不再单点覆盖）
-    func addUpdateObserver(_ observer: @escaping () -> Void) {
-        updateObservers.append(observer)
+    /// 添加更新观察者，返回 token 用于精确移除
+    @discardableResult
+    func addUpdateObserver(_ observer: @escaping () -> Void) -> UUID {
+        let token = UUID()
+        updateObservers[token] = observer
+        return token
     }
 
     /// 移除更新观察者
-    func removeUpdateObserver(_ observer: @escaping () -> Void) {
-        // 闭包无法直接比较，需要 caller 用 token 模式管理
-        // 实际场景中 ListState 是 App 生命周期内单例，不需要移除
+    func removeUpdateObserver(token: UUID) {
+        updateObservers.removeValue(forKey: token)
     }
 
     // MARK: - 侧栏统计缓存
@@ -78,7 +80,8 @@ final class StatsState {
         // 重建倒排索引
         cardService.updateSearchIndex(from: stats.summaries)
         // v1.4.0：触发所有观察者（Bug 9 修复）
-        for observer in updateObservers { observer() }
+        // v1.6.1：字典 values 遍历
+        for observer in updateObservers.values { observer() }
     }
 
     /// 重新计算并缓存侧栏统计（数据变化时调用）

@@ -11,8 +11,22 @@ import AppKit
 
 struct SettingsView: View {
     @AppStorage("KaJi.theme") private var themeRawValue: String = "follow"
-    @AppStorage("KaJi.autoSaveInterval") private var autoSaveInterval: Double = 0.8
-    @AppStorage("KaJi.trashRetentionDays") private var trashRetentionDays: Int = 30
+    // v1.6.1：autoSaveInterval / trashRetentionDays 走 SettingsService setter
+    // @AppStorage 直写 UserDefaults 不触发 SettingsService 缓存更新，
+    // 导致设置改后 debounce 间隔不变（用户感知"设置没用"）
+
+    private var autoSaveIntervalBinding: Binding<Double> {
+        Binding(
+            get: { SettingsService.autoSaveInterval },
+            set: { SettingsService.autoSaveInterval = $0 }
+        )
+    }
+    private var trashRetentionDaysBinding: Binding<Int> {
+        Binding(
+            get: { SettingsService.trashRetentionDays },
+            set: { SettingsService.trashRetentionDays = $0 }
+        )
+    }
 
     private var theme: Binding<SettingsService.ThemeMode> {
         Binding(
@@ -66,7 +80,7 @@ struct SettingsView: View {
             }
 
             Section {
-                Picker("自动保存间隔：", selection: $autoSaveInterval) {
+                Picker("自动保存间隔：", selection: autoSaveIntervalBinding) {
                     Text("0.5 秒").tag(0.5)
                     Text("0.8 秒").tag(0.8)
                     Text("1.2 秒").tag(1.2)
@@ -114,7 +128,7 @@ struct SettingsView: View {
             }
 
             Section {
-                Picker("回收站保留天数：", selection: $trashRetentionDays) {
+                Picker("回收站保留天数：", selection: trashRetentionDaysBinding) {
                     Text("7 天").tag(7)
                     Text("14 天").tag(14)
                     Text("30 天").tag(30)

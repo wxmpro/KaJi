@@ -39,16 +39,17 @@ final class ListState {
     @ObservationIgnored
     private let cardService: CardService
 
+    @ObservationIgnored
+    private var observerToken: UUID?
+
     init(statsState: StatsState, cardService: CardService = .shared) {
         self.statsState = statsState
         self.cardService = cardService
         // v1.4.0：替代 v1.3.4 的 objectWillChange 订阅（@Observable 没有 objectWillChange）
         // Bug 9 修复：使用 addUpdateObserver 数组化 API，支持多个观察者
-        // 用 DispatchQueue.main.async 把刷新推迟到下一个 runloop，确保 cachedSummaries 已更新为新值
-        statsState.addUpdateObserver { [weak self] in
-            DispatchQueue.main.async {
-                self?.refreshFilteredCards()
-            }
+        // v1.6.1：去掉 .async 推迟一帧；StatsState.update(with:) 同调用栈已完成赋值
+        observerToken = statsState.addUpdateObserver { [weak self] in
+            self?.refreshFilteredCards()
         }
     }
 

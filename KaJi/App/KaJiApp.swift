@@ -137,11 +137,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        // 退出前 flush：触发当前 draft 立即 commit
+        // v1.6.1：退出走 .terminateLater + 同步 drain 锚点 + flush .md 队列
+        // 不变量 I（写即持久）：anchor 先同步落地，.md 由 actor flush 保证不丢
         Task { @MainActor in
-            _ = await data.commitDraft { _ in }
+            CardService.shared.cancelPendingSave()
+            _ = await data.commitDraft()
+            await MarkdownWriteQueue.shared.flush()
+            NSApp.reply(toApplicationShouldTerminate: true)
         }
-        return .terminateNow
+        return .terminateLater
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -157,7 +161,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             do {
                 // v1.6.0（批次5/群5）：
                 // 1. 关键对账（恢复 .md 有但 DB 无的卡，影响首屏完整性）— 同步等
-                try await CardService.shared.bootstrapCritical()
+                let reconcileResult = try await CardService.shared.bootstrapCritical()
+                if reconcileResult.failedCount > 0 {
+                    self.alertState.saveError = "从 .md 恢复了 \(reconcileResult.restoredCount) 张，但 \(reconcileResult.failedCount) 张失败（首张：\(reconcileResult.failedIDs.first ?? "?")，原因：\(reconcileResult.firstErrorDescription ?? "未知")）。如果这是 v1.6.1 之前的旧 .md，请升级后重试。"
+                }
                 // 2. 首屏数据加载 — 完成即清 loading 态，列表/侧栏立即可用
                 let stats = try await CardService.shared.refreshStats()
                 self.statsState.update(with: stats)

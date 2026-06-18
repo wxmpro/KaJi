@@ -26,9 +26,10 @@ final class CardService: @unchecked Sendable {
 
     /// v1.6.0（批次5/群5）：关键对账 —— 仅恢复「.md 有但 DB 没有」的卡，
     /// 影响首屏数据完整性，必须在首屏渲染前同步完成。开销极小。
-    func bootstrapCritical() async throws {
+    /// - Returns: ReconcileResult 包含恢复成功数、失败数、失败 ID 列表及首个错误
+    func bootstrapCritical() async throws -> ReconcileResult {
         let repo = repository
-        try await Task.detached(priority: .userInitiated) {
+        return try await Task.detached(priority: .userInitiated) {
             try await repo.reconcileCritical()
         }.value
     }
@@ -40,7 +41,7 @@ final class CardService: @unchecked Sendable {
         let repo = repository
         try await Task.detached(priority: .utility) {
             try await repo.reconcileDeferred()
-            try repo.purgeOldTrashPublic(retentionDays: retentionDays)
+            try await repo.purgeOldTrashPublic(retentionDays: retentionDays)
         }.value
     }
 
@@ -73,36 +74,42 @@ final class CardService: @unchecked Sendable {
     /// SQLite 是强一致锚点；.md 是派生视图，写入失败会由启动对账修复
     /// ★ v1.3.2：捕获 idConflict 重试 — 跨进程场景下第二进程与第一进程撞 ID 时自动重生成
     /// ★ v1.4.0：返回实际写入的 Card（处理 ID 冲突重试后的新 ID）
+    /// ★ v1.6.1：循环真正重试 10 次，并同步更新 CardField.cardId
     func persist(card: Card) async throws -> Card {
         let repo = repository
-        for _ in 1...10 {
+        var current = card
+        for attempt in 1...10 {
             do {
-                return try await Task.detached(priority: .utility) {
-                    try repo.save(card: card)
+                // v1.6.1：通过捕获列表 [current] 把当前卡快照传给 Task，避免闭包捕获 var
+                return try await Task.detached(priority: .utility) { [current] in
+                    try repo.save(card: current)
                 }.value
             } catch DatabaseError.idConflict {
-                // 跨进程冲突：保留 card 数据但重新生成 ID 后重试
+                // v1.6.1 BUG-5：用 continue 而非 return，让循环真正重试
+                // v1.6.1 REL-4：重试时同步刷新 fields 内每个 cardId 为 newId
+                guard attempt < 10 else {
+                    throw KaJiError.database(.idConflictExhausted(attempts: 10))
+                }
                 let newId: String
                 do {
                     newId = try CardIDGenerator.next()
                 } catch {
                     throw KaJiError.unknown(error)
                 }
-                var updated = card
-                updated = Card(
+                current = Card(
                     id: newId,
-                    type: updated.type,
-                    title: updated.title,
-                    tags: updated.tags,
-                    fields: updated.fields,
-                    createdAt: updated.createdAt,
-                    updatedAt: updated.updatedAt,
-                    deletedAt: updated.deletedAt,
-                    mdVersion: updated.mdVersion
+                    type: current.type,
+                    title: current.title,
+                    tags: current.tags,
+                    fields: current.fields.map {
+                        CardField(cardId: newId, fieldName: $0.fieldName,
+                                  fieldValue: $0.fieldValue, fieldOrder: $0.fieldOrder)
+                    },
+                    createdAt: current.createdAt,
+                    updatedAt: current.updatedAt,
+                    deletedAt: current.deletedAt,
+                    mdVersion: current.mdVersion
                 )
-                return try await Task.detached(priority: .utility) {
-                    try repo.save(card: updated)
-                }.value
             }
         }
         throw KaJiError.database(.idConflictExhausted(attempts: 10))

@@ -18,6 +18,15 @@ import Foundation
 import os
 @preconcurrency import GRDB
 
+/// v1.6.1：reconcileCritical 的返回值，让 UI 能看到失败
+/// 用 String? 存储首个错误描述（Error 不满足 Sendable，无法从 @Sendable 数据库闭包返回）
+struct ReconcileResult: Sendable {
+    var restoredCount: Int = 0
+    var failedCount: Int = 0
+    var failedIDs: [String] = []
+    var firstErrorDescription: String?
+}
+
 final class CardRepository: @unchecked Sendable {
     fileprivate let db: AppDatabase
     static let shared = CardRepository()
@@ -441,27 +450,38 @@ final class CardRepository: @unchecked Sendable {
     /// 关键对账（影响首屏 DB 数据完整性，必须在首屏渲染前同步完成）：
     /// 仅处理「.md 有但 SQLite 没有」—— 把 .md 恢复进 DB，否则首屏会漏卡。
     /// 通常 missingInDB 为空集，开销极小（listAllIDs + allIDs 各一次）。
-    func reconcileCritical() async throws {
+    /// - Returns: ReconcileResult 包含恢复成功数、失败数、失败 ID 列表及首个错误描述
+    func reconcileCritical() async throws -> ReconcileResult {
         let mdIDs = try CardFileIO.listAllIDs()
         let dbIDs = try db.allIDs()
 
         // .md 有但 SQLite 没有：从 .md 恢复（影响首屏数据完整性）
         let missingInDB = mdIDs.subtracting(dbIDs)
-        if !missingInDB.isEmpty {
-            try await db.dbWriter.write { grdb in
-                for id in missingInDB {
-                    do {
-                        guard let card = try CardFileIO.read(id: id) else {
-                            Self.log.notice("对账时未找到 .md: \(id, privacy: .public)")
-                            continue
-                        }
-                        try persist(card, in: grdb)
-                    } catch {
-                        Self.log.error("对账时恢复 .md 到 SQLite 失败 (\(id, privacy: .public)): \(error.localizedDescription, privacy: .public)")
+        guard !missingInDB.isEmpty else { return ReconcileResult() }
+
+        // v1.6.1：在 @Sendable 数据库写闭包内构造局部结果，避免并发修改外部 var
+        let result = try await db.dbWriter.write { grdb -> ReconcileResult in
+            var partial = ReconcileResult()
+            for id in missingInDB {
+                do {
+                    guard let card = try CardFileIO.read(id: id) else {
+                        Self.log.notice("对账时未找到 .md: \(id, privacy: .public)")
+                        continue
                     }
+                    try persist(card, in: grdb)
+                    partial.restoredCount += 1
+                } catch {
+                    partial.failedCount += 1
+                    partial.failedIDs.append(id)
+                    if partial.firstErrorDescription == nil {
+                        partial.firstErrorDescription = error.localizedDescription
+                    }
+                    Self.log.error("对账时恢复 .md 到 SQLite 失败 (\(id, privacy: .public)): \(error.localizedDescription, privacy: .public)")
                 }
             }
+            return partial
         }
+        return result
     }
 
     /// 延迟对账（纯 .md 派生视图修复，不影响首屏 DB 数据，可在首屏后后台低优先级跑）：
@@ -572,8 +592,9 @@ final class CardRepository: @unchecked Sendable {
     // MARK: - 公共辅助
 
     /// v1.6.0：供 CardService.bootstrapDeferred 调用的 purge 转发
-    func purgeOldTrashPublic(retentionDays: Int) throws {
-        try db.purgeOldTrash(retentionDays: retentionDays)
+    /// v1.6.1 PERF-3：改为 async throws，内部用 withTaskGroup 限流
+    func purgeOldTrashPublic(retentionDays: Int) async throws {
+        try await db.purgeOldTrash(retentionDays: retentionDays)
     }
 
     /// DB 是否处于 in-memory 模式（fallback）— UI 层可以展示警告

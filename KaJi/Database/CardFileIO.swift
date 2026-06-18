@@ -23,20 +23,15 @@ import os
 struct CardFileIO {
     private static let log = Logger(subsystem: "com.kaji.app", category: "cardfileio")
 
-    // v1.3.2：已知字段名集合（解析时严格校验，不在集合内的字段抛 MarkdownError.unknownField）
-    // 动态扩展：根据 CardType 的 fields 集合 + 内置通用字段（content/reference/title）
-    private static let knownFieldNames: Set<String> = [
-        "title", "tags", "content", "reference",
-        "definition", "explanation", "example", "note", "context",
-        "question", "answer", "cloze",
-        "term", "synonym", "antonym", "translation",
-        "name", "birth", "death", "achievement",
-        "quote", "source", "author",
-        "action", "deadline", "status",
-        "event", "date", "location",
-        "diagram", "caption",
-        "index", "page"
-    ]
+    // v1.6.1：已知字段名集合改为从 CardType.allCases 动态构建，
+    // 与 renderMarkdown 输出的中文字段名永久同步，解决 render 写中文 / parse 认英文 100% 不匹配
+    private static let knownFieldNames: Set<String> = {
+        var names: Set<String> = ["title", "tags"]
+        for type in CardType.allCases {
+            names.formUnion(type.fields)
+        }
+        return names
+    }()
 
     // MARK: - 路径
 
