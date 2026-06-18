@@ -126,6 +126,17 @@ final class CardService: @unchecked Sendable {
         action()
     }
 
+    /// 取消 pending save（不执行 action）— v1.4.1 P0 修复
+    /// 场景：lifecycleService.softDelete/restore 之前需要取消 pending 的 debounce save
+    /// （避免旧内容覆盖 deletedAt / 恢复后的字段）。v1.4.0 改用 fire-and-forget
+    /// `Task { commitDraft { _ in } }` 会导致撤销时死循环（commitDraft 走 isEmpty 分支
+    /// 又注册 undo），所以改为直接 cancel pending save。
+    @MainActor
+    func cancelPendingSave() {
+        saveWorkItem?.cancel()
+        saveWorkItem = nil
+    }
+
     // MARK: - 删除 / 恢复
 
     /// 移到回收站（同步执行：单条 SQLite UPDATE，足够快；Undo 注册前必须完成）
@@ -136,6 +147,12 @@ final class CardService: @unchecked Sendable {
     /// 从回收站恢复（同步执行）
     func restore(id: String) throws {
         try repository.restore(id: id)
+    }
+
+    /// v1.4.2 根因修复：把清空前的完整内容回写 + 软删除（单事务原子）
+    /// 用于"逐步清空 → 回收站"场景，保证回收站显示清空前完整内容
+    func softDeletePreservingContent(_ card: Card) throws {
+        try repository.softDeletePreservingContent(card)
     }
 
     // MARK: - 统计

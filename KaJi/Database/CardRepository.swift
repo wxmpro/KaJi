@@ -180,6 +180,26 @@ final class CardRepository: @unchecked Sendable {
         }
     }
 
+    /// v1.4.2 根因修复：把完整内容回写 + 同时置 deletedAt（单事务原子）。
+    /// 用于"卡片被逐步清空 → 回收站但保留清空前完整内容"场景。
+    /// 与 save() 的区别：save() 防御性拒绝 deletedAt != nil 的卡；本方法专门写入
+    /// 带 deletedAt 的完整内容（content + 软删除标记一次落库，不会出现中间残缺态）。
+    func softDeletePreservingContent(_ card: Card) throws {
+        var c = card
+        c.updatedAt = Date()
+        c.mdVersion += 1
+        c.deletedAt = Date()
+
+        try db.dbWriter.write { grdb in
+            try persist(c, in: grdb)
+        }
+
+        let cardCopy = c
+        Task {
+            await MarkdownWriteQueue.shared.enqueue(cardCopy)
+        }
+    }
+
     /// 从回收站恢复（deletedAt = NULL）
     /// v1.2.9 T4：同 softDelete，SQLite 成功后异步重写 .md 反映 deletedAt=nil。
     /// v1.3.0：mdVersion += 1；.md 走 MarkdownWriteQueue 串行化

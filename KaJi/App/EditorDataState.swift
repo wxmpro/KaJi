@@ -24,6 +24,32 @@ final class EditorDataState {
     // MARK: - 单一真相源
     var draft: DraftState = .empty()
 
+    // MARK: - 编辑会话原点快照（v1.4.2 根因修复）
+    //
+    // 问题：debounce 自动保存在"逐个清空字段"过程中，把每一步"部分清空"内容
+    //   写进 DB，等卡片变空命中 isEmpty 分支时，DB 里原内容早已被覆盖成残缺态。
+    //   旧实现用 dbCard（残缺）做回收站快照 + undo 快照 → 回收站丢内容、撤销恢复残缺。
+    //
+    // 解法：在编辑会话内持有"内容最丰满"的一版卡（按 contentCharCount 取峰值）。
+    //   - startEditing 捕获打开时的原内容
+    //   - 每次非空 commitDraft 持久化后，若更丰满则刷新峰值
+    //   - 清空使字符数下降 → 峰值不动 → 始终保留清空前最完整内容
+    //   清空到回收站时用它原子回写（内容 + deletedAt 一次落库），撤销也用它。
+    @ObservationIgnored
+    private var editSessionOrigin: Card?
+
+    /// 刷新会话原点：仅当更丰满（或换了卡）时更新，保证持有峰值内容
+    private func refreshEditSessionOrigin(with card: Card) {
+        guard !card.isEmpty else { return }
+        if let origin = editSessionOrigin, origin.id == card.id {
+            if card.contentCharCount >= origin.contentCharCount {
+                editSessionOrigin = card
+            }
+        } else {
+            editSessionOrigin = card
+        }
+    }
+
     // MARK: - 依赖
     @ObservationIgnored
     private let cardService: CardService
@@ -69,6 +95,7 @@ final class EditorDataState {
     /// - 修复 R4 bug：自动清空 draft.cardID
     func startNewDraft(type: CardType = .free) {
         draft = .empty(type)
+        editSessionOrigin = nil
         alert?.saveError = nil
         withAnimation(KaJiAnimation.modeSwitch) {
             listState?.listFilter = nil
@@ -82,6 +109,8 @@ final class EditorDataState {
     /// 打开已有卡（自动判断编辑态 / 回收站只读态）
     func startEditing(_ card: Card) {
         draft = card.deletedAt != nil ? .trash(card) : .editing(card)
+        // v1.4.2：捕获打开时的原内容作为会话原点（回收站只读卡不参与编辑，无需快照）
+        editSessionOrigin = card.deletedAt == nil ? card : nil
         alert?.saveError = nil
         withAnimation(KaJiAnimation.modeSwitch) {
             listState?.rightPaneMode = .editor
@@ -133,50 +162,46 @@ final class EditorDataState {
             if isEmptyDraft {
                 // 空草稿生成的空新卡：直接 discard
                 draft = .empty(draftType)
+                editSessionOrigin = nil
                 return .success(Card.placeholder)
             } else {
-                // 已持久化空卡：先 persist 当前空内容到 DB，再 softDelete 设置 deletedAt，
-                // 最后同步刷新 stats 和 list（与正常 persist 路径一致），并注册 undo。
+                // v1.4.2 根因修复：用会话原点（清空前最完整内容）原子回写 + 软删除。
                 //
-                // 为什么先 persist 再 softDelete：
-                // scheduleSave 是 800ms debounce；用户清空字段/标签时如果操作间隔 > 800ms，
-                // 中间多次 commitDraft 会把"部分清空"的内容 persist 到 DB，最后 isEmpty 分支
-                // 不 persist 就 softDelete 时，DB 中是部分清空 + deletedAt，回收站里看到的是
-                // 残缺内容或空卡，体验割裂。先 persist 一次当前空内容可以保证 DB 中是确定
-                // 状态（清空后的内容），回收站里至少有一张空卡可点开。
+                // 旧实现（v1.4.1）的缺陷：不回写、用 dbCard 做快照。但 debounce 自动保存
+                // 在逐个清空过程中已把"部分清空"内容写进 DB，dbCard 是残缺态 →
+                // 回收站丢内容、撤销恢复残缺。
                 //
-                // 为什么不用 lifecycleService.softDelete（与之前一样避免）：
-                // 它内部会再调 data.commitDraft，形成 commitDraft → lifecycleService →
-                // commitDraft 循环，把空内容覆盖到 DB（v1.3.4 PATCH 已观察到的 bug）。
-                // 这里手动调 cardService.softDelete + 注册 undo，等价于 v1.3.4 行为。
+                // 新实现：editSessionOrigin 持有本次编辑会话的内容峰值（清空使字符数
+                // 下降，不更新峰值）。softDeletePreservingContent 单事务把完整内容 +
+                // deletedAt 一次落库，回收站显示完整原内容；undo 快照同样用它，撤销
+                // restore 后 DB 即完整内容，draft=.editing(完整卡) 走正常非空路径，
+                // 不再触发 isEmpty 分支 → 无死循环。
                 precondition(card.deletedAt == nil,
                     "commitDraft 已持久化分支的 card 不应已删除（DraftState.editing 阶段 deletedAt 必须为 nil）")
+
+                // 会话原点缺失（理论上不会发生）时退化为 DB 当前态，至少不崩
+                let origin = editSessionOrigin ?? ((try? CardRepository.shared.card(id: card.id)) ?? card)
+                var snapshot = origin
+                snapshot.deletedAt = nil   // 快照本身保持"未删除"语义，供 restore 复原
+
                 do {
-                    // 1. 先 persist 当前空内容到 DB（覆盖中间 commit 的部分清空状态）
-                    _ = try await cardService.persist(card: card)
-                    // 2. 再 softDelete 设置 deletedAt
-                    try cardService.softDelete(id: card.id)
-                    // 3. 同步刷新 stats 和 list（与正常 persist 路径完全一致，
-                    //    不依赖 observer 异步触发，避免用户切到回收站时 ListState 还是旧值）
+                    try cardService.softDeletePreservingContent(snapshot)
                     let stats = try await cardService.refreshStats()
                     statsState?.update(with: stats)
                     listState?.refreshFilteredCards()
-                    // 4. 注册 undo（v1.3.4 PATCH 的"带 undo 注册"语义）— 走 restoreFromTrash
-                    //    等价于 v1.3.4 的 restoreCard 路径：lifecycleService.restore 内部
-                    //    commitDraft 在 draft=.empty 状态会走 discard 分支，不会形成循环。
-                    let snapshot = card
                     undoManager?.registerUndo(withTarget: self) { target in
                         target.restoreFromTrash(snapshot)
                     }
                     undoManager?.setActionName("删除卡片")
                     draft = .empty(draftType)
+                    editSessionOrigin = nil
                 } catch {
                     Self.log.error("commitDraft softDelete failed: \(error.localizedDescription, privacy: .public)")
                     let err = (error as? KaJiError) ?? .unknown(error)
                     alert?.saveError = err.errorDescription
                     return .failure(err)
                 }
-                return .success(card)
+                return .success(snapshot)
             }
         }
 
@@ -195,6 +220,8 @@ final class EditorDataState {
                 draft = .editing(saved)
                 Self.log.notice("ID conflict retried: \(toPersist.id) → \(saved.id)")
             }
+            // v1.4.2：持久化成功后刷新会话原点峰值
+            refreshEditSessionOrigin(with: saved)
             let stats = try await cardService.refreshStats()
             statsState?.update(with: stats)
             listState?.refreshFilteredCards()
@@ -239,11 +266,14 @@ final class EditorDataState {
     func softDeleteDraft() {
         guard case .editing(let card) = draft else { return }
         lifecycleService.softDelete(card)
+        editSessionOrigin = nil
     }
 
     /// 统一走 lifecycleService（Bug 10 修复）
     func softDeleteCard(_ card: Card) {
+        let wasCurrent = draft.cardID == card.id
         lifecycleService.softDelete(card)
+        if wasCurrent { editSessionOrigin = nil }
     }
 
     func softDeleteCardByID(_ id: String) {
@@ -253,6 +283,8 @@ final class EditorDataState {
 
     func restoreFromTrash(_ card: Card) {
         lifecycleService.restore(card)
+        // v1.4.2：撤销/恢复后重建会话原点，保证之后再次清空仍持有完整内容峰值
+        if case .editing(let c) = draft { editSessionOrigin = c }
     }
 
     // MARK: - 类型切换
