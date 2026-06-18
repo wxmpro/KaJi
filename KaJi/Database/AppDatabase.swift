@@ -65,6 +65,17 @@ final class AppDatabase: @unchecked Sendable {
             // ★ v1.3.2：跨进程并发兜底 — 第二进程等 5s 不立即失败
             //    GRDB IMMEDIATE 事务 + busy_timeout 协同，避免 SQLITE_BUSY 直接抛错
             config.busyMode = .timeout(5)
+            // ★ v1.4.2 批次1（信心/群3）：连接级 PRAGMA 调优。仅文件 DB；每个
+            //    Pool 连接打开时执行一次。WAL 模式下这些都是安全的纯性能项。
+            config.prepareDatabase { db in
+                // WAL 下 NORMAL 不牺牲崩溃一致性（仅极端断电下回退到最近 checkpoint），
+                // 但省掉每次提交的 fsync，写入显著更快。
+                try db.execute(sql: "PRAGMA synchronous = NORMAL")
+                // 页缓存 20MB（负数 = KB）。705 卡量级整库可常驻内存，读放大趋近 0。
+                try db.execute(sql: "PRAGMA cache_size = -20000")
+                // 256MB 内存映射 I/O，读路径绕过 read() 系统调用，降低延迟。
+                try db.execute(sql: "PRAGMA mmap_size = 268435456")
+            }
             dbWriter = try DatabasePool(path: dbURL.path, configuration: config)
             isInMemory = false
         }
@@ -141,6 +152,18 @@ final class AppDatabase: @unchecked Sendable {
             try db.alter(table: "cards") { t in
                 t.add(column: "mdVersion", .integer).notNull().defaults(to: 0)
             }
+        }
+
+        // v1.4.2 批次1（信心/群3）：补 updatedAt 索引。
+        // refreshStatsSQL 与列表默认序均按 `ORDER BY updatedAt DESC`，
+        // 之前无索引 → 全表扫描 + 临时 B-tree 排序。补索引后走索引顺序扫描。
+        m.registerMigration("v1.4.2_add_updatedAt_index") { db in
+            try db.create(
+                index: "idx_cards_updatedAt",
+                on: "cards",
+                columns: ["updatedAt"],
+                ifNotExists: true
+            )
         }
 
         return m

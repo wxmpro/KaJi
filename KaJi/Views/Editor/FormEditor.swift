@@ -21,6 +21,9 @@ struct FormEditor: View {
     @State private var fieldValues: [String: String] = [:]
     @State private var tags: [String] = []
 
+    // 标签输入框焦点：失焦即提交待定文本（与字段同级，无需按 Enter）
+    @FocusState private var tagFieldFocused: Bool
+
     // 同步任务（Bug 8 修复：saveToken 串行化）
     @State private var saveTask: Task<Void, Never>?
     @State private var saveToken: Int = 0  // 每次 scheduleSave 递增；旧 Task 检查 token 后退出
@@ -159,6 +162,37 @@ struct FormEditor: View {
         }
     }
 
+    /// 立即同步本地 state → draft 并持久化（不走 debounce）。
+    /// 用于标签增删这类离散、低频操作：用户点一下就要立刻落库，
+    /// 否则「加标签 → 800ms 内点返回」会因 debounce task 被取消而丢标签。
+    /// 同时取消 pending 的打字 debounce，把当前本地全量 state 一次性提交，
+    /// 避免与后续 commit 竞争（saveToken 递增使旧 task 自动失效）。
+    private func flushNow() {
+        guard !isReadOnly else { return }
+        saveToken += 1
+        let token = saveToken
+        saveTask?.cancel()
+        saveTask = nil
+        Task { @MainActor in
+            guard token == saveToken else { return }
+            if card.isPlaceholder {
+                // 新卡首次落地：标签随首次 commitDraft 一起持久化
+                _ = await data.commitDraft { draft in
+                    draft.title = title
+                    draft.fields = buildFieldsPreservingOrder(for: draft)
+                    draft.tags = tags
+                }
+            } else {
+                data.updateDraft { draft in
+                    draft.title = title
+                    draft.fields = buildFieldsPreservingOrder(for: draft)
+                    draft.tags = tags
+                }
+                _ = await data.commitDraft()
+            }
+        }
+    }
+
     /// Bug 2 修复：保留原 card.fields 的 fieldOrder，仅更新 fieldValue
     /// - 如果原 fields 存在：保留其 fieldOrder 和字段值
     /// - 如果原 fields 不存在（如 placeholder）：用 currentFields 枚举生成
@@ -282,7 +316,14 @@ struct FormEditor: View {
                         TextField("标签", text: $newTagText)
                             .textFieldStyle(.plain)
                             .frame(width: 80)
+                            .focused($tagFieldFocused)
                             .onSubmit { addTag() }
+                            // 标签与字段同级：失焦即提交，无需按 Enter。
+                            // 点返回 / 点别处都会让输入框失焦 → 把待定文本落为标签。
+                            .onChange(of: tagFieldFocused) { _, focused in
+                                if !focused { addTag() }
+                            }
+                            .onAppear { tagFieldFocused = true }
                     } else {
                         Button {
                             isAddingTag = true
@@ -331,13 +372,13 @@ struct FormEditor: View {
         tags.append(trimmed)
         newTagText = ""
         isAddingTag = false
-        scheduleSave()
+        flushNow()
     }
 
     private func removeTag(_ tag: String) {
         guard !isReadOnly else { return }
         tags.removeAll { $0 == tag }
-        scheduleSave()
+        flushNow()
     }
 
     // MARK: - 颜色
