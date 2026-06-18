@@ -256,25 +256,13 @@ struct CardFileIO {
         return s
     }
 
-    // ISO8601DateFormatter 线程安全（Apple 文档），缓存避免每次写盘重复创建
-    nonisolated(unsafe) private static let isoFormatter: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-    nonisolated(unsafe) private static let isoFormatterFallback: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime]
-        return f
-    }()
-
+    // v1.6.2 CODE-1：统一用 DateFormatting（Date.ISO8601FormatStyle，值类型 Sendable）
     private static func iso8601(_ d: Date) -> String {
-        Self.isoFormatter.string(from: d)
+        DateFormatting.string(d)
     }
 
     private static func parseISO(_ s: String) -> Date? {
-        if let d = isoFormatter.date(from: s) { return d }
-        return isoFormatterFallback.date(from: s)
+        DateFormatting.parse(s)
     }
 
     /// v1.3.2：强制所有字符串加双引号（避免 true/123/null 解析歧义）

@@ -191,6 +191,14 @@ final class CardService: @unchecked Sendable {
         }.value
     }
 
+    /// v1.6.2 ARCH-2：增量统计 —— 只把 changed 卡转成 CardSummary，不扫全库
+    /// 返回 changed summaries，由 StatsState.applyIncremental 负责合并到缓存并计算 diff
+    func refreshStatsIncremental(changed: [Card]) async -> [CardSummary] {
+        await Task.detached(priority: .utility) {
+            changed.map { CardSummary(from: $0) }
+        }.value
+    }
+
     // MARK: - 列表筛选
 
     /// v1.2.9 T5 改造：输入 [CardSummary] 替代 [Card]

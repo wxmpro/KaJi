@@ -66,3 +66,6 @@ assets/images/
 
 # Local config
 .claude/
+
+# Project docs / plans / discussion drafts — NOT committed to GitHub
+docs/

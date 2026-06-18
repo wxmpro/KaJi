@@ -23,24 +23,25 @@
 //
 
 import Foundation
+import os
 
 typealias InvertedIndex = [String: Set<String>]
 
 /// v1.2.9 T5 倒排索引（v1.5.0 增量化 + bigram 中文分词）。
-/// - 线程安全约定：
-///   - `search(_:)` 读操作：Set<String> 值类型不可变，跨线程并发读安全
-///   - `sync(to:)` / `clear()` 写操作：仅在主线程调用
-///     （StatsState.update → cardService.updateSearchIndex）
-/// 因此可以不加 actor 隔离，从 Task.detached 后台也能安全 search。
+/// v1.6.2 BUG-2：用 OSAllocatedUnfairLock 保护 4 个字典，取代"只在主线程调用"的注释约定。
+/// 保持 search(_:) 与 sync(to:) 同步签名不变，避免 async 沿调用链传染。
 final class CardSearchIndex {
-    private(set) var index: InvertedIndex = [:]
+    private struct State {
+        var index: InvertedIndex = [:]
+        /// 正排：id → 上次索引时的 searchText 原文，用于「内容是否变化」的快速判定
+        var docText: [String: String] = [:]
+        /// 正排：id → searchText 小写，用于子串校验
+        var docLower: [String: String] = [:]
+        /// 正排：id → 该卡贡献的 gram 集合，用于增量移除旧贡献
+        var docGrams: [String: Set<String>] = [:]
+    }
 
-    /// 正排：id → 上次索引时的 searchText 原文，用于「内容是否变化」的快速判定
-    private var docText: [String: String] = [:]
-    /// 正排：id → searchText 小写，用于子串校验
-    private var docLower: [String: String] = [:]
-    /// 正排：id → 该卡贡献的 gram 集合，用于增量移除旧贡献
-    private var docGrams: [String: Set<String>] = [:]
+    private let state = OSAllocatedUnfairLock<State>(initialState: State())
 
     /// 某字符是否可索引（字母或数字；中英文均可）
     private static func isIndexable(_ c: Character) -> Bool {
@@ -50,7 +51,8 @@ final class CardSearchIndex {
     /// 把文本切成 gram 集合（输入需已小写）：
     /// - 按「可索引字符的连续段」分段（标点/空格作分隔）
     /// - 段长 1 → unigram（单字）；段长 ≥2 → 逐字 bigram
-    private func grams(_ lower: String) -> Set<String> {
+    /// 注：static 避免 withLock 闭包捕获 self（Swift 6 Sendable 检查）
+    private static func grams(_ lower: String) -> Set<String> {
         var result: Set<String> = []
         let chars = Array(lower)
         var i = 0
@@ -80,39 +82,41 @@ final class CardSearchIndex {
     func sync(to summaries: [CardSummary]) {
         let newIDs = Set(summaries.map { $0.id })
 
-        // 1. 删除已不存在的卡
-        for id in Array(docText.keys) where !newIDs.contains(id) {
-            removeDoc(id)
-        }
+        state.withLock { s in
+            // 1. 删除已不存在的卡
+            for id in Array(s.docText.keys) where !newIDs.contains(id) {
+                Self.removeDoc(id, state: &s)
+            }
 
-        // 2. 新增 / 更新变化的卡（未变化的卡直接跳过，省分词）
-        for s in summaries {
-            if docText[s.id] == s.searchText { continue }
-            removeDoc(s.id)
-            let lower = s.searchText.lowercased()
-            let g = grams(lower)
-            docText[s.id] = s.searchText
-            docLower[s.id] = lower
-            docGrams[s.id] = g
-            for gram in g {
-                index[gram, default: []].insert(s.id)
+            // 2. 新增 / 更新变化的卡（未变化的卡直接跳过，省分词）
+            for summary in summaries {
+                if s.docText[summary.id] == summary.searchText { continue }
+                Self.removeDoc(summary.id, state: &s)
+                let lower = summary.searchText.lowercased()
+                let g = Self.grams(lower)
+                s.docText[summary.id] = summary.searchText
+                s.docLower[summary.id] = lower
+                s.docGrams[summary.id] = g
+                for gram in g {
+                    s.index[gram, default: []].insert(summary.id)
+                }
             }
         }
     }
 
     /// 移除某卡的全部 gram 贡献与正排记录
-    private func removeDoc(_ id: String) {
-        if let oldGrams = docGrams[id] {
+    private static func removeDoc(_ id: String, state: inout State) {
+        if let oldGrams = state.docGrams[id] {
             for gram in oldGrams {
-                index[gram]?.remove(id)
-                if index[gram]?.isEmpty == true {
-                    index.removeValue(forKey: gram)
+                state.index[gram]?.remove(id)
+                if state.index[gram]?.isEmpty == true {
+                    state.index.removeValue(forKey: gram)
                 }
             }
         }
-        docGrams.removeValue(forKey: id)
-        docText.removeValue(forKey: id)
-        docLower.removeValue(forKey: id)
+        state.docGrams.removeValue(forKey: id)
+        state.docText.removeValue(forKey: id)
+        state.docLower.removeValue(forKey: id)
     }
 
     /// 多 term AND 搜索（空格分词，每个 term 都须命中）。
@@ -124,43 +128,47 @@ final class CardSearchIndex {
             .map(String.init)
         guard !terms.isEmpty else { return [] }
 
-        var candidates: Set<String>? = nil
-        for term in terms {
-            let indexableCount = term.filter(Self.isIndexable).count
-            let termCandidates: Set<String>
-            if indexableCount < 2 {
-                // 单字/无可索引字符：取全集，靠子串校验收敛
-                termCandidates = Set(docLower.keys)
-            } else {
-                let tg = grams(term)
-                var inter: Set<String>? = nil
-                for gram in tg {
-                    let s = index[gram] ?? []
-                    inter = (inter == nil) ? s : inter!.intersection(s)
-                    if inter!.isEmpty { break }
+        return state.withLock { s -> Set<String> in
+            var candidates: Set<String>? = nil
+            for term in terms {
+                let indexableCount = term.filter(Self.isIndexable).count
+                let termCandidates: Set<String>
+                if indexableCount < 2 {
+                    // 单字/无可索引字符：取全集，靠子串校验收敛
+                    termCandidates = Set(s.docLower.keys)
+                } else {
+                    let tg = Self.grams(term)
+                    var inter: Set<String>? = nil
+                    for gram in tg {
+                        let set = s.index[gram] ?? []
+                        inter = (inter == nil) ? set : inter!.intersection(set)
+                        if inter!.isEmpty { break }
+                    }
+                    termCandidates = inter ?? []
                 }
-                termCandidates = inter ?? []
+                candidates = (candidates == nil) ? termCandidates : candidates!.intersection(termCandidates)
+                if candidates!.isEmpty { return [] }
             }
-            candidates = (candidates == nil) ? termCandidates : candidates!.intersection(termCandidates)
-            if candidates!.isEmpty { return [] }
-        }
 
-        // 子串校验：每个 term 必须是该卡小写全文的子串
-        var result: Set<String> = []
-        for id in candidates ?? [] {
-            guard let doc = docLower[id] else { continue }
-            if terms.allSatisfy({ doc.contains($0) }) {
-                result.insert(id)
+            // 子串校验：每个 term 必须是该卡小写全文的子串
+            var result: Set<String> = []
+            for id in candidates ?? [] {
+                guard let doc = s.docLower[id] else { continue }
+                if terms.allSatisfy({ doc.contains($0) }) {
+                    result.insert(id)
+                }
             }
+            return result
         }
-        return result
     }
 
     /// 清空索引（含正排）
     func clear() {
-        index.removeAll(keepingCapacity: false)
-        docText.removeAll(keepingCapacity: false)
-        docLower.removeAll(keepingCapacity: false)
-        docGrams.removeAll(keepingCapacity: false)
+        state.withLock { s in
+            s.index.removeAll(keepingCapacity: false)
+            s.docText.removeAll(keepingCapacity: false)
+            s.docLower.removeAll(keepingCapacity: false)
+            s.docGrams.removeAll(keepingCapacity: false)
+        }
     }
 }

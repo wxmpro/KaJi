@@ -35,6 +35,17 @@ final class CardRepository: @unchecked Sendable {
 
     private init(db: AppDatabase = .shared) { self.db = db }
 
+    /// v1.6.2 ARCH-3：异步读单卡，避免主线程同步 I/O 阻塞
+    func cardAsync(id: String) async throws -> Card? {
+        let grdb = db.dbWriter
+        return try await Task.detached(priority: .userInitiated) {
+            try grdb.read { db in
+                guard let rec = try CardRecord.fetchOne(db, key: id) else { return nil }
+                return try self.hydrate(record: rec, in: db)
+            }
+        }.value
+    }
+
     // MARK: - 读取
 
     /// 按 id 读一张卡（SQLite）
@@ -308,119 +319,119 @@ final class CardRepository: @unchecked Sendable {
     /// 2. tagCounts：JOIN cardTags + tags GROUP BY name
     /// 3. summaries：轻量字段（id/type/title/updatedAt/deletedAt）+ tags 批量查
     ///   性能：10k 卡全库 ~10ms（vs 修复前 hydrate 全库 ~100ms）
+    /// v1.6.2 PERF-1：三查询合并为单事务，消除事务间数据不一致窗口
     func refreshStatsSQL() throws -> (
         summaries: [CardSummary],
         typeCounts: [CardType: Int],
         tagCounts: [(String, Int)]
     ) {
-        // 1. typeCounts
-        let typeRows = try db.dbWriter.read { grdb -> [(String, Int)] in
-            try Row.fetchAll(grdb, sql: """
+        try db.dbWriter.read { grdb -> (
+            summaries: [CardSummary],
+            typeCounts: [CardType: Int],
+            tagCounts: [(String, Int)]
+        ) in
+            // 1. typeCounts
+            let typeRows = try Row.fetchAll(grdb, sql: """
                 SELECT type, COUNT(*) AS cnt FROM cards
                 WHERE deletedAt IS NULL
                 GROUP BY type
-                """).map { row in
+                """)
+            var typeDict: [CardType: Int] = Dictionary(
+                uniqueKeysWithValues: CardType.allCases.map { ($0, 0) }
+            )
+            for row in typeRows {
                 let type: String = row["type"] ?? "free"
                 let cnt: Int = row["cnt"] ?? 0
-                return (type, cnt)
+                typeDict[CardType(rawValue: type) ?? .free, default: 0] += cnt
             }
-        }
-        var typeDict: [CardType: Int] = Dictionary(
-            uniqueKeysWithValues: CardType.allCases.map { ($0, 0) }
-        )
-        for (raw, cnt) in typeRows {
-            typeDict[CardType(rawValue: raw) ?? .free, default: 0] += cnt
-        }
 
-        // 2. tagCounts（JOIN cardTags + tags）
-        let tagRows = try db.dbWriter.read { grdb -> [(String, Int)] in
-            try Row.fetchAll(grdb, sql: """
+            // 2. tagCounts（JOIN cardTags + tags）
+            let tagRows = try Row.fetchAll(grdb, sql: """
                 SELECT t.name, COUNT(*) AS cnt FROM tags t
                 JOIN cardTags ct ON ct.tagId = t.id
                 JOIN cards c ON c.id = ct.cardId
                 WHERE c.deletedAt IS NULL
                 GROUP BY t.name
                 ORDER BY cnt DESC
-                """).map { row in
-                let name: String = row["name"] ?? ""
-                let cnt: Int = row["cnt"] ?? 0
-                return (name, cnt)
-            }
-        }
+                """)
 
-        // 3. summaries：仅查轻量字段，tags + fields 单独批量查
-        //    v1.3.0：拼 searchText（title + tags + 字段值预拼接）
-        //    v1.3.4 PATCH：summaries 必须包含 deleted 卡，否则回收站永远为空。
-        //    主列表/搜索在 ListState.filteredCards 中按 deletedAt 过滤。
-        let summaries = try db.dbWriter.read { grdb -> [CardSummary] in
+            // 3. summaries：仅查轻量字段，tags + fields 单独批量查
+            //    v1.3.0：拼 searchText（title + tags + 字段值预拼接）
+            //    v1.3.4 PATCH：summaries 必须包含 deleted 卡，否则回收站永远为空。
+            //    主列表/搜索在 ListState.filteredCards 中按 deletedAt 过滤。
             let recs = try Row.fetchAll(grdb, sql: """
                 SELECT id, type, title, updatedAt, deletedAt FROM cards
                 ORDER BY updatedAt DESC
                 """)
-            guard !recs.isEmpty else { return [] }
 
-            // 批量查 tags（按 cardId 排序以利 CoW 修复模式）
-            let ids = recs.map { $0["id"] as? String ?? "" }
-            let placeholders = ids.map { _ in "?" }.joined(separator: ",")
-            let args = StatementArguments(ids)
+            var summaries: [CardSummary] = []
+            if !recs.isEmpty {
+                let ids = recs.map { $0["id"] as? String ?? "" }
+                let placeholders = ids.map { _ in "?" }.joined(separator: ",")
+                let args = StatementArguments(ids)
 
-            let tagSQL = """
-                SELECT ct.cardId, t.name FROM tags t
-                JOIN cardTags ct ON ct.tagId = t.id
-                WHERE ct.cardId IN (\(placeholders))
-                ORDER BY ct.cardId, t.name ASC
-                """
-            let tagRows = try Row.fetchAll(grdb, sql: tagSQL, arguments: args)
-            var tagsByCard: [String: [String]] = [:]
-            var lastTagCardId: String? = nil
-            for row in tagRows {
-                guard let cardId: String = row["cardId"], let name: String = row["name"] else { continue }
-                if cardId != lastTagCardId {
-                    tagsByCard[cardId] = []
-                    lastTagCardId = cardId
+                // 批量查 tags（按 cardId 排序以利 CoW 修复模式）
+                let tagSQL = """
+                    SELECT ct.cardId, t.name FROM tags t
+                    JOIN cardTags ct ON ct.tagId = t.id
+                    WHERE ct.cardId IN (\(placeholders))
+                    ORDER BY ct.cardId, t.name ASC
+                    """
+                let cardTagRows = try Row.fetchAll(grdb, sql: tagSQL, arguments: args)
+                var tagsByCard: [String: [String]] = [:]
+                var lastTagCardId: String? = nil
+                for row in cardTagRows {
+                    guard let cardId: String = row["cardId"], let name: String = row["name"] else { continue }
+                    if cardId != lastTagCardId {
+                        tagsByCard[cardId] = []
+                        lastTagCardId = cardId
+                    }
+                    tagsByCard[cardId]!.append(name)
                 }
-                tagsByCard[cardId]!.append(name)
-            }
 
-            // v1.3.0：批量查 fields（仅 value，不查 name/order）用于拼 searchText
-            let fieldSQL = """
-                SELECT cardId, fieldValue FROM cardFields
-                WHERE cardId IN (\(placeholders))
-                ORDER BY cardId, fieldOrder
-                """
-            let fieldRows = try Row.fetchAll(grdb, sql: fieldSQL, arguments: args)
-            var fieldValuesByCard: [String: [String]] = [:]
-            var lastFieldCardId: String? = nil
-            for row in fieldRows {
-                guard let cardId: String = row["cardId"], let value: String = row["fieldValue"] else { continue }
-                if cardId != lastFieldCardId {
-                    fieldValuesByCard[cardId] = []
-                    lastFieldCardId = cardId
+                // v1.3.0：批量查 fields（仅 value，不查 name/order）用于拼 searchText
+                let fieldSQL = """
+                    SELECT cardId, fieldValue FROM cardFields
+                    WHERE cardId IN (\(placeholders))
+                    ORDER BY cardId, fieldOrder
+                    """
+                let fieldRows = try Row.fetchAll(grdb, sql: fieldSQL, arguments: args)
+                var fieldValuesByCard: [String: [String]] = [:]
+                var lastFieldCardId: String? = nil
+                for row in fieldRows {
+                    guard let cardId: String = row["cardId"], let value: String = row["fieldValue"] else { continue }
+                    if cardId != lastFieldCardId {
+                        fieldValuesByCard[cardId] = []
+                        lastFieldCardId = cardId
+                    }
+                    fieldValuesByCard[cardId]!.append(value)
                 }
-                fieldValuesByCard[cardId]!.append(value)
+
+                summaries = recs.map { row in
+                    let id: String = row["id"] ?? ""
+                    let type: String = row["type"] ?? "free"
+                    let title: String = row["title"] ?? ""
+                    let tags = tagsByCard[id] ?? []
+                    let fieldValues = fieldValuesByCard[id] ?? []
+                    let updatedAt = parseISO(row["updatedAt"] as? String ?? "") ?? Date()
+                    let deletedAt = (row["deletedAt"] as? String).flatMap(parseISO)
+                    // v1.3.0：title + tags + 字段值预拼接，tokenize 一次覆盖全部
+                    let searchText = ([title] + tags + fieldValues).joined(separator: " ")
+                    return CardSummary(
+                        id: id, type: type, title: title,
+                        tags: tags,
+                        searchText: searchText,
+                        updatedAt: updatedAt,
+                        deletedAt: deletedAt
+                    )
+                }
             }
 
-            return recs.map { row in
-                let id: String = row["id"] ?? ""
-                let type: String = row["type"] ?? "free"
-                let title: String = row["title"] ?? ""
-                let tags = tagsByCard[id] ?? []
-                let fieldValues = fieldValuesByCard[id] ?? []
-                let updatedAt = parseISO(row["updatedAt"] as? String ?? "") ?? Date()
-                let deletedAt = (row["deletedAt"] as? String).flatMap(parseISO)
-                // v1.3.0：title + tags + 字段值预拼接，tokenize 一次覆盖全部
-                let searchText = ([title] + tags + fieldValues).joined(separator: " ")
-                return CardSummary(
-                    id: id, type: type, title: title,
-                    tags: tags,
-                    searchText: searchText,
-                    updatedAt: updatedAt,
-                    deletedAt: deletedAt
-                )
+            let tagCounts: [(String, Int)] = tagRows.map { row in
+                (row["name"] ?? "", row["cnt"] ?? 0)
             }
+            return (summaries: summaries, typeCounts: typeDict, tagCounts: tagCounts)
         }
-
-        return (summaries: summaries, typeCounts: typeDict, tagCounts: tagRows)
     }
 
     /// 内部：建/取标签，返回标签 id（不存在则插入）
@@ -600,25 +611,11 @@ final class CardRepository: @unchecked Sendable {
     /// DB 是否处于 in-memory 模式（fallback）— UI 层可以展示警告
     var isInMemory: Bool { db.isInMemory }
 
-    // v1.3.0：ISO8601DateFormatter 是 thread-safe（Apple 文档：immutable state），
-    // 删掉 OSAllocatedUnfairLock 包装 — 锁本身有性能开销，且无意义
-    nonisolated(unsafe) private static let isoFormatter: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-    // v1.2.9 T5 修复：fallback formatter 静态缓存，避免每次 parseISO 失败时新建
-    nonisolated(unsafe) private static let isoFormatterFallback: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime]
-        return f
-    }()
-
+    // v1.6.2 CODE-1：统一用 DateFormatting（Date.ISO8601FormatStyle，值类型 Sendable）
     private func iso8601(_ d: Date) -> String {
-        Self.isoFormatter.string(from: d)
+        DateFormatting.string(d)
     }
     private func parseISO(_ s: String) -> Date? {
-        if let d = Self.isoFormatter.date(from: s) { return d }
-        return Self.isoFormatterFallback.date(from: s)
+        DateFormatting.parse(s)
     }
 }

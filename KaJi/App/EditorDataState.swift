@@ -223,8 +223,9 @@ final class EditorDataState {
             }
             // v1.4.2：持久化成功后刷新会话原点峰值
             refreshEditSessionOrigin(with: saved)
-            let stats = try await cardService.refreshStats()
-            statsState?.update(with: stats)
+            // v1.6.2 ARCH-2：增量刷新统计 —— 只更新当前卡 summary，不重查全库
+            let changedSummaries = await cardService.refreshStatsIncremental(changed: [saved])
+            statsState?.applyIncremental(changed: changedSummaries, removed: [])
             // v1.5.0：删除显式 refreshFilteredCards —— 同上，由 observer 驱动
             return .success(saved)
         } catch {

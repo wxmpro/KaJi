@@ -91,10 +91,13 @@ struct CardListRow: View {
 
     /// 打开卡片进编辑器
     private func openCardFromRow() {
-        guard let fullCard = try? CardRepository.shared.card(id: card.id) else { return }
-        data.startEditing(fullCard)
-        withAnimation(KaJiAnimation.modeSwitch) {
-            listState.rightPaneMode = .editor
+        // v1.6.2 ARCH-3：改异步读，避免主线程同步 I/O 阻塞
+        Task { @MainActor in
+            guard let fullCard = try? await CardRepository.shared.cardAsync(id: card.id) else { return }
+            data.startEditing(fullCard)
+            withAnimation(KaJiAnimation.modeSwitch) {
+                listState.rightPaneMode = .editor
+            }
         }
     }
 }
