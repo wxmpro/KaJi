@@ -77,7 +77,6 @@
 		3647E15E9080E317364F3262 /* KaJiHoverBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiHoverBackground.swift; sourceTree = "<group>"; };
 		3912C8DB85C77F9AC3AB76A9 /* CardListRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardListRow.swift; sourceTree = "<group>"; };
 		398C6BEC82BFAA44E5481337 /* KaJiAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiAnimation.swift; sourceTree = "<group>"; };
-		3E423AB4B1F431DBF146C853 /* GRDB.swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GRDB.swift; path = ../../../Developer/Vendor/GRDB.swift; sourceTree = SOURCE_ROOT; };
 		42CFF8F25761CACD3184597E /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
 		55639F3791C04CC7E7618DA3 /* DatabaseError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseError.swift; sourceTree = "<group>"; };
 		57C625A6DAC0E8BF6A1F87FA /* KaJiListRowButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiListRowButtonStyle.swift; sourceTree = "<group>"; };
@@ -166,17 +165,8 @@
 			isa = PBXGroup;
 			children = (
 				F660FACD94526A63DA3B8751 /* KaJi */,
-				6DB26FAA92245F7A0650914D /* Packages */,
 				BBCE1271F6A7B0E12C64A376 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		6DB26FAA92245F7A0650914D /* Packages */ = {
-			isa = PBXGroup;
-			children = (
-				3E423AB4B1F431DBF146C853 /* GRDB.swift */,
-			);
-			name = Packages;
 			sourceTree = "<group>";
 		};
 		7D807E9F250550463269DA6E /* Models */ = {
@@ -360,7 +350,7 @@
 			mainGroup = 5BA6294A5E4081DB849B6254;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				CA8A27A4EDF49F7EF253BB15 /* XCLocalSwiftPackageReference "/Users/xinmin/Developer/Vendor/GRDB.swift" */,
+				D79B6037D77B893EBCAD6AB6 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BBCE1271F6A7B0E12C64A376 /* Products */;
@@ -486,7 +476,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -509,7 +499,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.6.2;
+				MARKETING_VERSION = 1.6.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -574,7 +564,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -591,7 +581,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.6.2;
+				MARKETING_VERSION = 1.6.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;
@@ -627,16 +617,21 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		CA8A27A4EDF49F7EF253BB15 /* XCLocalSwiftPackageReference "/Users/xinmin/Developer/Vendor/GRDB.swift" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = /Users/xinmin/Developer/Vendor/GRDB.swift;
+/* Begin XCRemoteSwiftPackageReference section */
+		D79B6037D77B893EBCAD6AB6 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.1.0;
+			};
 		};
-/* End XCLocalSwiftPackageReference section */
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		779A271A1B8E8EC1EBF80ABF /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = D79B6037D77B893EBCAD6AB6 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */

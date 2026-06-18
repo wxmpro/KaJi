@@ -69,3 +69,6 @@ assets/images/
 
 # Project docs / plans / discussion drafts — NOT committed to GitHub
 docs/
+
+# Sandbox / local test artifacts — NOT committed to GitHub
+sandbox-build/
