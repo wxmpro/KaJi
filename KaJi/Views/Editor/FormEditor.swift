@@ -24,6 +24,12 @@ struct FormEditor: View {
     // 标签输入框焦点：失焦即提交待定文本（与字段同级，无需按 Enter）
     @FocusState private var tagFieldFocused: Bool
 
+    // 群4 #29：placeholder 首次 commit 再入锁，防止快速输入生成重复卡。
+    // isCreatingCard 在首次 commit 期间为 true；needsResaveAfterCreate 记录
+    // 创建期间又有新输入，创建完成后补存一次，保证输入不丢。
+    @State private var isCreatingCard = false
+    @State private var needsResaveAfterCreate = false
+
     // 同步任务（Bug 8 修复：saveToken 串行化）
     @State private var saveTask: Task<Void, Never>?
     @State private var saveToken: Int = 0  // 每次 scheduleSave 递增；旧 Task 检查 token 后退出
@@ -131,16 +137,8 @@ struct FormEditor: View {
     private func scheduleSave() {
         guard !isReadOnly else { return }
         if card.isPlaceholder {
-            // 首次输入：立即 commitDraft（创建 UUID + 持久化）
-            let token = saveToken
-            Task { @MainActor in
-                guard token == saveToken else { return }
-                _ = await data.commitDraft { draft in
-                    draft.title = title
-                    draft.fields = buildFieldsPreservingOrder(for: draft)
-                    draft.tags = tags
-                }
-            }
+            // 首次输入：创建 UUID + 持久化（群4 #29：经再入锁，防重复卡）
+            createCardFromLocalState()
             return
         }
 
@@ -162,6 +160,33 @@ struct FormEditor: View {
         }
     }
 
+    /// 群4 #29：placeholder 首次落地的唯一入口，带再入锁。
+    /// 快速连续输入时，char1 的 commitDraft 还在 await CardIDGenerator（异步）
+    /// 期间，char2 看到 isPlaceholder 仍为 true 会再起一次 commit → 生成两张
+    /// ID 不同的重复卡。用 isCreatingCard 锁住：创建进行中只标记 needsResave，
+    /// 创建完成后（draft 已非 placeholder）补存一次，保证期间输入不丢。
+    private func createCardFromLocalState() {
+        guard !isCreatingCard else {
+            needsResaveAfterCreate = true
+            return
+        }
+        isCreatingCard = true
+        saveTask?.cancel()
+        saveTask = nil
+        Task { @MainActor in
+            _ = await data.commitDraft { draft in
+                draft.title = title
+                draft.fields = buildFieldsPreservingOrder(for: draft)
+                draft.tags = tags
+            }
+            isCreatingCard = false
+            if needsResaveAfterCreate {
+                needsResaveAfterCreate = false
+                scheduleSave()   // 此时 draft 已非 placeholder → 走 debounce 补存最新输入
+            }
+        }
+    }
+
     /// 立即同步本地 state → draft 并持久化（不走 debounce）。
     /// 用于标签增删这类离散、低频操作：用户点一下就要立刻落库，
     /// 否则「加标签 → 800ms 内点返回」会因 debounce task 被取消而丢标签。
@@ -169,27 +194,23 @@ struct FormEditor: View {
     /// 避免与后续 commit 竞争（saveToken 递增使旧 task 自动失效）。
     private func flushNow() {
         guard !isReadOnly else { return }
+        if card.isPlaceholder {
+            // 新卡首次落地：标签随首次 commit 一起持久化（同走再入锁入口）
+            createCardFromLocalState()
+            return
+        }
         saveToken += 1
         let token = saveToken
         saveTask?.cancel()
         saveTask = nil
         Task { @MainActor in
             guard token == saveToken else { return }
-            if card.isPlaceholder {
-                // 新卡首次落地：标签随首次 commitDraft 一起持久化
-                _ = await data.commitDraft { draft in
-                    draft.title = title
-                    draft.fields = buildFieldsPreservingOrder(for: draft)
-                    draft.tags = tags
-                }
-            } else {
-                data.updateDraft { draft in
-                    draft.title = title
-                    draft.fields = buildFieldsPreservingOrder(for: draft)
-                    draft.tags = tags
-                }
-                _ = await data.commitDraft()
+            data.updateDraft { draft in
+                draft.title = title
+                draft.fields = buildFieldsPreservingOrder(for: draft)
+                draft.tags = tags
             }
+            _ = await data.commitDraft()
         }
     }
 

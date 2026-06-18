@@ -60,20 +60,25 @@ final class CardTypeChangeService {
     private func applyChange(to type: CardType) {
         guard let data = data else { return }
 
-        // v1.4.0：先 flush 当前正在编辑的内容
-        Task { @MainActor in
-            _ = await data.commitDraft()
-        }
-
-        // 修复：updateDraft 闭包外捕获 previousFields，避免 inout 闭包内的引用问题
+        // 群4 #30/#31：串行化。旧实现 fire-and-forget `Task { commitDraft() }`
+        // 后紧接同步 updateDraft，Task 实际晚于 updateDraft 运行 → commitDraft
+        // 持久化的已是新类型，「先 flush 旧内容」意图被破坏、时序不确定。
+        // 改为单 Task 内顺序：先 await commit 旧内容 → 再 updateDraft 改类型
+        // → 再 commit 新类型 → 注册 undo。
         let previousType = data.draft.cardType
         let previousFields = data.draft.card.fields
 
-        data.updateDraft { card in
-            card.type = type.rawValue
-            card.fields = type.fields.enumerated().map { idx, name in
-                CardField(cardId: card.id, fieldName: name, fieldValue: "", fieldOrder: idx)
+        Task { @MainActor in
+            _ = await data.commitDraft()
+
+            data.updateDraft { card in
+                card.type = type.rawValue
+                card.fields = type.fields.enumerated().map { idx, name in
+                    CardField(cardId: card.id, fieldName: name, fieldValue: "", fieldOrder: idx)
+                }
             }
+            _ = await data.commitDraft()
+
             data.undoManager?.registerUndo(withTarget: data) { target in
                 target.undoCardTypeChange(to: previousType, fields: previousFields)
             }
@@ -88,11 +93,13 @@ final class CardTypeChangeService {
 
         Task { @MainActor in
             _ = await data.commitDraft()
-        }
 
-        data.updateDraft { card in
-            card.type = type.rawValue
-            card.fields = fields
+            data.updateDraft { card in
+                card.type = type.rawValue
+                card.fields = fields
+            }
+            _ = await data.commitDraft()
+
             data.undoManager?.registerUndo(withTarget: data) { target in
                 target.undoCardTypeChange(to: currentType, fields: currentFields)
             }
