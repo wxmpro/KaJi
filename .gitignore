@@ -72,3 +72,6 @@ docs/
 
 # Sandbox / local test artifacts — NOT committed to GitHub
 sandbox-build/
+
+# Orphan test files — NOT committed to GitHub (never integrated into Xcode test target)
+KaJiTests/
