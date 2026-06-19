@@ -13,6 +13,14 @@
 
 import SwiftUI
 
+/// v1.6.5：把每个编辑器实际高度上报给父 view，使左侧字段名高度与右侧编辑器同步
+struct FieldHeightKey: PreferenceKey {
+    static let defaultValue: [String: CGFloat] = [:]
+    static func reduce(value: inout [String: CGFloat], nextValue: () -> [String: CGFloat]) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
 struct FormEditor: View {
     @Environment(EditorDataState.self) private var data
 
@@ -34,6 +42,7 @@ struct FormEditor: View {
     @State private var saveTask: Task<Void, Never>?
     @State private var saveToken: Int = 0  // 每次 scheduleSave 递增；旧 Task 检查 token 后退出
     @State private var lastSyncedCardID: String? = nil
+    @State private var fieldHeights: [String: CGFloat] = [:]
 
     @Binding var showingTypePicker: Bool
     @Binding var newTagText: String
@@ -74,19 +83,50 @@ struct FormEditor: View {
                         )
 
                     HStack(spacing: 0) {
-                        Color.clear
-                            .frame(width: labelWidth)
-                            .padding(.leading, 12)
-
                         VStack(spacing: 0) {
-                            ZStack(alignment: .topLeading) {
-                                ruledPaper
-                                inputsColumn
-                            }
+                            Spacer()
                             typeButton
                         }
-                        .padding(.trailing, 12)
+                        .frame(width: labelWidth)
+
+                        VStack(spacing: 0) {
+                            ScrollView(.vertical, showsIndicators: true) {
+                                HStack(alignment: .top, spacing: 0) {
+                                    VStack(spacing: 0) {
+                                        labelView("标题", height: fieldHeights["标题"] ?? lineHeight)
+                                        ForEach(currentFields, id: \.self) { field in
+                                            labelView(field, height: fieldHeights[field] ?? lineHeight)
+                                        }
+                                        Spacer()
+                                    }
+                                    .frame(width: labelWidth)
+
+                                    VStack(spacing: 0) {
+                                        editorRow(name: "标题", text: $title, onChange: { _, new in
+                                            title = new
+                                            scheduleSave()
+                                        })
+
+                                        ForEach(currentFields, id: \.self) { fieldName in
+                                            editorRow(
+                                                name: fieldName,
+                                                text: bindingForField(fieldName),
+                                                onChange: { _, _ in
+                                                    scheduleSave()
+                                                }
+                                            )
+                                        }
+
+                                        Spacer()
+                                    }
+                                }
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                            bottomMetaRow
+                        }
                     }
+                    .padding(.horizontal, 12)
                     .padding(.top, 30)
                     .padding(.bottom, 12)
 
@@ -133,6 +173,9 @@ struct FormEditor: View {
             }
         }
         .onAppear { initializeLocalState() }
+        .onPreferenceChange(FieldHeightKey.self) { heights in
+            fieldHeights = heights
+        }
     }
 
     private func initializeLocalState() {
@@ -287,68 +330,59 @@ struct FormEditor: View {
         }
     }
 
-    private var inputsColumn: some View {
-        ScrollView(.vertical, showsIndicators: true) {
-            VStack(spacing: 0) {
-                fieldRow(name: "标题", text: $title, onChange: { _, new in
-                    title = new
-                    scheduleSave()
-                })
-
-                ForEach(currentFields, id: \.self) { fieldName in
-                    fieldRow(
-                        name: fieldName,
-                        text: bindingForField(fieldName),
-                        onChange: { _, _ in
-                            scheduleSave()
-                        }
-                    )
-                }
-
-                bottomMetaRow
-            }
-        }
+    private func labelView(_ text: String, height: CGFloat) -> some View {
+        Text(text)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.secondary)
+            .frame(height: height, alignment: .topTrailing)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.trailing, 10)
     }
 
-    private func fieldRow(
+    private func editorRow(
         name: String,
         text: Binding<String>,
         onChange: @escaping (String, String) -> Void
     ) -> some View {
-        HStack(alignment: .top, spacing: 0) {
-            Text(name)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: labelWidth, alignment: .trailing)
-                .padding(.trailing, 10)
-
-            fieldEditor(text: text, onChange: onChange)
+        ZStack(alignment: .topLeading) {
+            ruledPaper
+            fieldEditor(name: name, text: text, onChange: onChange)
         }
     }
 
     @ViewBuilder
     private func fieldEditor(
+        name: String,
         text: Binding<String>,
         onChange: @escaping (String, String) -> Void
     ) -> some View {
-        if isReadOnly {
-            Text(text.wrappedValue.isEmpty ? "（空）" : text.wrappedValue)
-                .font(.system(size: contentFontSize))
-                .lineSpacing(6)
-                .foregroundStyle(text.wrappedValue.isEmpty ? .tertiary : .primary)
-                .frame(maxWidth: .infinity, minHeight: lineHeight, alignment: .topLeading)
-                .textSelection(.enabled)
-        } else {
-            TextEditor(text: text)
-                .font(.system(size: contentFontSize))
-                .lineSpacing(6)
-                .scrollContentBackground(.hidden)
-                .background(Color.clear)
-                .frame(minHeight: lineHeight, alignment: .topLeading)
-                .onChange(of: text.wrappedValue) { old, new in
-                    onChange(old, new)
-                }
+        Group {
+            if isReadOnly {
+                Text(text.wrappedValue.isEmpty ? "（空）" : text.wrappedValue)
+                    .font(.system(size: contentFontSize))
+                    .lineSpacing(6)
+                    .foregroundStyle(text.wrappedValue.isEmpty ? .tertiary : .primary)
+                    .frame(maxWidth: .infinity, minHeight: lineHeight, alignment: .topLeading)
+                    .textSelection(.enabled)
+            } else {
+                TextEditor(text: text)
+                    .font(.system(size: contentFontSize))
+                    .lineSpacing(6)
+                    .scrollContentBackground(.hidden)
+                    .background(Color.clear)
+                    .frame(minHeight: lineHeight, alignment: .topLeading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .onChange(of: text.wrappedValue) { old, new in
+                        onChange(old, new)
+                    }
+            }
         }
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .preference(key: FieldHeightKey.self, value: [name: geo.size.height])
+            }
+        )
     }
 
     private var bottomMetaRow: some View {
