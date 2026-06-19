@@ -51,67 +51,82 @@ struct FormEditor: View {
     private let labelWidth: CGFloat = 56
     private let lineHeight: CGFloat = 24
     private let contentFontSize: CGFloat = 16
+    private let cardMaxWidth: CGFloat = 700
+    private let cardMaxHeight: CGFloat = 560
+    private let cardSideMargin: CGFloat = 40
+    private let cardVerticalMargin: CGFloat = 40
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(shadowCardColor)
-                .offset(x: 4, y: -4)
-
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(cardBackground)
-                .overlay(
+        HStack {
+            Spacer(minLength: 0)
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                ZStack(alignment: .topLeading) {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(borderColor, lineWidth: 0.5)
-                )
+                        .fill(shadowCardColor)
+                        .offset(x: 4, y: -4)
 
-            HStack(spacing: 0) {
-                Color.clear
-                    .frame(width: labelWidth)
-                    .padding(.leading, 12)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(cardBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(borderColor, lineWidth: 0.5)
+                        )
 
-                VStack(spacing: 0) {
-                    ZStack(alignment: .topLeading) {
-                        ruledPaper
-                        inputsColumn
+                    HStack(spacing: 0) {
+                        Color.clear
+                            .frame(width: labelWidth)
+                            .padding(.leading, 12)
+
+                        VStack(spacing: 0) {
+                            ZStack(alignment: .topLeading) {
+                                ruledPaper
+                                inputsColumn
+                            }
+                            typeButton
+                        }
+                        .padding(.trailing, 12)
                     }
-                    typeButton
-                }
-                .padding(.trailing, 12)
-            }
-            .padding(.top, 30)
-            .padding(.bottom, 12)
+                    .padding(.top, 30)
+                    .padding(.bottom, 12)
 
-            if showingTypePicker {
-                Rectangle()
-                    .fill(Color.clear)
-                    .contentShape(Rectangle())
-                    .onTapGesture { showingTypePicker = false }
+                    if showingTypePicker {
+                        Rectangle()
+                            .fill(Color.clear)
+                            .contentShape(Rectangle())
+                            .onTapGesture { showingTypePicker = false }
 
-                VStack {
-                    Spacer()
-                    CardTypePickerView(selectedType: card.cardType) { type in
-                        data.requestCardTypeChange(to: type)
-                        showingTypePicker = false
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(cardBackground)
-                            .overlay(
+                        VStack {
+                            Spacer()
+                            CardTypePickerView(selectedType: card.cardType) { type in
+                                data.requestCardTypeChange(to: type)
+                                showingTypePicker = false
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .background(
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(borderColor, lineWidth: 0.5)
+                                    .fill(cardBackground)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .stroke(borderColor, lineWidth: 0.5)
+                                    )
+                                    .shadow(color: KaJiColor.cardShadowHover.resolve(for: colorScheme), radius: 10, x: 0, y: -3)
                             )
-                            .shadow(color: KaJiColor.cardShadowHover.resolve(for: colorScheme), radius: 10, x: 0, y: -3)
-                    )
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 44)
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, 44)
+                        }
+                    }
                 }
+                .frame(maxWidth: cardMaxWidth, maxHeight: cardMaxHeight)
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.bottom, 32)
+        .padding(.horizontal, cardSideMargin)
+        .padding(.vertical, cardVerticalMargin)
         .onChange(of: data.draft.cardID) { _, newID in
             if newID != lastSyncedCardID {
                 initializeLocalState()
