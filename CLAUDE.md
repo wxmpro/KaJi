@@ -125,6 +125,43 @@ git push origin vX.Y.Z
 
 > 用户最严厉的约束：**推送一次就是一个版本号。版本号不是装饰，是每次交付的必备身份。**
 
+## 0.4 禁止 reset --hard / restore 丢弃 working tree（硬性底线）
+
+### 禁止
+
+- ❌ `git reset --hard <commit>` — 销毁 working tree 改动 + 销毁本地 commit
+- ❌ `git restore <file>` — 丢弃该文件 working tree 改动
+- ❌ `git rebase --abort`（有 conflict 时直接 abort） — 会带丢 uncommitted
+- ❌ `git stash drop` — 永久丢失
+
+### 能做
+
+- ✅ `git reset --soft <commit>` — 只改 HEAD，working tree 保留
+- ✅ `git reset --mixed <commit>` — 只改 HEAD + 暂存区，working tree 保留
+- ✅ `git pull --ff-only origin main` — fast-forward，不会 conflict
+
+### 执行前必做
+
+任何 reset / rebase / restore / drop 之前，必须先：
+
+```
+git status                                    # 看 working tree 改动
+git log --oneline -10                         # 看 HEAD commit 链
+git reflog | head -10                          # 看 HEAD 历史位置
+git log --oneline origin/main..HEAD            # 看本地领先 origin 哪些 commit
+```
+
+**明确告诉用户**："以下 commit / working tree 改动会被影响：[list]"，**等用户确认**才执行。
+
+### 推送前必做
+
+```
+git diff origin/main..HEAD --stat              # 看本次 push 包含哪些 commit
+git status --porcelain                         # 看未 commit 的 working tree 改动
+```
+
+如果 `git status` 显示未 commit 改动，**必须问用户**"这些是否包含在本次 release？"
+
 ## 1. 全局思考（修 bug 时）
 
 - **影响面**：改了某个文件，会不会影响其他视图、布局、交互、状态？
