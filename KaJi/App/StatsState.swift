@@ -120,10 +120,16 @@ final class StatsState {
         }
 
         // 2. 更新 cachedSummaries
+        //    v1.6.5 bug fix：稳定排序 — 同 updatedAt 按 id 字典序，
+        //    避免 applyIncremental 反复触发时，Dictionary.values 无序迭代 +
+        //    sort 仅按主键导致同 updatedAt 的卡顺序随机跳动（侧栏/列表重排）。
         var byID = oldByID
         for summary in changed { byID[summary.id] = summary }
         for id in removed { byID.removeValue(forKey: id) }
-        cachedSummaries = Array(byID.values).sorted { $0.updatedAt > $1.updatedAt }
+        cachedSummaries = byID.values.sorted { lhs, rhs in
+            if lhs.updatedAt != rhs.updatedAt { return lhs.updatedAt > rhs.updatedAt }
+            return lhs.id < rhs.id
+        }
 
         // 3. 应用 typeCounts diff
         for (type, delta) in typeDiff {
@@ -136,6 +142,9 @@ final class StatsState {
         }
 
         // 4. 应用 tagCounts diff
+        //    v1.6.5 bug fix：稳定排序 — 同 count 按 tag 名字典序，
+        //    避免 applyIncremental 反复触发时，Dictionary 迭代顺序无序导致
+        //    同 count 标签顺序随机跳动（侧栏「标签」section 重排）。
         var tagDict = Dictionary(uniqueKeysWithValues: cachedTagCounts.map { ($0.0, $0.1) })
         for (tag, delta) in tagDiff {
             let newCount = (tagDict[tag] ?? 0) + delta
@@ -145,7 +154,12 @@ final class StatsState {
                 tagDict.removeValue(forKey: tag)
             }
         }
-        cachedTagCounts = tagDict.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
+        cachedTagCounts = tagDict
+            .sorted { lhs, rhs in
+                if lhs.value != rhs.value { return lhs.value > rhs.value }
+                return lhs.key < rhs.key
+            }
+            .map { ($0.key, $0.value) }
 
         // 5. 增量同步倒排索引
         cardService.updateSearchIndex(from: cachedSummaries)
