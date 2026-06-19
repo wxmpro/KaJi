@@ -326,20 +326,29 @@ struct FormEditor: View {
         }
     }
 
+    @ViewBuilder
     private func fieldEditor(
         text: Binding<String>,
         onChange: @escaping (String, String) -> Void
     ) -> some View {
-        TextEditor(text: text)
-            .font(.system(size: contentFontSize))
-            .lineSpacing(6)
-            .scrollContentBackground(.hidden)
-            .background(Color.clear)
-            .frame(minHeight: lineHeight, alignment: .topLeading)
-            .disabled(isReadOnly)
-            .onChange(of: text.wrappedValue) { old, new in
-                onChange(old, new)
-            }
+        if isReadOnly {
+            Text(text.wrappedValue.isEmpty ? "（空）" : text.wrappedValue)
+                .font(.system(size: contentFontSize))
+                .lineSpacing(6)
+                .foregroundStyle(text.wrappedValue.isEmpty ? .tertiary : .primary)
+                .frame(maxWidth: .infinity, minHeight: lineHeight, alignment: .topLeading)
+                .textSelection(.enabled)
+        } else {
+            TextEditor(text: text)
+                .font(.system(size: contentFontSize))
+                .lineSpacing(6)
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
+                .frame(minHeight: lineHeight, alignment: .topLeading)
+                .onChange(of: text.wrappedValue) { old, new in
+                    onChange(old, new)
+                }
+        }
     }
 
     private var bottomMetaRow: some View {
