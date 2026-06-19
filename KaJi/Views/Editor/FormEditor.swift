@@ -316,8 +316,7 @@ struct FormEditor: View {
             .lineSpacing(6)
             .scrollContentBackground(.hidden)
             .background(Color.clear)
-            .frame(minHeight: lineHeight * 3, alignment: .topLeading)
-            .fixedSize(horizontal: false, vertical: true)
+            .frame(minHeight: lineHeight, alignment: .topLeading)
             .disabled(isReadOnly)
             .onChange(of: text.wrappedValue) { old, new in
                 onChange(old, new)
