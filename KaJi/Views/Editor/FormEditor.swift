@@ -282,24 +282,41 @@ struct FormEditor: View {
     }
 
     private var inputsColumn: some View {
-        VStack(spacing: 0) {
-            fieldEditor(text: $title, onChange: { _, new in
-                title = new
-                scheduleSave()
-            })
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(spacing: 0) {
+                fieldRow(name: "标题", text: $title, onChange: { _, new in
+                    title = new
+                    scheduleSave()
+                })
 
-            ForEach(currentFields, id: \.self) { fieldName in
-                fieldEditor(
-                    text: bindingForField(fieldName),
-                    onChange: { _, _ in
-                        scheduleSave()
-                    }
-                )
+                ForEach(currentFields, id: \.self) { fieldName in
+                    fieldRow(
+                        name: fieldName,
+                        text: bindingForField(fieldName),
+                        onChange: { _, _ in
+                            scheduleSave()
+                        }
+                    )
+                }
+
+                bottomMetaRow
             }
+        }
+    }
 
-            Spacer()
+    private func fieldRow(
+        name: String,
+        text: Binding<String>,
+        onChange: @escaping (String, String) -> Void
+    ) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            Text(name)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: labelWidth, alignment: .trailing)
+                .padding(.trailing, 10)
 
-            bottomMetaRow
+            fieldEditor(text: text, onChange: onChange)
         }
     }
 
