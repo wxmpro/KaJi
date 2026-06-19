@@ -233,15 +233,6 @@ struct FormEditor: View {
 
     // MARK: - 子 view
 
-    private func labelView(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(.secondary)
-            .frame(height: lineHeight, alignment: .topTrailing)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .padding(.trailing, 10)
-    }
-
     private var typeButton: some View {
         Button {
             guard !isReadOnly else { return }
