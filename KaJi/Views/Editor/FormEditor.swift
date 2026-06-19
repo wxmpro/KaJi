@@ -84,12 +84,6 @@ struct FormEditor: View {
 
                     HStack(spacing: 0) {
                         VStack(spacing: 0) {
-                            Spacer()
-                            typeButton
-                        }
-                        .frame(width: labelWidth)
-
-                        VStack(spacing: 0) {
                             ScrollView(.vertical, showsIndicators: true) {
                                 HStack(alignment: .top, spacing: 0) {
                                     VStack(spacing: 0) {
@@ -123,7 +117,11 @@ struct FormEditor: View {
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                            bottomMetaRow
+                            HStack(spacing: 0) {
+                                typeButton
+                                    .frame(width: labelWidth)
+                                bottomMetaRow
+                            }
                         }
                     }
                     .padding(.horizontal, 12)
@@ -315,9 +313,9 @@ struct FormEditor: View {
     private var ruledPaper: some View {
         GeometryReader { _ in
             Canvas { context, size in
-                guard size.height > 40 else { return }
+                guard size.height > 0 else { return }
                 let firstY: CGFloat = lineHeight
-                let lastY: CGFloat = size.height - 8
+                let lastY: CGFloat = max(firstY, size.height - 8)
                 var y = firstY
                 while y <= lastY {
                     var path = Path()
@@ -469,7 +467,7 @@ struct FormEditor: View {
         KaJiColor.cardBackground.resolve(for: colorScheme)
     }
     private var lineStrokeColor: Color {
-        KaJiColor.cardFieldStroke.resolve(for: colorScheme)
+        .primary
     }
     private var shadowCardColor: Color {
         KaJiColor.cardShadow.resolve(for: colorScheme)
