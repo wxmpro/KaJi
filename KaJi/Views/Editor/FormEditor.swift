@@ -66,20 +66,16 @@ struct FormEditor: View {
                 )
 
             HStack(spacing: 0) {
-                VStack(spacing: 0) {
-                    labelView("标题")
-                    ForEach(currentFields, id: \.self) { field in
-                        labelView(field)
-                    }
-                    Spacer()
-                    typeButton
-                }
-                .frame(width: labelWidth)
-                .padding(.leading, 12)
+                Color.clear
+                    .frame(width: labelWidth)
+                    .padding(.leading, 12)
 
-                ZStack(alignment: .topLeading) {
-                    ruledPaper
-                    inputsColumn
+                VStack(spacing: 0) {
+                    ZStack(alignment: .topLeading) {
+                        ruledPaper
+                        inputsColumn
+                    }
+                    typeButton
                 }
                 .padding(.trailing, 12)
             }
