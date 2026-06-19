@@ -16,6 +16,7 @@ struct SidebarRow: View {
     let title: String
     let icon: String
     let iconColor: Color
+    var symbolRenderingMode: SymbolRenderingMode? = nil
     let count: Int?
     let isSelected: Bool
     var style: Style = .large
@@ -34,6 +35,7 @@ struct SidebarRow: View {
             HStack(spacing: hSpacing) {
                 Image(systemName: icon)
                     .font(.system(size: iconSize, weight: iconWeight))
+                    .symbolRenderingMode(symbolRenderingMode)
                     .foregroundStyle(iconColor)
                     .frame(width: iconFrame, alignment: .center)
 

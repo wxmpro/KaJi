@@ -117,11 +117,18 @@ struct SidebarView: View {
                 }
             }
         } header: {
-            Text("标签")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.primary)
-                .padding(.leading, 6)
-                .padding(.top, 20)
+            HStack(spacing: 10) {
+                Image(systemName: "tray")
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(.primary)
+                    .frame(width: 22, alignment: .center)
+                Text("标签")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.primary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 4)
         }
     }
 
@@ -129,10 +136,12 @@ struct SidebarView: View {
         Section {
             let selected = listState.rightPaneMode == .list
                 && listState.listFilter == .trash
+            let trashCount = statsState.cachedSummaries.filter { $0.deletedAt != nil }.count
+            let trashIcon = trashCount > 0 ? "arrow.up.trash.fill" : "arrow.up.trash"
 
             SidebarRow(
                 title: "回收站",
-                icon: "trash",
+                icon: trashIcon,
                 iconColor: .primary,
                 count: nil,
                 isSelected: selected,
