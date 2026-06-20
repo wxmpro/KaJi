@@ -138,6 +138,8 @@ struct FormEditor: View {
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 12)
+                            // 撑满卡片可用宽度：浮层背景贴合卡片宽，而非 picker 内容固有宽
+                            .frame(maxWidth: .infinity)
                             .background(
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                                     .fill(cardBackground)
