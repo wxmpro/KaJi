@@ -29,7 +29,8 @@ enum KaJiLayout {
     static let headerBottomPadding: CGFloat = 4
 
     /// 列表标题向下微调，与 header 对齐
-    static let listTitleTopOffset: CGFloat = -6
+    /// 2026-06-20：用户反馈太靠上，整体下移 5pt（-6 → -1）
+    static let listTitleTopOffset: CGFloat = -1
 
     /// 列表标题底部间距
     static let listTitleBottomPadding: CGFloat = 8

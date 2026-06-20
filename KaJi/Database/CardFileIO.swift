@@ -131,14 +131,14 @@ struct CardFileIO {
         if let d = card.deletedAt {
             out += "deletedAt: \(iso8601(d))\n"
         }
-        if !card.tags.isEmpty {
-            out += "tags: [\(card.tags.map { quote($0) }.joined(separator: ", "))]\n"
-        }
+        out += "tags: [\(card.tags.map { quote($0) }.joined(separator: ", "))]\n"
         out += "---\n\n"
-        out += "# \(card.title.isEmpty ? "（无标题）" : card.title)\n\n"
+        out += "#### \(card.title.isEmpty ? "（无标题）" : card.title)\n\n"
         for f in card.orderedFields {
-            out += "## \(f.fieldName)\n\n\(f.fieldValue.isEmpty ? "（空）" : f.fieldValue)\n\n"
+            out += "##### \(f.fieldName)\n\n\(f.fieldValue.isEmpty ? "（空）" : f.fieldValue)\n\n"
         }
+        out += "**标签**: \(card.tags.isEmpty ? "无" : card.tags.joined(separator: ", "))\n\n"
+        out += "**UUID**: `\(card.id)`\n\n"
         return out
     }
 
@@ -222,8 +222,9 @@ struct CardFileIO {
         }
         for line in bodyLines {
             currentLine += 1
-            if line.hasPrefix("## ") {
-                let candidateName = String(line.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("##### ") || line.hasPrefix("## ") {
+                let prefixLen = line.hasPrefix("##### ") ? 6 : 3
+                let candidateName = String(line.dropFirst(prefixLen)).trimmingCharacters(in: .whitespaces)
                 // 严格校验 — 未知字段名抛错（不静默丢失内容）
                 guard knownFieldNames.contains(candidateName) else {
                     throw MarkdownError.unknownField(name: candidateName, line: currentLine)
