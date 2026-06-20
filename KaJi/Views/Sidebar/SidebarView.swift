@@ -35,7 +35,7 @@ private struct NewCardSection: View {
         Section {
             SidebarRow(
                 title: "新建卡片",
-                icon: "plus.square.fill",
+                icon: "document.badge.plus",
                 iconColor: .primary,
                 count: nil,
                 isSelected: false,
@@ -57,7 +57,7 @@ private struct CardsAndTypesSection: View {
         Section {
             SidebarRow(
                 title: "卡片",
-                icon: "rectangle.stack.fill",
+                icon: "document.on.document",
                 iconColor: .primary,
                 count: nil,
                 isSelected: listState.rightPaneMode == .list && listState.listFilter == .all,
@@ -137,7 +137,7 @@ private struct TagsAndItemsSection: View {
             }
         } header: {
             HStack(spacing: 10) {
-                Image(systemName: "tag.square.fill")
+                Image(systemName: tagCounts.isEmpty ? "tag.circle" : "tag.circle.fill")
                     .font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.primary)
                     .frame(width: 22, alignment: .center)

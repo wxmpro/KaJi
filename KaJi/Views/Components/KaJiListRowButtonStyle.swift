@@ -17,6 +17,7 @@ import SwiftUI
 struct KaJiListRowButtonStyle: ButtonStyle {
     let colorScheme: ColorScheme
     let isSelected: Bool
+    @State private var isHovering = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -25,15 +26,25 @@ struct KaJiListRowButtonStyle: ButtonStyle {
                     .fill(fillColor(isPressed: configuration.isPressed))
                     .padding(.horizontal, 4)
             )
+            .onHover { hovering in
+                isHovering = hovering
+            }
             .animation(KaJiAnimation.selection, value: configuration.isPressed)
             .animation(KaJiAnimation.selection, value: isSelected)
+            .animation(KaJiAnimation.selection, value: isHovering)
     }
 
-    /// 优先级：selected（持久）> pressed（按下瞬间）> resting。
-    /// selected 与 pressed 用同色（cardBorder），保持视觉连贯。
+    /// 优先级：selected（持久）> pressed（按下瞬间）> hover > resting。
+    /// selected / pressed 用不同色，便于区分「已选中」和「正在按」。
     private func fillColor(isPressed: Bool) -> Color {
-        if isSelected || isPressed {
+        if isSelected {
             return KaJiColor.listRowSelected.resolve(for: colorScheme)
+        }
+        if isPressed {
+            return KaJiColor.listRowPressed.resolve(for: colorScheme)
+        }
+        if isHovering {
+            return KaJiColor.listRowHover.resolve(for: colorScheme)
         }
         return .clear
     }

@@ -22,7 +22,8 @@ enum KaJiColor {
 
     // MARK: - 列表行 / 侧栏行
     static let listRowHover      = SemanticColor(light: .gray.opacity(0.20), dark: .white.opacity(0.10))
-    static let listRowSelected   = SemanticColor(light: .gray.opacity(0.35), dark: .white.opacity(0.15))
+    static let listRowSelected   = SemanticColor(light: .gray.opacity(0.30), dark: .white.opacity(0.12))
+    static let listRowPressed    = SemanticColor(light: .gray.opacity(0.45), dark: .white.opacity(0.22))
     static let sidebarRowHover   = SemanticColor(light: .gray.opacity(0.20), dark: .white.opacity(0.10))
     static let sidebarRowPressed = SemanticColor(light: .gray.opacity(0.35), dark: .white.opacity(0.15))
 

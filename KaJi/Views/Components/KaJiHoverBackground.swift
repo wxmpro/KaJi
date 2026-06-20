@@ -10,6 +10,7 @@ import SwiftUI
 struct KaJiHoverBackground: ViewModifier {
     var cornerRadius: CGFloat
     var restingBackground: Color
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isHovering = false
 
     func body(content: Content) -> some View {
@@ -25,7 +26,7 @@ struct KaJiHoverBackground: ViewModifier {
     }
 
     private var hoverColor: Color {
-        KaJiColor.systemControl
+        KaJiColor.listRowHover.resolve(for: colorScheme)
     }
 }
 

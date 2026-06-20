@@ -21,15 +21,17 @@ struct DeleteCardButton: View {
     }
 
     var body: some View {
+        let canDelete = data.draft.canSoftDelete
         Button {
+            guard canDelete else { return }
             data.softDeleteDraft()
         } label: {
             Image(systemName: isTrashContext ? "document.on.trash.fill" : "document.on.trash")
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Color.primary)
+                .foregroundStyle(canDelete ? Color.primary : Color.secondary.opacity(0.5))
                 .frame(width: 32, height: 32)
         }
         .help(isTrashContext ? "从回收站恢复" : "移到回收站")
-        .disabled(!data.draft.canSoftDelete)
+        .kajiHover(cornerRadius: 16)
     }
 }

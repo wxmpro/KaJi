@@ -32,5 +32,6 @@ struct BackButton: View {
                 .frame(width: 32, height: 32)
         }
         .help("返回")
+        .kajiHover(cornerRadius: 16)
     }
 }

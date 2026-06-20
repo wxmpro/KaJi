@@ -26,31 +26,33 @@ struct MainView: View {
             DetailView()
         }
         .navigationSplitViewStyle(.balanced)
-        .searchable(
-            text: $ui.searchKeyword,
-            placement: .toolbar,
-            prompt: "搜索卡片..."
-        )
         .toolbar {
-            ToolbarItem(placement: .destructiveAction) {
-                DeleteCardButton()
-            }
-            ToolbarItem(placement: .cancellationAction) {
-                BackButton()
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 0) {
+                    BackButton()
+                    Spacer()
+                    SearchToolbarField(
+                        text: $ui.searchKeyword,
+                        placeholder: "搜索卡片...",
+                        onSubmit: {
+                            let keyword = ui.searchKeyword.trimmingCharacters(in: .whitespaces)
+                            if keyword.isEmpty {
+                                listState.showList(.all)
+                            } else {
+                                listState.showList(.search(keyword))
+                            }
+                        }
+                    )
+                    .frame(width: 240)
+                    Spacer()
+                    DeleteCardButton()
+                }
+                .frame(maxWidth: .infinity)
             }
         }
-        // macOS 26 Liquid Glass：让 toolbar 背景可见 + 颜色跟随系统，
-        // 使 sidebar 视觉上延伸到 titlebar（与 Podcast/Freeform 一致）
-        .toolbarBackground(.visible, for: .windowToolbar)
-        .toolbarColorScheme(nil, for: .windowToolbar)
-        .onSubmit(of: .search) {
-            let keyword = ui.searchKeyword.trimmingCharacters(in: .whitespaces)
-            if keyword.isEmpty {
-                listState.showList(.all)
-            } else {
-                listState.showList(.search(keyword))
-            }
-        }
+        // macOS 26 Liquid Glass：toolbar 背景隐藏，只保留按钮 hover 效果
+        // .toolbarBackground(.hidden, for: .windowToolbar)
+        // .toolbarColorScheme(nil, for: .windowToolbar)
         .onAppear {
             data.undoManager = undoManager
         }
