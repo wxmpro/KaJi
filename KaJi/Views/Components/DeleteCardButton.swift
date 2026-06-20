@@ -15,7 +15,7 @@ struct DeleteCardButton: View {
         Button {
             data.softDeleteDraft()
         } label: {
-            Image(systemName: "trash")
+            Image(systemName: "arrow.up.trash.fill")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Color.primary)
                 .frame(width: 32, height: 32)

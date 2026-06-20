@@ -15,6 +15,9 @@ struct SettingsView: View {
     // @AppStorage 直写 UserDefaults 不触发 SettingsService 缓存更新，
     // 导致设置改后 debounce 间隔不变（用户感知"设置没用"）
 
+    // v1.7.x：TabView → NavigationSplitView，macOS 原生设置风格
+    @State private var selectedTab: Int = 0
+
     private var autoSaveIntervalBinding: Binding<Double> {
         Binding(
             get: { SettingsService.autoSaveInterval },
@@ -39,24 +42,26 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        TabView {
-            generalTab
-                .tabItem {
-                    Label("通用", systemImage: "gearshape")
+        NavigationSplitView {
+            List(selection: $selectedTab) {
+                Label("通用", systemImage: "gearshape").tag(0)
+                Label("高级", systemImage: "wrench.and.screwdriver").tag(1)
+                Label("关于", systemImage: "info.circle").tag(2)
+            }
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
+        } detail: {
+            Group {
+                switch selectedTab {
+                case 0: generalTab
+                case 1: advancedTab
+                default: aboutTab
                 }
-
-            advancedTab
-                .tabItem {
-                    Label("高级", systemImage: "wrench.and.screwdriver")
-                }
-
-            aboutTab
-                .tabItem {
-                    Label("关于", systemImage: "info.circle")
-                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 560, height: 400)
-        .padding()
+        .navigationSplitViewStyle(.balanced)
+        .frame(width: 720, height: 480)
     }
 
     // MARK: - 通用

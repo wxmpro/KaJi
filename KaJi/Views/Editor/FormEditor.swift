@@ -335,6 +335,9 @@ struct FormEditor: View {
         Text(text)
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(.secondary)
+            // v1.7.1：字段名视觉下移 5pt（1pt 起步 + 2pt + 2pt 渐进调整），让字段名落在两条横线中间
+            // .offset(y: 5) 只改视觉位置，不改 layout/hit test/frame 高度
+            .offset(y: 5)
             .frame(height: height, alignment: .topTrailing)
             .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.trailing, 10)

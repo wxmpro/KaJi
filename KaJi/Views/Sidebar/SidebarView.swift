@@ -56,7 +56,7 @@ struct SidebarView: View {
         Section {
             SidebarRow(
                 title: "新建卡片",
-                icon: "plus.square",
+                icon: "plus.square.fill",
                 iconColor: .primary,
                 count: nil,
                 isSelected: false,
@@ -73,7 +73,7 @@ struct SidebarView: View {
         Section {
             SidebarRow(
                 title: "卡片",
-                icon: "rectangle.stack",
+                icon: "rectangle.stack.fill",
                 iconColor: .primary,
                 count: nil,
                 isSelected: listState.rightPaneMode == .list && listState.listFilter == .all,
@@ -118,7 +118,7 @@ struct SidebarView: View {
 
                     SidebarRow(
                         title: tag,
-                        icon: "tag",
+                        icon: "tag.fill",
                         iconColor: .secondary,
                         count: nil,
                         isSelected: selected,
@@ -132,7 +132,7 @@ struct SidebarView: View {
             }
         } header: {
             HStack(spacing: 10) {
-                Image(systemName: "tray")
+                Image(systemName: "tag.square.fill")
                     .font(.system(size: 16, weight: .regular))
                     .foregroundStyle(.primary)
                     .frame(width: 22, alignment: .center)
