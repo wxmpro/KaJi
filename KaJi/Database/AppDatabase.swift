@@ -3,15 +3,12 @@
 //  KaJi
 //
 //  GRDB.swift 数据库管理。
-//  4 张表（v1.2.9 T7 注释修正 — 注释原本误写 5 张表）：
+//  4 张表：
 //    1. cards          — 主表
 //    2. cardFields     — EAV 模式字段
 //    3. tags           — 标签
 //    4. cardTags       — 卡-标签 M:N
-//  搜索统一走 StatsState.cachedCards 内存 filter，不再维护 FTS5 虚拟表。
-//
-//  v1.0 简化：删除卡复用 cards 表 + deletedAt 字段（不新建表）。
-//  清理策略：启动时 `DELETE FROM cards WHERE deletedAt IS NOT NULL AND deletedAt < ?`
+//  搜索统一走 StatsState.cachedSummaries 内存 filter，不再维护 FTS5 虚拟表。
 //
 //  线程模型：
 //    - 单一 DatabasePool（写串行；读并发）
@@ -54,7 +51,6 @@ final class AppDatabase: @unchecked Sendable {
             dbWriter = try DatabaseQueue(path: ":memory:", configuration: config)
             isInMemory = true
         } else {
-            // v1.2.9 S1 修复：dbURL 改 throws，调用方在 init throws 链中处理
             let dbURL = try AppDatabase.dbURL()
             try FileManager.default.createDirectory(
                 at: dbURL.deletingLastPathComponent(),
@@ -62,11 +58,11 @@ final class AppDatabase: @unchecked Sendable {
             )
             var config = Configuration()
             config.label = "KaJi.DB"
-            // ★ v1.3.2：跨进程并发兜底 — 第二进程等 5s 不立即失败
-            //    GRDB IMMEDIATE 事务 + busy_timeout 协同，避免 SQLITE_BUSY 直接抛错
+            // 跨进程并发兜底 — 第二进程等 5s 不立即失败
+            // GRDB IMMEDIATE 事务 + busy_timeout 协同，避免 SQLITE_BUSY 直接抛错
             config.busyMode = .timeout(5)
-            // ★ v1.4.2 批次1（信心/群3）：连接级 PRAGMA 调优。仅文件 DB；每个
-            //    Pool 连接打开时执行一次。WAL 模式下这些都是安全的纯性能项。
+            // 连接级 PRAGMA 调优。仅文件 DB；每个 Pool 连接打开时执行一次。
+            // WAL 模式下这些都是安全的纯性能项。
             config.prepareDatabase { db in
                 // WAL 下 NORMAL 不牺牲崩溃一致性（仅极端断电下回退到最近 checkpoint），
                 // 但省掉每次提交的 fsync，写入显著更快。
@@ -83,7 +79,6 @@ final class AppDatabase: @unchecked Sendable {
     }
 
     /// 数据库文件路径
-    /// v1.2.9 S1 修复：throws 版本
     static func dbURL() throws -> URL {
         try CardFileIO.dataRoot().appendingPathComponent("index.sqlite")
     }
@@ -140,23 +135,20 @@ final class AppDatabase: @unchecked Sendable {
         }
 
         m.registerMigration("v1.1_drop_fts5") { db in
-            // H-1：搜索统一走 AppState.cachedCards 内存 filter，不再维护 FTS5 索引。
-            // 删除旧版可能存在的 cardsFts 虚拟表，释放空间并避免歧义。
+            // 删除旧版可能存在的 cardsFts 虚拟表（搜索已改走内存 filter）
             try db.execute(sql: "DROP TABLE IF EXISTS cardsFts")
         }
 
-        // v1.3.0：给 cards 加 mdVersion 列，初始 0；每次 SQLite 写 +1，
-        // .md 写盘时把当前 mdVersion 写进 frontmatter；reconcile 启动期
-        // 通过对比 SQLite.mdVersion 与 .md frontmatter.mdVersion 检测落后。
+        // mdVersion：每次 SQLite 写 +1；.md 写盘时把当前 mdVersion 写进 frontmatter；
+        // reconcile 启动期对比 SQLite.mdVersion 与 .md frontmatter.mdVersion 检测落后
         m.registerMigration("v1.3.0_add_mdVersion") { db in
             try db.alter(table: "cards") { t in
                 t.add(column: "mdVersion", .integer).notNull().defaults(to: 0)
             }
         }
 
-        // v1.4.2 批次1（信心/群3）：补 updatedAt 索引。
-        // refreshStatsSQL 与列表默认序均按 `ORDER BY updatedAt DESC`，
-        // 之前无索引 → 全表扫描 + 临时 B-tree 排序。补索引后走索引顺序扫描。
+        // updatedAt 索引：refreshStatsSQL 与列表默认序均按 `ORDER BY updatedAt DESC`，
+        // 补索引后走索引顺序扫描，避免全表扫描 + 临时 B-tree 排序
         m.registerMigration("v1.4.2_add_updatedAt_index") { db in
             try db.create(
                 index: "idx_cards_updatedAt",
@@ -173,9 +165,6 @@ final class AppDatabase: @unchecked Sendable {
 
     /// 启动时调用一次：删除超过 retentionDays 天的回收站卡
     /// - Parameter retentionDays: 回收站保留天数；≤0 表示永不自动清理
-    /// v1.2.9 T5 修复：.md 串行删除改 withTaskGroup 并发（chunkSize=8 限制并发），
-    /// 1000+ 卡库的回收站清理时间从 ~10s 降到 ~2s。
-    /// v1.6.1 PERF-3：用 withTaskGroup 限流（=8 并发）替代 DispatchQueue 无限并发；删除死代码 chunkSize
     func purgeOldTrash(retentionDays: Int) async throws {
         guard retentionDays > 0 else { return }
         guard let cutoff = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date()) else {
@@ -184,7 +173,6 @@ final class AppDatabase: @unchecked Sendable {
         let cutoffStr = ISO8601DateFormatter().string(from: cutoff)
 
         // 1. 先删 SQLite（在写事务内）；cardFields / cardTags 由级联自动清理
-        // v1.6.1：在 async 函数中 dbWriter.write 会被解析为异步重载，需 await
         let idsToPurge = try await dbWriter.write { db -> [String] in
             let ids = try String.fetchAll(db, sql: """
                 SELECT id FROM cards WHERE deletedAt IS NOT NULL AND deletedAt < ?
@@ -195,7 +183,7 @@ final class AppDatabase: @unchecked Sendable {
             return ids
         }
 
-        // 2. SQLite 提交成功后，并发删 .md（v1.6.1 限流 8 并发）
+        // 2. SQLite 提交成功后，并发删 .md（限流 8 并发）
         await withTaskGroup(of: Void.self) { group in
             var iterator = idsToPurge.makeIterator()
             let maxConcurrent = 8

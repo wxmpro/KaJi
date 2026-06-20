@@ -2,7 +2,7 @@
 //  SemanticColor.swift
 //  KaJi
 //
-//  v1.3.2 引入：浅深模式双值色彩 token。
+//  浅深模式双值色彩 token。
 //  取代"按 Light/Dark 双写常量"模式，避免调用方写 `scheme == .dark ? xxx : yyy` 的三目。
 //
 //  设计原则：

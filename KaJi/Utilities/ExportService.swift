@@ -3,8 +3,8 @@
 //  KaJi
 //
 //  md 导出：单卡 → .md 文件；批量 → 文件夹。
-//  Phase 5: 单卡导出（⌘E）+ 批量导出（⌘⇧E）。
-//  v1.0 简化版：复用 CardFileIO.renderMarkdown 直接写到 NSSavePanel 选择的位置。
+//  单卡导出（⌘E）+ 批量导出（⌘⇧E）。
+//  复用 CardFileIO.renderMarkdown 直接写到 NSSavePanel 选择的位置。
 //
 
 import Foundation

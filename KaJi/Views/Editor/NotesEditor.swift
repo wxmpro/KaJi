@@ -2,8 +2,7 @@
 //  NotesEditor.swift
 //  KaJi
 //
-//  表单化编辑器容器：顶部导航条 + FormEditor + 类型切换确认弹窗。
-//  v1.4.0：@EnvironmentObject → @Environment
+//  表单化编辑器容器：FormEditor + 类型切换确认弹窗。
 //
 
 import SwiftUI

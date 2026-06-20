@@ -2,7 +2,7 @@
 //  KaJiError.swift
 //  KaJi
 //
-//  v1.3.2 引入：顶层统一 error 类型。包 database / markdown / appLifecycle / unknown 四大子域。
+//  顶层统一 error 类型。包 database / markdown / appLifecycle / unknown 四大子域。
 //
 //  设计原则：
 //  - ViewModel / Service 抛 KaJiError（不直接抛 DatabaseError / MarkdownError）

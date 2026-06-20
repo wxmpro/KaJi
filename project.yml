@@ -2,7 +2,7 @@ name: KaJi
 options:
   bundleIdPrefix: com.kaji.app
   deploymentTarget:
-    macOS: "15.0"
+    macOS: "26.0"
   createIntermediateGroups: true
   groupSortPosition: top
   developmentLanguage: zh-Hans
@@ -10,11 +10,11 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
     PRODUCT_NAME: KaJi
     PRODUCT_BUNDLE_IDENTIFIER: com.kaji.app.KaJi
-    MARKETING_VERSION: "1.6.4"
-    CURRENT_PROJECT_VERSION: "28"
+    MARKETING_VERSION: "1.7.3"
+    CURRENT_PROJECT_VERSION: "40"
     GENERATE_INFOPLIST_FILE: NO
     ENABLE_HARDENED_RUNTIME: YES
     CODE_SIGN_STYLE: Automatic

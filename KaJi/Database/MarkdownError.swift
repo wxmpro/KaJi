@@ -2,16 +2,11 @@
 //  MarkdownError.swift
 //  KaJi
 //
-//  v1.3.2 引入：独立的 .md 文件读写错误类型，从 DatabaseError 拆出。
+//  独立的 .md 文件读写错误类型，从 DatabaseError 拆出。
+//  DatabaseError 是 SQLite 层错误，MarkdownError 是字节层错误（文件 I/O + 解析器）。
+//  拆分后调用方可拿到精确位置（如 unknownField 的 line）。
 //
-//  为什么独立：
-//  - DatabaseError 是 SQLite 层面错误（行 89-123 等事务上下文）
-//  - MarkdownError 是字节层面错误（文件 I/O + 解析器上下文）
-//  - 混在一起调用方无法精确分类（同样的 DatabaseError.markdownParseFailed 在哪个层抛？不清楚）
-//  - 拆分后调用方写 `catch MarkdownError.unknownField(let name, let line)` 可以拿到精确位置
-//
-//  不变量：
-//  - 所有 case 都带 (line, column) 或精确上下文，便于用户在 .md 文件中定位错误
+//  不变量：所有 case 都带 (line, column) 或精确上下文，便于在 .md 中定位错误。
 //
 
 import Foundation

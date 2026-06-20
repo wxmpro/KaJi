@@ -3,12 +3,6 @@
 //  KaJi
 //
 //  告警/弹窗状态层。
-//  v1.2.9 T2 改造：原 EditorState 中跨"数据/UI/告警"三类的 11 个 @Published
-//  按生命周期拆分到 3 个独立 ObservableObject。
-//  v1.4.0：
-//  - 迁移到 @Observable
-//  - 删除 lastSavedAt（v1.3.4 死字段，0 引用）
-//  - 重命名注释：仅保留真正的告警字段
 //
 
 import SwiftUI

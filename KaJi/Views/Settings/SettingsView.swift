@@ -2,7 +2,7 @@
 //  SettingsView.swift
 //  KaJi
 //
-//  设置窗口：macOS 原生 Tab 风格。
+//  设置窗口：macOS 原生 NavigationSplitView 风格。
 //  包含「通用」「高级」「关于」三个标签页。
 //
 
@@ -11,11 +11,9 @@ import AppKit
 
 struct SettingsView: View {
     @AppStorage("KaJi.theme") private var themeRawValue: String = "follow"
-    // v1.6.1：autoSaveInterval / trashRetentionDays 走 SettingsService setter
-    // @AppStorage 直写 UserDefaults 不触发 SettingsService 缓存更新，
-    // 导致设置改后 debounce 间隔不变（用户感知"设置没用"）
+    // autoSaveInterval / trashRetentionDays 走 SettingsService setter（@AppStorage 直写
+    // UserDefaults 不触发 SettingsService 缓存更新，会导致设置改后 debounce 间隔不变）
 
-    // v1.7.x：TabView → NavigationSplitView，macOS 原生设置风格
     @State private var selectedTab: Int = 0
 
     private var autoSaveIntervalBinding: Binding<Double> {
@@ -195,7 +193,6 @@ struct SettingsView: View {
     // MARK: - 辅助
 
     /// 当前数据库文件路径（in-memory 模式下显示提示）
-    /// v1.2.9 S1 修复：dbURL 改 throws；失败时返回友好提示
     private var databasePath: String {
         if AppDatabase.shared.isInMemory {
             return "内存模式（无文件）"
@@ -212,7 +209,6 @@ struct SettingsView: View {
         if AppDatabase.shared.isInMemory {
             url = FileManager.default.homeDirectoryForCurrentUser
         } else {
-            // v1.2.9 S1 修复：fallback 到 home 目录
             url = (try? AppDatabase.dbURL().deletingLastPathComponent())
                 ?? FileManager.default.homeDirectoryForCurrentUser
         }

@@ -10,7 +10,6 @@ import SwiftUI
 struct SidebarRow: View {
     enum Style { case large, small }
 
-    // v1.4.0：@EnvironmentObject → @Environment
     @Environment(EditorDataState.self) private var data
     @Environment(\.colorScheme) private var colorScheme
     let title: String

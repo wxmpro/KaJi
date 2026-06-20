@@ -4,17 +4,8 @@
 //
 //  左侧边栏：导航入口（新建、卡片类型、标签、回收站）。
 //
-//  v1.7.2 性能优化：把 4 个 section 拆为独立 View struct，
-//  每个 section 独立 @Environment 订阅自己需要的 state，
+//  性能优化：4 个 section 拆为独立 View struct，每个独立 @Environment 订阅，
 //  避免 sidebar 整体重建（25 个 row 反复创建）。
-//
-//  - NewCardSection：只订阅 EditorDataState
-//  - CardsAndTypesSection：只订阅 ListState（rightPaneMode + listFilter）
-//  - TagsAndItemsSection：订阅 ListState + StatsState（tagCounts）
-//  - TrashSection：订阅 ListState + StatsState（trashCount）
-//
-//  效果：点"新建卡片"只有 NewCardSection 重建；点卡片类型只有
-//  CardsAndTypesSection 重建；stats 加载只触发 Tags/Trash 重建。
 //
 
 import SwiftUI
@@ -32,19 +23,6 @@ struct SidebarView: View {
         .listStyle(.sidebar)
         .environment(\.defaultMinListRowHeight, 22)
         .listRowInsets(EdgeInsets())
-        // List 自身背景透出，让 Liquid Glass 玻璃透到 List 行
-        .scrollContentBackground(.hidden)
-        .background(Color.clear)
-        // macOS 26 Liquid Glass 背景层：
-        // 用 .background { ... } 让 Liquid Glass 占据整个 List frame，
-        // .ignoresSafeArea() 让玻璃延伸到 titlebar 顶部（含 traffic-lights 区域），
-        // 使 traffic-lights 视觉上落在 sidebar Liquid Glass 玻璃背景里（与 Podcast/Freeform 一致）
-        .background {
-            Rectangle()
-                .fill(Color.clear)
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 0))
-                .ignoresSafeArea()
-        }
     }
 }
 
@@ -63,7 +41,6 @@ private struct NewCardSection: View {
                 isSelected: false,
                 style: .large
             ) {
-                // v1.4.0：data.startNewDraft
                 data.startNewDraft(type: .free)
             }
         }

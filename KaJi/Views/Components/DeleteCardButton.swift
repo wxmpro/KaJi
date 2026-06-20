@@ -2,8 +2,7 @@
 //  DeleteCardButton.swift
 //  KaJi
 //
-//  编辑器 toolbar 删除按钮。
-//  v1.4.0：data.draft.canSoftDelete 替代 data.currentCard == nil || deletedAt != nil 双重判断
+//  编辑器 toolbar 删除按钮。可用性走 DraftState.canSoftDelete（单一来源）。
 //
 
 import SwiftUI
@@ -21,7 +20,6 @@ struct DeleteCardButton: View {
                 .frame(width: 32, height: 32)
         }
         .help("移到回收站")
-        // 单一来源：DraftState.canSoftDelete
         .disabled(!data.draft.canSoftDelete)
     }
 }

@@ -2,7 +2,7 @@
 //  KaJiListRowButtonStyle.swift
 //  KaJi
 //
-//  列表行按钮样式（v1.3.1）：选中态 / 按下态用深灰，hover 用浅灰，
+//  列表行按钮样式：选中态 / 按下态用深灰，hover 用浅灰，
 //  与侧栏 SidebarRowButtonStyle 视觉同源，深浅模式统一。
 //
 //  设计要点：

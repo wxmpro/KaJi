@@ -7,14 +7,6 @@
 //  - NavigationSplitView 侧栏自动延伸到 titlebar，traffic-lights 视觉上落在侧栏顶部
 //  - .searchable(placement: .toolbar) 提供原生 NSSearchToolbarItem 搜索
 //
-//  v1.3.1：保留 toolbar 范式；那条 1px 分隔线在 AppDelegate.configure 中
-//  通过 window.toolbar?.showsBaselineSeparator = false 消除。
-//
-//  v1.4.0：
-//  - @EnvironmentObject → @Environment（@Observable 细粒度订阅）
-//  - 删 EditorState 中间层，AppDelegate 直接持有 5 个 state
-//  - 命令组直接走 appDelegate.data / appDelegate.ui
-//
 
 import SwiftUI
 import AppKit
@@ -104,11 +96,9 @@ struct KaJiApp: App {
     }
 }
 
-/// AppDelegate
-/// v1.4.0：接管原 EditorState 的启动期职责（reconcile + purge + 首卡初始化）
+/// AppDelegate：接管启动期职责（reconcile + purge + 首卡初始化）
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    // v1.4.0：直接持有 5 个 state，无中间层
     let statsState: StatsState
     let listState: ListState
     let alertState: EditorAlertState
@@ -137,7 +127,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        // v1.6.1：退出走 .terminateLater + 同步 drain 锚点 + flush .md 队列
+        // 退出走 .terminateLater + 同步 drain 锚点 + flush .md 队列
         // 不变量 I（写即持久）：anchor 先同步落地，.md 由 actor flush 保证不丢
         Task { @MainActor in
             CardService.shared.cancelPendingSave()
@@ -159,11 +149,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                // v1.6.0（批次5/群5）：
                 // 1. 关键对账（恢复 .md 有但 DB 无的卡，影响首屏完整性）— 同步等
                 let reconcileResult = try await CardService.shared.bootstrapCritical()
                 if reconcileResult.failedCount > 0 {
-                    self.alertState.saveError = "从 .md 恢复了 \(reconcileResult.restoredCount) 张，但 \(reconcileResult.failedCount) 张失败（首张：\(reconcileResult.failedIDs.first ?? "?")，原因：\(reconcileResult.firstErrorDescription ?? "未知")）。如果这是 v1.6.1 之前的旧 .md，请升级后重试。"
+                    self.alertState.saveError = "从 .md 恢复了 \(reconcileResult.restoredCount) 张，但 \(reconcileResult.failedCount) 张失败（首张：\(reconcileResult.failedIDs.first ?? "?")，原因：\(reconcileResult.firstErrorDescription ?? "未知")）。如果 .md 来自旧版本，请升级后重试。"
                 }
                 // 2. 首屏数据加载 — 完成即清 loading 态，列表/侧栏立即可用
                 let stats = try await CardService.shared.refreshStats()
@@ -200,11 +189,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func configure(window: NSWindow) {
         window.title = ""
         window.titlebarSeparatorStyle = .none
-        // v1.3.1 P0 关键修复：消除 toolbar 下方那条 1px 分隔线
+        // 消除 toolbar 下方那条 1px 分隔线
         window.toolbar?.showsBaselineSeparator = false
-        // v1.7.0：让 titlebar 透明 + content view 延伸至 titlebar 区域，
-        // 让 sidebar Liquid Glass 玻璃背景透到 traffic-lights 区域
-        // （与 Apple Podcast / Freeform 视觉一致：traffic-lights 落在 sidebar 同色/玻璃背景里）
+        // 让 titlebar 透明 + content view 延伸至 titlebar 区域，
+        // 让 sidebar 玻璃背景透到 traffic-lights 区域
+        // （与 Apple Podcast / Freeform 视觉一致）
         window.titlebarAppearsTransparent = true
         window.styleMask.insert(.fullSizeContentView)
     }

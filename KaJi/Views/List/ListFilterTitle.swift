@@ -3,7 +3,6 @@
 //  KaJi
 //
 //  列表区域上方的筛选标题。
-//  v1.4.0：@EnvironmentObject → @Environment
 //
 
 import SwiftUI

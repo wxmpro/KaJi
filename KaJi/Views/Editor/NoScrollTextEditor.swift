@@ -2,12 +2,12 @@
 //  NoScrollTextEditor.swift
 //  KaJi
 //
-//  v1.6.11：替换 SwiftUI TextEditor，强制行高消除横线穿字 bug
+//  替换 SwiftUI TextEditor，强制行高消除横线穿字 bug
 //
 //  关键设计：
 //  1. NSViewRepresentable.sizeThatFits API 精确控制高度（Apple 官方，macOS 13+）
-//  2. NSMutableParagraphStyle.minimumLineHeight = maximumLineHeight = 25 强制行高
-//  3. isReadOnly: Bool 参数响应 v1.6.4 step6 展示态
+//  2. NSMutableParagraphStyle.minimumLineHeight = maximumLineHeight = editorLineHeight 强制行高
+//  3. isReadOnly: Bool 参数响应展示态
 //  4. NSTextViewDelegate.textDidChange 同步 Binding（main thread，无需 dispatch）
 //
 

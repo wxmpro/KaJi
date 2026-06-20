@@ -3,7 +3,6 @@
 //  KaJi
 //
 //  右侧详情区：根据 rightPaneMode 切换 editor / list。
-//  v1.4.0：@EnvironmentObject → @Environment
 //
 
 import SwiftUI

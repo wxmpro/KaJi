@@ -2,9 +2,8 @@
 //  DraftState.swift
 //  KaJi
 //
-//  v1.4.0 状态机彻底重构：草稿状态机，穷举所有可能状态，编译器强制处理每个 case。
-//
-//  v1.4.0 Bug 1 修复：case empty 携带 CardType，让空草稿可记住用户选择的类型。
+//  草稿状态机：穷举所有可能状态，编译器强制处理每个 case。
+//  case empty 携带 CardType，让空草稿可记住用户选择的类型。
 //
 
 import Foundation

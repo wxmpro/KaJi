@@ -3,8 +3,7 @@
 //  KaJi
 //
 //  卡片列表视图（侧栏点击类型/标签/回收站时占用右栏）。
-//  v1.3.1 弃用 SwiftUI List(selection:)，改用 ScrollView + LazyVStack。
-//  v1.4.0：@EnvironmentObject → @Environment
+//  弃用 SwiftUI List(selection:)，改用 ScrollView + LazyVStack。
 //
 
 import SwiftUI
@@ -25,7 +24,7 @@ struct CardListView: View {
                 .padding(.top, KaJiLayout.headerTopPadding)
 
             if statsState.isBootstrapping {
-                // v1.6.0（批次5/群5）：启动加载态，避免空白窗口被误认为卡死
+                // 启动加载态，避免空白窗口被误认为卡死
                 VStack(spacing: 12) {
                     ProgressView()
                     Text("正在加载卡片库...")
@@ -34,8 +33,7 @@ struct CardListView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if cards.isEmpty {
-                // v1.7.0：搜索结果为空时，用 macOS 14+ 系统预置的搜索空态
-                // （替代 v1.6.x 手写的"在「\(title)」下没有卡片"）
+                // 搜索结果为空时用 macOS 14+ 系统预置的搜索空态
                 if case .search = listState.listFilter {
                     ContentUnavailableView.search
                         .frame(maxWidth: .infinity, maxHeight: .infinity)

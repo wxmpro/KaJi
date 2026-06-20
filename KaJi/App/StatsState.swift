@@ -3,10 +3,7 @@
 //  KaJi
 //
 //  数据缓存与统计状态。
-//  负责侧栏统计、轻量卡片缓存（v1.2.9 T5 改 [CardSummary]），以及统计刷新调度。
-//
-//  v1.2.9 T5 改造：cachedCards: [Card] → cachedSummaries: [CardSummary]（轻量）
-//  v1.4.0：迁移到 @Observable
+//  负责侧栏统计、轻量卡片缓存（[CardSummary]），以及统计刷新调度。
 //
 
 import SwiftUI
@@ -19,7 +16,7 @@ final class StatsState {
     @ObservationIgnored
     private let cardService: CardService
 
-    // MARK: - 更新回调（v1.4.0：替代 @Observable 之前的 objectWillChange 订阅）
+    // MARK: - 更新回调（多观察者数组化，支持精确移除）
     @ObservationIgnored
     private var updateObservers: [UUID: () -> Void] = [:]
 
@@ -43,7 +40,7 @@ final class StatsState {
     // MARK: - 轻量卡片缓存
     var cachedSummaries: [CardSummary] = []
 
-    /// v1.6.0（批次5/群5）：启动加载态。bootstrap 关键阶段 + 首屏统计加载完成前为 true，
+    /// 启动加载态。bootstrap 关键阶段 + 首屏统计加载完成前为 true，
     /// 列表/侧栏据此显示「正在加载卡片库...」，避免空白窗口被误认为卡死。
     var isBootstrapping: Bool = true
 
@@ -73,8 +70,8 @@ final class StatsState {
         tagCounts: [(String, Int)]
     )) {
         if cachedSummaries != stats.summaries {
-            // v1.7.2 P2-2：首次 sort 保证 sorted 不变式
-            // 之后 applyIncremental（P1-2）维护不变式，filter 可跳过 sort
+            // 首次 sort 保证 sorted 不变式（updatedAt desc, id asc）
+            // 之后 applyIncremental 维护不变式，filter 可跳过 sort
             cachedSummaries = stats.summaries.sorted { lhs, rhs in
                 if lhs.updatedAt != rhs.updatedAt { return lhs.updatedAt > rhs.updatedAt }
                 return lhs.id < rhs.id
@@ -86,12 +83,11 @@ final class StatsState {
         if !tagSame { cachedTagCounts = stats.tagCounts }
         // 重建倒排索引
         cardService.updateSearchIndex(from: stats.summaries)
-        // v1.4.0：触发所有观察者（Bug 9 修复）
-        // v1.6.1：字典 values 遍历
+        // 触发所有观察者
         for observer in updateObservers.values { observer() }
     }
 
-    /// v1.6.2 ARCH-2：应用增量 diff，不重建整个缓存
+    /// 应用增量 diff，不重建整个缓存
     /// - changed: 新增/编辑后的卡 summary
     /// - removed: 软删除/彻底删除的卡 id 集合
     func applyIncremental(changed: [CardSummary], removed: Set<String> = []) {
@@ -126,12 +122,9 @@ final class StatsState {
             }
         }
 
-        // 2. 更新 cachedSummaries（v1.7.2 P1-2 增量调整，不再全量 sort）
+        // 2. 更新 cachedSummaries（增量调整，不再全量 sort）
         //    不变式：cachedSummaries 按 (updatedAt desc, id asc) 排序
-        //    性能：O(K * (log N + N)) ≈ O(KN)
-        //      vs 旧实现 O(N log N) 全量 sort（每次 commitDraft 都跑）
-        //    10万卡 + K=1：~10万次内存移动 vs ~170万次比较 → ~17x 加速
-        //    v1.6.5 bug fix 仍保留：同 updatedAt 按 id 字典序，避免侧栏/列表重排
+        //    同 updatedAt 按 id 字典序，避免侧栏/列表重排
 
         // 2.1 先移除 removed
         for id in removed {
@@ -160,9 +153,8 @@ final class StatsState {
         }
 
         // 4. 应用 tagCounts diff
-        //    v1.6.5 bug fix：稳定排序 — 同 count 按 tag 名字典序，
-        //    避免 applyIncremental 反复触发时，Dictionary 迭代顺序无序导致
-        //    同 count 标签顺序随机跳动（侧栏「标签」section 重排）。
+        //    稳定排序 — 同 count 按 tag 名字典序，避免 applyIncremental
+        //    反复触发时 Dictionary 迭代顺序无序导致同 count 标签随机跳动
         var tagDict = Dictionary(uniqueKeysWithValues: cachedTagCounts.map { ($0.0, $0.1) })
         for (tag, delta) in tagDiff {
             let newCount = (tagDict[tag] ?? 0) + delta
@@ -186,7 +178,7 @@ final class StatsState {
         for observer in updateObservers.values { observer() }
     }
 
-    /// v1.7.2 P1-2：二分查找插入位置（按 updatedAt desc, id asc 排序的不变式）。
+    /// 二分查找插入位置（按 updatedAt desc, id asc 排序的不变式）。
     /// O(log N)，配合 Array.insert(at:) 实现 O(log N + N) 增量调整。
     /// 返回第一个让 `summary` 应该排在 `array[i]` 之前的位置。
     private static func insertPosition(for summary: CardSummary, in array: [CardSummary]) -> Int {

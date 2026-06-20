@@ -2,7 +2,7 @@
 //  RemovableTagPill.swift
 //  KaJi
 //
-//  v1.4.0：标签 pill 带叉叉小图标（hover/always 时显示），点击直接删除。
+//  标签 pill 带叉叉小图标（hover/always 时显示），点击直接删除。
 //  - canRemove = false 时（回收站只读）不显示叉叉按钮
 //  - canRemove = true 时（编辑中）显示叉叉小图标
 //
@@ -47,7 +47,6 @@ struct RemovableTagPill: View {
         )
         .overlay(
             Capsule()
-                // v1.7.0：分隔线走 macOS hierarchical shape style .quaternary
                 .stroke(.quaternary, lineWidth: 0.5)
         )
         .onHover { hovering in

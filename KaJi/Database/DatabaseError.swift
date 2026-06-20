@@ -2,12 +2,8 @@
 //  DatabaseError.swift
 //  KaJi
 //
-//  v1.3.0 引入：结构化数据库错误，替换散落的 NSError。
-//
-//  之前散落在 CardRepository / AppDatabase / CardFileIO 里的 NSError 各自带
-//  domain + code，调用方只能拿到 localizedDescription，结构化信息丢失。
-//  本枚举统一所有数据库/文件 IO 错误场景，保留原始 underlying error 链
-//  便于 debug log。
+//  结构化数据库错误。统一所有数据库/文件 IO 错误场景，
+//  保留原始 underlying error 链便于 debug log。
 //
 
 import Foundation
@@ -23,8 +19,8 @@ enum DatabaseError: LocalizedError {
     case bootstrapFailed(underlying: Error)
     case migrationFailed(version: String, underlying: Error)
     case idConflict(cardId: String)
-    case idConflictExhausted(attempts: Int)   // v1.3.2 P0 补：跨进程 ID 冲突重试 N 次后耗尽
-    case transactionRollback(reason: String, underlying: Error?)   // v1.3.2 P0 补：IMMEDIATE 事务回滚
+    case idConflictExhausted(attempts: Int)
+    case transactionRollback(reason: String, underlying: Error?)
     case markdownWriteFailed(cardId: String, underlying: Error)
     case markdownParseFailed(reason: String)
     case markdownNoFrontmatter

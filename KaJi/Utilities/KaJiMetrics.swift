@@ -2,7 +2,8 @@
 //  KaJiMetrics.swift
 //  KaJi
 //
-//  v1.6.11：建立全局公共设计常量，消除横线穿字 bug 的根因（lineHeight 硬编码 24）
+//  全局公共设计常量（命名空间式 enum，禁止实例化）。
+//  消除横线穿字 bug 的根因（lineHeight 硬编码 24）。
 //
 
 import CoreGraphics

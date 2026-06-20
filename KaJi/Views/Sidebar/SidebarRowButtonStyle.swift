@@ -24,7 +24,6 @@ struct SidebarRowButtonStyle: ButtonStyle {
     }
 
     private func fillColor(isPressed: Bool) -> Color {
-        // v1.3.2：颜色统一走 SemanticColor.resolve(for:)
         if isPressed {
             return KaJiColor.sidebarRowPressed.resolve(for: colorScheme)
         }

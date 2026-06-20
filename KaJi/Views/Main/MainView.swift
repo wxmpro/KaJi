@@ -6,21 +6,19 @@
 //  使用 .windowToolbarStyle(.unifiedCompact) + .searchable(placement: .toolbar)
 //  实现 traffic-lights 视觉上落在侧栏顶部 + 原生 toolbar 搜索。
 //
-//  v1.3.1：那 1px 分隔线由 NSToolbar.showsBaselineSeparator 控制。
-//  v1.4.0：@EnvironmentObject → @Environment（@Observable 细粒度订阅）
+//  那 1px 分隔线由 NSToolbar.showsBaselineSeparator 控制。
 //
 
 import SwiftUI
 
 struct MainView: View {
-    // v1.4.0：@Environment(Type.self) 注入（@Observable 自动追踪）
     @Environment(ListState.self) private var listState
     @Environment(EditorDataState.self) private var data
     @Environment(EditorUIState.self) private var ui
     @Environment(\.undoManager) private var undoManager
 
     var body: some View {
-        @Bindable var ui = ui  // 子 view 持 @Bindable（按 v1.3.1 教训：根 view 不持 @Bindable）
+        @Bindable var ui = ui  // 子 view 持 @Bindable（根 view 不持 @Bindable）
         NavigationSplitView(columnVisibility: $ui.sidebarColumnVisibility) {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 180, ideal: 240, max: 400)
@@ -42,7 +40,7 @@ struct MainView: View {
             }
         }
         // macOS 26 Liquid Glass：让 toolbar 背景可见 + 颜色跟随系统，
-        // 使 sidebar 视觉上延伸到 titlebar（traffic-lights 落在 sidebar 同色背景里，与 Podcast/Freeform 一致）
+        // 使 sidebar 视觉上延伸到 titlebar（与 Podcast/Freeform 一致）
         .toolbarBackground(.visible, for: .windowToolbar)
         .toolbarColorScheme(nil, for: .windowToolbar)
         .onSubmit(of: .search) {

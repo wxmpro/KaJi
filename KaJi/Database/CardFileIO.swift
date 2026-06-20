@@ -4,13 +4,6 @@
 //
 //  .md 文件派生视图（derived view）— 按 V1 草稿 + 数据库设计文档。
 //
-//  v1.3.2 彻底升级：
-//  - parseMarkdown 入口 normalize（CRLF → LF + 去 BOM），解决跨平台 .md 解析失败
-//  - renderMarkdown 所有字符串强制双引号（避免 true/123/null 歧义）
-//  - 字段边界严格校验：未知字段名抛 MarkdownError.unknownField（不静默丢失）
-//  - print 替换为 OSLog
-//  - 删除冗余的 CardFileIOError（统一到 DatabaseError.applicationSupportUnavailable）
-//
 //  文件路径：~/Library/Application Support/KaJi/cards/<id>.md
 //  文件格式：Markdown + YAML frontmatter（方便人读、git 同步、备份）
 //  写盘策略：SQLite 事务提交成功后，再写 .md；.md 写入失败不破坏主数据一致性
@@ -23,8 +16,8 @@ import os
 struct CardFileIO {
     private static let log = Logger(subsystem: "com.kaji.app", category: "cardfileio")
 
-    // v1.6.1：已知字段名集合改为从 CardType.allCases 动态构建，
-    // 与 renderMarkdown 输出的中文字段名永久同步，解决 render 写中文 / parse 认英文 100% 不匹配
+    // 已知字段名集合从 CardType.allCases 动态构建，
+    // 与 renderMarkdown 输出的中文字段名永久同步
     private static let knownFieldNames: Set<String> = {
         var names: Set<String> = ["title", "tags"]
         for type in CardType.allCases {
@@ -36,7 +29,6 @@ struct CardFileIO {
     // MARK: - 路径
 
     /// 数据根目录
-    /// v1.3.2：改抛 DatabaseError.applicationSupportUnavailable（统一错误类型）
     static func dataRoot() throws -> URL {
         guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             throw DatabaseError.applicationSupportUnavailable
@@ -109,14 +101,13 @@ struct CardFileIO {
     // MARK: - 渲染：Card → Markdown
 
     /// 渲染为 Markdown + YAML frontmatter
-    /// v1.3.2：所有字符串字段强制双引号（避免 true/123/null 解析歧义）
+    /// 所有字符串字段强制双引号（避免 true/123/null 解析歧义）
     static func renderMarkdown(_ card: Card) -> String {
         var out = "---\n"
-        out += "id: \(quote(card.id))\n"                            // ★ 强引号
-        // v1.3.0：把当前 SQLite 行的 mdVersion 写进 frontmatter 第一行
+        out += "id: \(quote(card.id))\n"
         out += "mdVersion: \(card.mdVersion)\n"                      // 数字不加引号
-        out += "type: \(quote(card.type))\n"                         // ★ 强引号
-        out += "title: \(quote(card.title))\n"                       // ★ 强引号
+        out += "type: \(quote(card.type))\n"
+        out += "title: \(quote(card.title))\n"
         out += "createdAt: \(iso8601(card.createdAt))\n"            // 时间保留 ISO8601
         out += "updatedAt: \(iso8601(card.updatedAt))\n"
         if let d = card.deletedAt {
@@ -136,7 +127,7 @@ struct CardFileIO {
     // MARK: - 解析：Markdown → Card
 
     /// 解析 frontmatter + Markdown body
-    /// v1.3.2：入口先 normalize（去 BOM + CRLF → LF），避免跨平台 .md 解析失败
+    /// 入口先 normalize（去 BOM + CRLF → LF），避免跨平台 .md 解析失败
     static func parseMarkdown(_ rawText: String) throws -> Card {
         let text = normalize(rawText)
         var currentLine = 1   // 用于错误信息定位（normalize 后行号保持一致）
@@ -215,7 +206,7 @@ struct CardFileIO {
             currentLine += 1
             if line.hasPrefix("## ") {
                 let candidateName = String(line.dropFirst(3)).trimmingCharacters(in: .whitespaces)
-                // ★ v1.3.2：严格校验 — 未知字段名抛错（不静默丢失内容）
+                // 严格校验 — 未知字段名抛错（不静默丢失内容）
                 guard knownFieldNames.contains(candidateName) else {
                     throw MarkdownError.unknownField(name: candidateName, line: currentLine)
                 }
@@ -245,7 +236,7 @@ struct CardFileIO {
         }
     }
 
-    /// v1.3.2：规范化文本 — 去 BOM + CRLF → LF + 行尾 trim trailing whitespace
+    /// 规范化文本 — 去 BOM + CRLF → LF + 行尾 trim trailing whitespace
     private static func normalize(_ text: String) -> String {
         var s = text
         // 去 BOM
@@ -256,7 +247,6 @@ struct CardFileIO {
         return s
     }
 
-    // v1.6.2 CODE-1：统一用 DateFormatting（Date.ISO8601FormatStyle，值类型 Sendable）
     private static func iso8601(_ d: Date) -> String {
         DateFormatting.string(d)
     }
@@ -265,7 +255,7 @@ struct CardFileIO {
         DateFormatting.parse(s)
     }
 
-    /// v1.3.2：强制所有字符串加双引号（避免 true/123/null 解析歧义）
+    /// 强制所有字符串加双引号（避免 true/123/null 解析歧义）
     /// JSON 风格转义：`\\` `"` `\n` `\t`
     private static func quote(_ s: String) -> String {
         "\"" + s
@@ -276,7 +266,7 @@ struct CardFileIO {
             + "\""
     }
 
-    /// v1.3.2：双引号包裹则去除（反向操作）
+    /// 双引号包裹则去除（反向操作）
     private static func unquote(_ s: String) -> String {
         guard s.hasPrefix("\"") && s.hasSuffix("\""), s.count >= 2 else {
             return s

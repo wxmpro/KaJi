@@ -2,11 +2,7 @@
 //  CardListRow.swift
 //  KaJi
 //
-//  卡片列表单行。
-//  v1.4.0：
-//  - @EnvironmentObject → @Environment
-//  - 选中态判断走 data.draft.cardID（@Observable 自动追踪，单行重建）
-//  - 打开卡走 data.startEditing
+//  卡片列表单行。选中态判断走 data.draft.cardID（@Observable 自动追踪）。
 //
 
 import SwiftUI
@@ -89,9 +85,8 @@ struct CardListRow: View {
         }
     }
 
-    /// 打开卡片进编辑器
+    /// 打开卡片进编辑器（异步读，避免主线程 I/O 阻塞）
     private func openCardFromRow() {
-        // v1.6.2 ARCH-3：改异步读，避免主线程同步 I/O 阻塞
         Task { @MainActor in
             guard let fullCard = try? await CardRepository.shared.cardAsync(id: card.id) else { return }
             data.startEditing(fullCard)

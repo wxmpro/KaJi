@@ -24,7 +24,7 @@ final class CardService: @unchecked Sendable {
 
     // MARK: - 启动与清理
 
-    /// v1.6.0（批次5/群5）：关键对账 —— 仅恢复「.md 有但 DB 没有」的卡，
+    /// 关键对账 —— 仅恢复「.md 有但 DB 没有」的卡，
     /// 影响首屏数据完整性，必须在首屏渲染前同步完成。开销极小。
     /// - Returns: ReconcileResult 包含恢复成功数、失败数、失败 ID 列表及首个错误
     func bootstrapCritical() async throws -> ReconcileResult {
@@ -34,9 +34,9 @@ final class CardService: @unchecked Sendable {
         }.value
     }
 
-    /// v1.6.0（批次5/群5）：延迟对账 + 回收站清理 —— 纯 .md 派生修复 + purge，
+    /// 延迟对账 + 回收站清理 —— 纯 .md 派生修复 + purge，
     /// 不影响首屏 DB 数据，在首屏渲染后以低优先级后台执行。
-    /// 含 P0 的全量 mdVersion 扫描（已移出首屏关键路径）。
+    /// 含全量 mdVersion 扫描（已移出首屏关键路径）。
     func bootstrapDeferred(retentionDays: Int) async throws {
         let repo = repository
         try await Task.detached(priority: .utility) {
@@ -48,9 +48,7 @@ final class CardService: @unchecked Sendable {
     // MARK: - 新卡
 
     /// 生成一张新卡（不写库）
-    /// ★ v1.3.2：彻底改造 — 不再读 allIDs()（多进程下读到过期 snapshot）。
     /// CardIDGenerator 进程内单调 + DB UNIQUE 约束兜底跨进程。
-    /// 调用方（EditorState.startNewCard / init）用 `Task { @MainActor in try await ... }` 包裹即可。
     func generateNewCard(type: CardType) async throws -> Card {
         for _ in 1...10 {
             let candidateId: String
@@ -72,21 +70,20 @@ final class CardService: @unchecked Sendable {
 
     /// 写卡到 SQLite + .md：在后台 utility 队列执行
     /// SQLite 是强一致锚点；.md 是派生视图，写入失败会由启动对账修复
-    /// ★ v1.3.2：捕获 idConflict 重试 — 跨进程场景下第二进程与第一进程撞 ID 时自动重生成
-    /// ★ v1.4.0：返回实际写入的 Card（处理 ID 冲突重试后的新 ID）
-    /// ★ v1.6.1：循环真正重试 10 次，并同步更新 CardField.cardId
+    /// 捕获 idConflict 重试 — 跨进程场景下第二进程与第一进程撞 ID 时自动重生成
+    /// 循环真正重试 10 次，并同步更新 CardField.cardId
     func persist(card: Card) async throws -> Card {
         let repo = repository
         var current = card
         for attempt in 1...10 {
             do {
-                // v1.6.1：通过捕获列表 [current] 把当前卡快照传给 Task，避免闭包捕获 var
+                // 通过捕获列表 [current] 把当前卡快照传给 Task，避免闭包捕获 var
                 return try await Task.detached(priority: .utility) { [current] in
                     try repo.save(card: current)
                 }.value
             } catch DatabaseError.idConflict {
-                // v1.6.1 BUG-5：用 continue 而非 return，让循环真正重试
-                // v1.6.1 REL-4：重试时同步刷新 fields 内每个 cardId 为 newId
+                // 用 continue 而非 return，让循环真正重试
+                // 重试时同步刷新 fields 内每个 cardId 为 newId
                 guard attempt < 10 else {
                     throw KaJiError.database(.idConflictExhausted(attempts: 10))
                 }
@@ -115,12 +112,10 @@ final class CardService: @unchecked Sendable {
         throw KaJiError.database(.idConflictExhausted(attempts: 10))
     }
 
-    // MARK: - 自动保存调度（v1.2.9 T2 E：从 PersistenceCoordinator 合并过来）
+    // MARK: - 自动保存调度
     // 用 DispatchWorkItem 在 main queue 做 debounce / flush；
-    // service 是 @unchecked Sendable，但内部 state 只在 main queue 读写，
-    // 跨线程访问需在 caller 端保证在 @MainActor 调用（EditorDataState 已是 @MainActor）。
-    // @MainActor 标注：SettingsService.autoSaveInterval 是 @MainActor 隔离的，
-    // 必须从 main actor 上下文调用才能读到值。
+    // service 是 @unchecked Sendable，但内部 state 只在 main queue 读写。
+    // @MainActor 标注：SettingsService.autoSaveInterval 是 @MainActor 隔离的。
 
     @MainActor
     private var saveWorkItem: DispatchWorkItem?
@@ -143,11 +138,9 @@ final class CardService: @unchecked Sendable {
         action()
     }
 
-    /// 取消 pending save（不执行 action）— v1.4.1 P0 修复
+    /// 取消 pending save（不执行 action）
     /// 场景：lifecycleService.softDelete/restore 之前需要取消 pending 的 debounce save
-    /// （避免旧内容覆盖 deletedAt / 恢复后的字段）。v1.4.0 改用 fire-and-forget
-    /// `Task { commitDraft { _ in } }` 会导致撤销时死循环（commitDraft 走 isEmpty 分支
-    /// 又注册 undo），所以改为直接 cancel pending save。
+    /// （避免旧内容覆盖 deletedAt / 恢复后的字段）。
     @MainActor
     func cancelPendingSave() {
         saveWorkItem?.cancel()
@@ -166,7 +159,7 @@ final class CardService: @unchecked Sendable {
         try repository.restore(id: id)
     }
 
-    /// v1.4.2 根因修复：把清空前的完整内容回写 + 软删除（单事务原子）
+    /// 把清空前的完整内容回写 + 软删除（单事务原子）
     /// 用于"逐步清空 → 回收站"场景，保证回收站显示清空前完整内容
     func softDeletePreservingContent(_ card: Card) throws {
         try repository.softDeletePreservingContent(card)
@@ -175,7 +168,7 @@ final class CardService: @unchecked Sendable {
     // MARK: - 统计
 
     /// 读全量卡并计算侧栏统计（后台执行）
-    /// v1.2.9 T5 改造：3 路 SQL 聚合替代 hydrate 全库
+    /// 3 路 SQL 聚合替代 hydrate 全库
     /// - typeCounts：GROUP BY type（O(N) → 一次 SQL）
     /// - tagCounts：JOIN cardTags + tags（O(M) → 一次 SQL）
     /// - summaries：轻量 [CardSummary]（不查 fields，内存 20MB → 1.2MB）
@@ -191,7 +184,7 @@ final class CardService: @unchecked Sendable {
         }.value
     }
 
-    /// v1.6.2 ARCH-2：增量统计 —— 只把 changed 卡转成 CardSummary，不扫全库
+    /// 增量统计 —— 只把 changed 卡转成 CardSummary，不扫全库
     /// 返回 changed summaries，由 StatsState.applyIncremental 负责合并到缓存并计算 diff
     func refreshStatsIncremental(changed: [Card]) async -> [CardSummary] {
         await Task.detached(priority: .utility) {
@@ -201,12 +194,11 @@ final class CardService: @unchecked Sendable {
 
     // MARK: - 列表筛选
 
-    /// v1.2.9 T5 改造：输入 [CardSummary] 替代 [Card]
     /// 搜索分支用 CardSearchIndex 倒排索引（O(命中)）替代 O(N) 线性匹配。
     /// 非搜索分支仍走 [CardSummary] 线性过滤（O(N) 但无 fields hydrate 成本）。
     private let searchIndex = CardSearchIndex()
 
-    // MARK: - v1.7.2 P1-1：filter 分桶缓存
+    // MARK: - filter 分桶缓存
     /// 按 ListFilter 分桶缓存结果（.all / .type(t) / .tag(s) / .trash）。
     /// 命中条件：summaries.count 未变 + 桶 key 匹配。
     /// .search 不缓存（query 变化频繁；.none 也不缓存）。
@@ -232,10 +224,9 @@ final class CardService: @unchecked Sendable {
         return result
     }
 
-    /// 实际计算 filter 结果（v1.7.2 拆分出 computeFilteredCards，便于与桶缓存逻辑隔离）
-    /// v1.7.2 P2-2 优化：去掉了 `result.sorted` —— `summaries` 已 sorted（StatsState.update
-    /// 首次 sort，applyIncremental 维护不变式），Swift `filter` 是稳定的，结果仍 sorted。
-    /// 节省每次 filter 的 O(N log N) sort。10万卡 + K=1：~170万次比较 → 0。
+    /// 实际计算 filter 结果（拆分出来便于与桶缓存逻辑隔离）
+    /// 跳过 sort —— `summaries` 已 sorted（StatsState.update 首次 sort，
+    /// applyIncremental 维护不变式），Swift `filter` 是稳定的，结果仍 sorted。
     private func computeFilteredCards(from summaries: [CardSummary], matching filter: ListFilter?) -> [CardSummary] {
         switch filter {
         case .type(let type):
@@ -247,7 +238,6 @@ final class CardService: @unchecked Sendable {
         case .all:
             return summaries.filter { $0.deletedAt == nil }
         case .search(let keyword):
-            // v1.2.9 T5：用倒排索引命中
             let hits = searchIndex.search(keyword)
             return summaries.filter { hits.contains($0.id) && $0.deletedAt == nil }
         case .none:
@@ -268,7 +258,7 @@ final class CardService: @unchecked Sendable {
     }
 
     /// 外部调用入口：刷新搜索索引（StatsState.update 触发，在主线程）
-    /// v1.5.0：改增量同步（sync）替代全量 rebuild，未变化的卡跳过 tokenize
+    /// 改增量同步（sync）替代全量 rebuild，未变化的卡跳过 tokenize
     func updateSearchIndex(from summaries: [CardSummary]) {
         searchIndex.sync(to: summaries)
     }

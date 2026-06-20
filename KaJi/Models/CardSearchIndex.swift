@@ -2,24 +2,20 @@
 //  CardSearchIndex.swift
 //  KaJi
 //
-//  v1.2.9 T5 引入：搜索倒排索引。
-//  v1.3.0：直接索引 CardSummary.searchText（title + tags + 字段值预拼接）。
-//  v1.5.0 增量化：rebuild → 增量 sync(to:)，未变化的卡跳过分词。
-//  v1.5.0 中文分词修复（群2 P0）：旧 tokenize 用 CharacterSet.alphanumerics
-//         切词，而 CJK 汉字属于 alphanumerics → 整段中文被当成「一个 token」，
-//         搜「术语」无法命中「术语卡」→ 中文搜索 100% 失效。
-//         改为 bigram（二元组）分词 + 子串校验：
-//           - grams()：把可索引连续段切成 bigram（中文「卡片笔记」→ 卡片/片笔/
-//             笔记；英文「hello」→ he/el/ll/lo），单字符段产 unigram。
-//           - 倒排索引存 gram，搜索时用 query 的 grams 求候选交集（快速召回）。
-//           - 再用 docLower 子串校验（query 必须是该卡小写全文的子串），消除
-//             bigram 的假阳性（如搜「术卡」不会误中「术语卡」）。
-//           - 单字 query（可索引字符 <2）走全集 + 子串校验，保证单字也能搜。
+//  搜索倒排索引。直接索引 CardSummary.searchText（title + tags + 字段值预拼接）。
 //
-//  - 倒排结构：InvertedIndex = [gram: Set<CardID>]
-//  - 正排结构：docText [id: searchText 原文]（变更检测）、
-//             docLower [id: searchText 小写]（子串校验）、
-//             docGrams [id: Set<gram>]（增量移除旧贡献）
+//  分词策略：bigram + 子串校验（解决 CJK 单 token 问题）
+//  - grams()：把可索引连续段切成 bigram（中文「卡片笔记」→ 卡片/片笔/笔记；
+//    英文「hello」→ he/el/ll/lo），单字符段产 unigram。
+//  - 倒排索引存 gram，搜索时用 query 的 grams 求候选交集（快速召回）。
+//  - 再用 docLower 子串校验，消除 bigram 的假阳性（如搜「术卡」不会误中「术语卡」）。
+//  - 单字 query（可索引字符 <2）走全集 + 子串校验，保证单字也能搜。
+//
+//  数据结构：
+//  - 倒排：InvertedIndex = [gram: Set<CardID>]
+//  - 正排：docText [id: searchText 原文]（变更检测）/
+//          docLower [id: searchText 小写]（子串校验）/
+//          docGrams [id: Set<gram>]（增量移除旧贡献）
 //
 
 import Foundation
@@ -27,8 +23,7 @@ import os
 
 typealias InvertedIndex = [String: Set<String>]
 
-/// v1.2.9 T5 倒排索引（v1.5.0 增量化 + bigram 中文分词）。
-/// v1.6.2 BUG-2：用 OSAllocatedUnfairLock 保护 4 个字典，取代"只在主线程调用"的注释约定。
+/// 倒排索引。用 OSAllocatedUnfairLock 保护 4 个字典（取代"只在主线程调用"的注释约定）。
 /// 保持 search(_:) 与 sync(to:) 同步签名不变，避免 async 沿调用链传染。
 final class CardSearchIndex {
     private struct State {

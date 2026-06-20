@@ -2,16 +2,7 @@
 //  EditorDataState.swift
 //  KaJi
 //
-//  v1.4.0 状态机彻底重构：
-//  - 5 个 @Published → 1 个 draft @Observable 字段
-//  - 4 个状态入口（startNewDraft / startEditing / commitDraft / discardDraft）
-//  - 增量更新 updateDraft
-//
-//  v1.4.0 一次性修复（不再有 dead API / 兼容层）：
-//  - 删除 v1.3.4 startNewCard / openCard / restoreCard 兼容层（无调用方）
-//  - 删除 saveImmediately / flushSave 死 API（无调用方，已被 commitDraft 替代）
-//  - 删 lastSavedAt / hasBeenPersisted / ensureCurrentCardID / persistCurrentCard
-//  - Bug 1-10 全部修复
+//  编辑器状态层。DraftState 状态机 + 4 个状态入口 + 增量更新。
 //
 
 import SwiftUI
@@ -24,7 +15,7 @@ final class EditorDataState {
     // MARK: - 单一真相源
     var draft: DraftState = .empty()
 
-    // MARK: - 编辑会话原点快照（v1.4.2 根因修复）
+    // MARK: - 编辑会话原点快照
     //
     // 问题：debounce 自动保存在"逐个清空字段"过程中，把每一步"部分清空"内容
     //   写进 DB，等卡片变空命中 isEmpty 分支时，DB 里原内容早已被覆盖成残缺态。
@@ -109,7 +100,7 @@ final class EditorDataState {
     /// 打开已有卡（自动判断编辑态 / 回收站只读态）
     func startEditing(_ card: Card) {
         draft = card.deletedAt != nil ? .trash(card) : .editing(card)
-        // v1.4.2：捕获打开时的原内容作为会话原点（回收站只读卡不参与编辑，无需快照）
+        // 回收站只读卡不参与编辑，无需快照
         editSessionOrigin = card.deletedAt == nil ? card : nil
         alert?.saveError = nil
         withAnimation(KaJiAnimation.modeSwitch) {
@@ -165,17 +156,11 @@ final class EditorDataState {
                 editSessionOrigin = nil
                 return .success(Card.placeholder)
             } else {
-                // v1.4.2 根因修复：用会话原点（清空前最完整内容）原子回写 + 软删除。
-                //
-                // 旧实现（v1.4.1）的缺陷：不回写、用 dbCard 做快照。但 debounce 自动保存
-                // 在逐个清空过程中已把"部分清空"内容写进 DB，dbCard 是残缺态 →
-                // 回收站丢内容、撤销恢复残缺。
-                //
-                // 新实现：editSessionOrigin 持有本次编辑会话的内容峰值（清空使字符数
+                // 用 editSessionOrigin（清空前最完整内容）原子回写 + 软删除。
+                // editSessionOrigin 持有本次编辑会话的内容峰值（清空使字符数
                 // 下降，不更新峰值）。softDeletePreservingContent 单事务把完整内容 +
-                // deletedAt 一次落库，回收站显示完整原内容；undo 快照同样用它，撤销
-                // restore 后 DB 即完整内容，draft=.editing(完整卡) 走正常非空路径，
-                // 不再触发 isEmpty 分支 → 无死循环。
+                // deletedAt 一次落库，回收站显示完整原内容；undo 快照同样用它，
+                // restore 后 DB 即完整内容，不再触发 isEmpty 分支 → 无死循环。
                 precondition(card.deletedAt == nil,
                     "commitDraft 已持久化分支的 card 不应已删除（DraftState.editing 阶段 deletedAt 必须为 nil）")
 
@@ -188,8 +173,8 @@ final class EditorDataState {
                     try cardService.softDeletePreservingContent(snapshot)
                     let stats = try await cardService.refreshStats()
                     statsState?.update(with: stats)
-                    // v1.5.0：删除显式 refreshFilteredCards —— update(with:) 已通过
-                    // StatsState observer 在下一帧触发列表刷新，避免双重 O(N) 过滤
+                    // update(with:) 已通过 StatsState observer 在下一帧触发列表刷新，
+                    // 不需要显式 refreshFilteredCards，避免双重 O(N) 过滤
                     undoManager?.registerUndo(withTarget: self) { target in
                         target.restoreFromTrash(snapshot)
                     }
@@ -221,12 +206,11 @@ final class EditorDataState {
                 draft = .editing(saved)
                 Self.log.notice("ID conflict retried: \(toPersist.id) → \(saved.id)")
             }
-            // v1.4.2：持久化成功后刷新会话原点峰值
+            // 持久化成功后刷新会话原点峰值
             refreshEditSessionOrigin(with: saved)
-            // v1.6.2 ARCH-2：增量刷新统计 —— 只更新当前卡 summary，不重查全库
+            // 增量刷新统计 —— 只更新当前卡 summary，不重查全库
             let changedSummaries = await cardService.refreshStatsIncremental(changed: [saved])
             statsState?.applyIncremental(changed: changedSummaries, removed: [])
-            // v1.5.0：删除显式 refreshFilteredCards —— 同上，由 observer 驱动
             return .success(saved)
         } catch {
             Self.log.error("commitDraft persist failed: \(error.localizedDescription, privacy: .public)")
@@ -285,7 +269,7 @@ final class EditorDataState {
 
     func restoreFromTrash(_ card: Card) {
         lifecycleService.restore(card)
-        // v1.4.2：撤销/恢复后重建会话原点，保证之后再次清空仍持有完整内容峰值
+        // 撤销/恢复后重建会话原点，保证之后再次清空仍持有完整内容峰值
         if case .editing(let c) = draft { editSessionOrigin = c }
     }
 

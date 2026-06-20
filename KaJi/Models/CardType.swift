@@ -2,7 +2,7 @@
 //  CardType.swift
 //  KaJi
 //
-//  12 种内置卡片类型（按 V1 草稿第 4 条 + mockup v7.0.1 字段，v1.2.9 T7 注释修正 — 原本误写 11 种）。
+//  12 种内置卡片类型（按 V1 草稿第 4 条 + mockup 字段规范）。
 //  source of truth：V1 草稿；mockup 字段命名差异以 V1 草稿为准。
 //
 //  每种类型定义：
@@ -15,7 +15,7 @@
 
 import SwiftUI
 
-/// 12 种内置卡片类型 — 与 V1 草稿第 4 条 1:1 对应（v1.2.9 T7 注释修正 — 原本误写 11 种）
+/// 12 种内置卡片类型 — 与 V1 草稿第 4 条 1:1 对应
 enum CardType: String, CaseIterable, Identifiable, Hashable {
     case term        = "术语卡"      // teal
     case counter     = "反常识卡"    // red
@@ -32,7 +32,7 @@ enum CardType: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
 
-    /// tint 标识（与 mockup v7.0.1 的 data-tint 一致）
+    /// tint 标识（与 mockup 字段规范的 data-tint 一致）
     enum Tint: String {
         case red, orange, blue, indigo, teal, gray, mint, yellow, green, purple
         case graySecondary = "gray-secondary"

@@ -2,8 +2,7 @@
 //  DateFormatting.swift
 //  KaJi
 //
-//  v1.6.2：统一日期格式化。
-//  用 Date.ISO8601FormatStyle（值类型，官方 Sendable，macOS 12+）
+//  统一日期格式化。用 Date.ISO8601FormatStyle（值类型，官方 Sendable，macOS 12+）
 //  替代 ISO8601DateFormatter + nonisolated(unsafe)（线程安全依据不成立）。
 //
 

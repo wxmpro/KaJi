@@ -2,15 +2,13 @@
 //  MarkdownWriteQueue.swift
 //  KaJi
 //
-//  v1.3.0 引入：.md 派生视图写入队列（actor 串行化）。
+//  .md 派生视图写入队列（actor 串行化）。
 //
 //  设计原则：
 //  - 串行化所有 .md 写入（actor 隔离），彻底消除 race
 //  - 相同 id 自动合并最新版本（去重）
 //  - 失败追踪与写入解耦（MarkdownFailureTracker 独立）
 //  - 提供 flush() / retryFailures() API
-//
-//  解决 T4 race + 4 处 fire-and-forget 模板代码重复。
 //
 
 import Foundation

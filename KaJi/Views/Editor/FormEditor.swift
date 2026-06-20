@@ -2,18 +2,13 @@
 //  FormEditor.swift
 //  KaJi
 //
-//  v1.4.0 状态机彻底重构（局部 @State + onChange 模式）：
-//  - title / fieldValues / tags 改用本地 @State
-//  - 通过 scheduleSave 同步到 data（首次立即 / 后续 800ms debounce）
-//
-//  v1.4.0 Bug 修复：
-//  - Bug 2: buildFields 保留原 card.fields 的 fieldOrder
-//  - Bug 8: scheduleSave 串行化（saveToken 防并发 commitDraft）
+//  表单式编辑器。title / fieldValues / tags 用本地 @State，
+//  通过 scheduleSave 同步到 data（首次立即 / 后续 800ms debounce）。
 //
 
 import SwiftUI
 
-/// v1.6.5：把每个编辑器实际高度上报给父 view，使左侧字段名高度与右侧编辑器同步
+/// 把每个编辑器实际高度上报给父 view，使左侧字段名高度与右侧编辑器同步
 struct FieldHeightKey: PreferenceKey {
     static let defaultValue: [String: CGFloat] = [:]
     static func reduce(value: inout [String: CGFloat], nextValue: () -> [String: CGFloat]) {
@@ -32,13 +27,13 @@ struct FormEditor: View {
     // 标签输入框焦点：失焦即提交待定文本（与字段同级，无需按 Enter）
     @FocusState private var tagFieldFocused: Bool
 
-    // 群4 #29：placeholder 首次 commit 再入锁，防止快速输入生成重复卡。
+    // placeholder 首次 commit 再入锁，防止快速输入生成重复卡
     // isCreatingCard 在首次 commit 期间为 true；needsResaveAfterCreate 记录
-    // 创建期间又有新输入，创建完成后补存一次，保证输入不丢。
+    // 创建期间又有新输入，创建完成后补存一次，保证输入不丢
     @State private var isCreatingCard = false
     @State private var needsResaveAfterCreate = false
 
-    // 同步任务（Bug 8 修复：saveToken 串行化）
+    // 同步任务（saveToken 串行化，避免并发 commitDraft）
     @State private var saveTask: Task<Void, Never>?
     @State private var saveToken: Int = 0  // 每次 scheduleSave 递增；旧 Task 检查 token 后退出
     @State private var lastSyncedCardID: String? = nil
@@ -58,7 +53,7 @@ struct FormEditor: View {
     }
 
     private let labelWidth: CGFloat = 56
-    /// v1.6.11：lineHeight 改为引用 KaJiMetrics.editorLineHeight（公共唯一权威值），消除硬编码
+    /// lineHeight 引用 KaJiMetrics.editorLineHeight（公共唯一权威值），消除硬编码
     private var lineHeight: CGFloat { KaJiMetrics.editorLineHeight }
     private let contentFontSize: CGFloat = 16
     private let cardMaxWidth: CGFloat = 700
@@ -185,12 +180,12 @@ struct FormEditor: View {
     }
 
     /// 同步本地 state → data
-    /// Bug 8 修复：saveToken 串行化，避免并发 commitDraft
+    /// saveToken 串行化，避免并发 commitDraft
     /// 防御性守卫：isReadOnly 时拒绝保存（即使 SwiftUI disabled 失效也不会持久化）
     private func scheduleSave() {
         guard !isReadOnly else { return }
         if card.isPlaceholder {
-            // 首次输入：创建 UUID + 持久化（群4 #29：经再入锁，防重复卡）
+            // 首次输入：创建 UUID + 持久化（再入锁，防重复卡）
             createCardFromLocalState()
             return
         }
@@ -213,7 +208,7 @@ struct FormEditor: View {
         }
     }
 
-    /// 群4 #29：placeholder 首次落地的唯一入口，带再入锁。
+    /// placeholder 首次落地的唯一入口，带再入锁。
     /// 快速连续输入时，char1 的 commitDraft 还在 await CardIDGenerator（异步）
     /// 期间，char2 看到 isPlaceholder 仍为 true 会再起一次 commit → 生成两张
     /// ID 不同的重复卡。用 isCreatingCard 锁住：创建进行中只标记 needsResave，
@@ -267,7 +262,7 @@ struct FormEditor: View {
         }
     }
 
-    /// Bug 2 修复：保留原 card.fields 的 fieldOrder，仅更新 fieldValue
+    /// 保留原 card.fields 的 fieldOrder，仅更新 fieldValue
     /// - 如果原 fields 存在：保留其 fieldOrder 和字段值
     /// - 如果原 fields 不存在（如 placeholder）：用 currentFields 枚举生成
     private func buildFieldsPreservingOrder(for draft: Card) -> [CardField] {
@@ -316,8 +311,7 @@ struct FormEditor: View {
             Canvas { context, size in
                 guard size.height > 0 else { return }
                 let firstY: CGFloat = lineHeight
-                // v1.6.11：lastY 算法改为 floor 到 lineHeight 倍数，保证每行（含最后一行 / 正在打字那行）底部都画横线
-                // 旧算法 `size.height - 8` 让最后一行永远画不到横线
+                // lastY 算法 floor 到 lineHeight 倍数，保证每行（含最后一行 / 正在打字那行）底部都画横线
                 let lastY: CGFloat = (size.height / lineHeight).rounded(.down) * lineHeight
                 var y = firstY
                 while y <= lastY {
@@ -335,7 +329,7 @@ struct FormEditor: View {
         Text(text)
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(.secondary)
-            // v1.7.1：字段名视觉下移 5pt（1pt 起步 + 2pt + 2pt 渐进调整），让字段名落在两条横线中间
+            // 字段名视觉下移 5pt，让字段名落在两条横线中间
             // .offset(y: 5) 只改视觉位置，不改 layout/hit test/frame 高度
             .offset(y: 5)
             .frame(height: height, alignment: .topTrailing)
@@ -369,7 +363,7 @@ struct FormEditor: View {
                     .frame(maxWidth: .infinity, minHeight: lineHeight, alignment: .topLeading)
                     .textSelection(.enabled)
             } else {
-                // v1.6.11：TextEditor → NoScrollTextEditor
+                // TextEditor → NoScrollTextEditor
                 // 强制行高 = editorLineHeight，从源头消除横线穿字 bug
                 NoScrollTextEditor(
                     text: text,

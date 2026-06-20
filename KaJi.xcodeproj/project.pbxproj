@@ -25,10 +25,12 @@
 		4532EEE3BC391DC2DAC197AE /* CardRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A4616229289AE1DE903BD24 /* CardRecord.swift */; };
 		49A8091BAC9A7FEEC6313A55 /* DatabaseError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55639F3791C04CC7E7618DA3 /* DatabaseError.swift */; };
 		4F7BCED919CC55520575E767 /* MarkdownFailureTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE8B2A7B5977BB9438D335B8 /* MarkdownFailureTracker.swift */; };
+		618ECF479D1E64370FEF3CC2 /* KaJiMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = C90FD45CE941E8326C1D998B /* KaJiMetrics.swift */; };
 		6725010D5EC9CC79B292172A /* KaJiListRowButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57C625A6DAC0E8BF6A1F87FA /* KaJiListRowButtonStyle.swift */; };
 		74C30D76E0B8A18D477B5229 /* MarkdownWriteQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14B862C451F6D170DD651072 /* MarkdownWriteQueue.swift */; };
 		7977EA232F2B77CF76781C40 /* BackButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D1FB338D29EB82A143F8B4 /* BackButton.swift */; };
 		7C5DA8257EB2C228A849E895 /* CardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60F46A35E904ABF137D03552 /* CardRepository.swift */; };
+		7FA1D08B8D85AE4223BA8626 /* NoScrollTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43024BA84EF61F597A3FD6B6 /* NoScrollTextEditor.swift */; };
 		8172D208A5012D17188915D4 /* FormEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D9764329C9E9B202E4BCF7A /* FormEditor.swift */; };
 		831A4B4C570C3BB8B74CF63D /* CardType.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2C2B4B24CA43949D4AA46CF /* CardType.swift */; };
 		866FCA97D64A547419A0CB6B /* EditorUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC665ADE9272594BE0D8993D /* EditorUIState.swift */; };
@@ -60,8 +62,6 @@
 		F46F58ADE5EDFCD8D6BD5616 /* ListFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701910040469901400ED7260 /* ListFilter.swift */; };
 		F7BAE71F5032DCF452AD5B9D /* CardTypeChangeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A7BCF285D1FC16090347EBC /* CardTypeChangeService.swift */; };
 		FE6CF422C1D482F633B360FC /* KaJiLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 785F909EF4BDD3325862CE2A /* KaJiLayout.swift */; };
-		1A1A1A1A1A1A1A1A1A1A1A1A /* KaJiMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B2B2B2B2B2B2B2B2B2B2B2B2 /* KaJiMetrics.swift */; };
-		3C3C3C3C3C3C3C3C3C3C3C3C /* NoScrollTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D4D4D4D4D4D4D4D4D4D4D4 /* NoScrollTextEditor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -80,6 +80,7 @@
 		3912C8DB85C77F9AC3AB76A9 /* CardListRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardListRow.swift; sourceTree = "<group>"; };
 		398C6BEC82BFAA44E5481337 /* KaJiAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiAnimation.swift; sourceTree = "<group>"; };
 		42CFF8F25761CACD3184597E /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
+		43024BA84EF61F597A3FD6B6 /* NoScrollTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoScrollTextEditor.swift; sourceTree = "<group>"; };
 		55639F3791C04CC7E7618DA3 /* DatabaseError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseError.swift; sourceTree = "<group>"; };
 		57C625A6DAC0E8BF6A1F87FA /* KaJiListRowButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiListRowButtonStyle.swift; sourceTree = "<group>"; };
 		5832713E45FBEA4ADB655DC7 /* CardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardService.swift; sourceTree = "<group>"; };
@@ -101,7 +102,6 @@
 		99058EEBBAFC619FB5585363 /* SemanticColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticColor.swift; sourceTree = "<group>"; };
 		9CE95E491876197E909A86B0 /* CardFileIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardFileIO.swift; sourceTree = "<group>"; };
 		9F741B3A0BFC712111BEE2D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		2B2B2B2B2B2B2B2B2B2B2B2B2 /* KaJiMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiMetrics.swift; sourceTree = "<group>"; };
 		A2AB17E85BF57933CCADA200 /* SidebarRowButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarRowButtonStyle.swift; sourceTree = "<group>"; };
 		A84AB7B6767CC5810E228175 /* Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Card.swift; sourceTree = "<group>"; };
 		AAD817D86E38BFFFC44FC5D6 /* StatsState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsState.swift; sourceTree = "<group>"; };
@@ -111,6 +111,7 @@
 		C26582D96158C6EFF137CB3B /* CardSearchIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardSearchIndex.swift; sourceTree = "<group>"; };
 		C2C2B4B24CA43949D4AA46CF /* CardType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardType.swift; sourceTree = "<group>"; };
 		C42899B993087244F357079F /* DetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailView.swift; sourceTree = "<group>"; };
+		C90FD45CE941E8326C1D998B /* KaJiMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiMetrics.swift; sourceTree = "<group>"; };
 		CCD9140953A0EFC4A19583E5 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
 		D134CE08B1F7EA2F7435A19E /* MarkdownError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownError.swift; sourceTree = "<group>"; };
 		D1D6E89C4B4DFE56E0FBC9D7 /* RemovableTagPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemovableTagPill.swift; sourceTree = "<group>"; };
@@ -119,7 +120,6 @@
 		DC665ADE9272594BE0D8993D /* EditorUIState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorUIState.swift; sourceTree = "<group>"; };
 		E546D7FFEB130D7DD5217111 /* ContentLimit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentLimit.swift; sourceTree = "<group>"; };
 		EBFA0ED78BDDA942EBEA38DB /* TagPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagPill.swift; sourceTree = "<group>"; };
-		4D4D4D4D4D4D4D4D4D4D4D4D4 /* NoScrollTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoScrollTextEditor.swift; sourceTree = "<group>"; };
 		F37E554B9932F709452BBD64 /* EditorDataState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorDataState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -146,7 +146,7 @@
 				10A038ED89F28B1D4CE0A7C6 /* KaJiColor.swift */,
 				6489221647680ACFE6E3CE11 /* KaJiError.swift */,
 				785F909EF4BDD3325862CE2A /* KaJiLayout.swift */,
-				2B2B2B2B2B2B2B2B2B2B2B2B2 /* KaJiMetrics.swift */,
+				C90FD45CE941E8326C1D998B /* KaJiMetrics.swift */,
 				99058EEBBAFC619FB5585363 /* SemanticColor.swift */,
 				0EB6B78BC1C7BA574E35BF37 /* SettingsService.swift */,
 			);
@@ -213,8 +213,8 @@
 			children = (
 				68BBF8A5B05CAD17C03D69B4 /* CardTypePickerView.swift */,
 				5D9764329C9E9B202E4BCF7A /* FormEditor.swift */,
+				43024BA84EF61F597A3FD6B6 /* NoScrollTextEditor.swift */,
 				835C9B4A682ADB75BF679FB6 /* NotesEditor.swift */,
-				4D4D4D4D4D4D4D4D4D4D4D4D4 /* NoScrollTextEditor.swift */,
 			);
 			path = Editor;
 			sourceTree = "<group>";
@@ -407,9 +407,8 @@
 				BE722BE1DE54F6CC46D2A3A7 /* KaJiError.swift in Sources */,
 				15CDCB8A03895B9787DFC299 /* KaJiHoverBackground.swift in Sources */,
 				FE6CF422C1D482F633B360FC /* KaJiLayout.swift in Sources */,
-				1A1A1A1A1A1A1A1A1A1A1A1A /* KaJiMetrics.swift in Sources */,
-				3C3C3C3C3C3C3C3C3C3C3C3C /* NoScrollTextEditor.swift in Sources */,
 				6725010D5EC9CC79B292172A /* KaJiListRowButtonStyle.swift in Sources */,
+				618ECF479D1E64370FEF3CC2 /* KaJiMetrics.swift in Sources */,
 				F46F58ADE5EDFCD8D6BD5616 /* ListFilter.swift in Sources */,
 				C96FD0E18FCB4C21F166C7F8 /* ListFilterTitle.swift in Sources */,
 				8E07B8A49A347F2516407864 /* ListState.swift in Sources */,
@@ -417,6 +416,7 @@
 				263E2C014AF87EC372355BF5 /* MarkdownError.swift in Sources */,
 				4F7BCED919CC55520575E767 /* MarkdownFailureTracker.swift in Sources */,
 				74C30D76E0B8A18D477B5229 /* MarkdownWriteQueue.swift in Sources */,
+				7FA1D08B8D85AE4223BA8626 /* NoScrollTextEditor.swift in Sources */,
 				AC8F168F7B0F8CD8FECFE200 /* NotesEditor.swift in Sources */,
 				324FF4149B0D066C293E4036 /* RemovableTagPill.swift in Sources */,
 				C31549EFF2F257F8A3D17031 /* SemanticColor.swift in Sources */,
@@ -484,7 +484,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 40;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -507,7 +507,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.7.2;
+				MARKETING_VERSION = 1.7.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -572,7 +572,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 40;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -589,7 +589,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.7.2;
+				MARKETING_VERSION = 1.7.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;

@@ -2,17 +2,12 @@
 //  MarkdownFailureTracker.swift
 //  KaJi
 //
-//  v1.2.9 T4 引入：追踪 .md 派生视图写入失败。
+//  追踪 .md 派生视图写入失败。
 //
 //  - 失败标记：dataRoot/.md_failures/<id>.failure
 //  - 标记内容：JSON { cardId, failedAt, reason, attemptCount }
-//  - reconcile() 启动时扫一遍，尝试重写，修复后删除标记
-//  - .md_failures 目录创建失败时 print 但不阻断主流程
-//
-//  边界 case：
-//  - markFailed 内部全部 try-catch，fallback 到 print 日志
-//  - listFailures 读目录失败时返回空数组
-//  - failure 文件 JSON 损坏时 readRecord 抛错，markFailed 重新建（attemptCount 从 0 开始）
+//  - reconcile 启动时扫一遍，尝试重写，修复后删除标记
+//  - .md_failures 目录创建失败时 log 但不阻断主流程
 //
 
 import Foundation

@@ -9,7 +9,7 @@
 //  2. .md 是派生视图/备份：用于人读、git 同步、灾难恢复，运行时不依赖它
 //  3. 单事务包裹"主表 + 字段表 + 标签关联"（R-03）
 //  4. 读路径：直接查 SQLite（.md 不需要每次读）
-//  5. 搜索统一走内存缓存 filter（StatsState.cachedCards），不再维护 FTS5 索引
+//  5. 搜索统一走内存缓存 filter（StatsState.cachedSummaries），不再维护 FTS5 索引
 //  6. 回收站：del(card) 改 deletedAt，不删 .md；restore 改回 null；purge 真删
 //  7. 启动对账（reconcile）：自动修复 .md 与 SQLite 之间的历史不一致
 //
@@ -18,7 +18,7 @@ import Foundation
 import os
 @preconcurrency import GRDB
 
-/// v1.6.1：reconcileCritical 的返回值，让 UI 能看到失败
+/// reconcileCritical 的返回值，让 UI 能看到失败
 /// 用 String? 存储首个错误描述（Error 不满足 Sendable，无法从 @Sendable 数据库闭包返回）
 struct ReconcileResult: Sendable {
     var restoredCount: Int = 0
@@ -35,7 +35,7 @@ final class CardRepository: @unchecked Sendable {
 
     private init(db: AppDatabase = .shared) { self.db = db }
 
-    /// v1.6.2 ARCH-3：异步读单卡，避免主线程同步 I/O 阻塞
+    /// 异步读单卡，避免主线程同步 I/O 阻塞
     func cardAsync(id: String) async throws -> Card? {
         let grdb = db.dbWriter
         return try await Task.detached(priority: .userInitiated) {
@@ -72,22 +72,18 @@ final class CardRepository: @unchecked Sendable {
     /// 保存/更新一张卡（SQLite 是强一致锚点，.md 是派生视图）
     /// - 先提交 SQLite 事务；事务成功后再写 .md
     /// - .md 写入失败不会破坏 SQLite 一致性，启动对账会修复
-    /// - **v1.3.0 P0-4 修复**：本方法不再做 ContentLimit 截断，统一由 caller
-    ///   负责（EditorState.persistCurrentCard 已在主线程截断，以保证 UI 同步）。
-    ///   旧实现主线程 + 后台双重 O(N) 字符统计浪费，且容易出现"caller 截断
-    ///   逻辑"和"Repository 截断逻辑"分歧。caller 传过来的卡应当已通过
-    ///   ContentLimit.truncate；如果 caller 不截断，那是 caller 的 bug。
-    /// - **v1.3.0**：每次保存 c.mdVersion += 1；.md 走 MarkdownWriteQueue 串行
+    /// - ContentLimit 截断由 caller 负责（保证 UI 同步），
+    ///   传过来的卡应当已通过 ContentLimit.truncate
+    /// - 每次保存 c.mdVersion += 1；.md 走 MarkdownWriteQueue 串行
     func save(card: Card) throws -> Card {
         var c = card
         c.updatedAt = Date()
-        // v1.3.0：每次 SQLite 写 +1；reconcile 通过比对 .md frontmatter.mdVersion
+        // 每次 SQLite 写 +1；reconcile 通过比对 .md frontmatter.mdVersion
         // 检测 .md 是否落后；落后则入队重写
         c.mdVersion += 1
 
-        // T1 P0 修复（v1.2.9）：防御性兜底 — 拒绝保存已删除的卡片（deletedAt != nil）。
+        // 防御性兜底 — 拒绝保存已删除的卡片（deletedAt != nil）。
         // 即使 Service 层未及时 flush，任何延迟到达的 save 都不会复活已删除/回收中的卡。
-        // v1.3.0：改为结构化 DatabaseError
         if c.deletedAt != nil {
             throw DatabaseError.deletedCardSaveAttempt(cardId: c.id)
         }
@@ -97,8 +93,7 @@ final class CardRepository: @unchecked Sendable {
             try persist(c, in: grdb)
         }
 
-        // 2. v1.3.0：.md 走 MarkdownWriteQueue（actor 串行化），
-        //    取代 v1.2.9 T4 的 fire-and-forget Task.detached 模板代码。
+        // 2. .md 走 MarkdownWriteQueue（actor 串行化）
         let cardCopy = c
         Task {
             await MarkdownWriteQueue.shared.enqueue(cardCopy)
@@ -107,13 +102,11 @@ final class CardRepository: @unchecked Sendable {
         return c
     }
 
-    /// 内部：在指定数据库事务内写入/更新卡片记录。
-    /// v1.3.4 PATCH：修复 v1.3.2 只 INSERT 导致已存在卡无法更新的严重 bug。
-    ///   - 已存在卡：先 UPDATE cards；子表（cardFields/cardTags）先删后插。
-    ///   - 新卡：UPDATE 影响 0 行，再 INSERT。
-    ///   - 多进程 race 仍由 CardService 捕获 SQLITE_CONSTRAINT 重试。
+    /// 在指定数据库事务内写入/更新卡片记录。
+    /// - 已存在卡：先 UPDATE cards；子表（cardFields/cardTags）先删后插。
+    /// - 新卡：UPDATE 影响 0 行，再 INSERT。
+    /// - 多进程 race 仍由 CardService 捕获 SQLITE_CONSTRAINT 重试。
     private func persist(_ card: Card, in grdb: Database) throws {
-        // v1.2.9 S1 修复：fileURL 改 throws
         let filePath = try CardFileIO.fileURL(for: card.id).path
         var record = CardRecord(
             id: card.id, type: card.type, title: card.title,
@@ -121,11 +114,11 @@ final class CardRepository: @unchecked Sendable {
             deletedAt: card.deletedAt.map(iso8601),
             filePath: filePath,
             fileMtime: nil, fileHash: nil, fileSize: 0,
-            mdVersion: card.mdVersion  // v1.3.0：写入当前 mdVersion
+            mdVersion: card.mdVersion
         )
 
         // 1. 主表：先 UPDATE，不存在再 INSERT。
-        //    避免 v1.3.2 只用 INSERT 导致编辑已存在卡时主键冲突、被误判为新卡的问题。
+        //    避免只用 INSERT 导致编辑已存在卡时主键冲突、被误判为新卡的问题。
         try grdb.execute(sql: """
             UPDATE cards SET
                 type = ?,
@@ -181,9 +174,8 @@ final class CardRepository: @unchecked Sendable {
     // MARK: - 删除 / 回收站
 
     /// 移到回收站（改 deletedAt；不删 .md）
-    /// v1.2.9 T4：SQLite 成功后异步重写 .md，反映 deletedAt。
     /// 不阻塞 softDelete 主流程（用户体验优先）；失败由 .md_failures 标记 + reconcile 重试。
-    /// v1.3.0：mdVersion += 1；.md 走 MarkdownWriteQueue 串行化
+    /// mdVersion += 1；.md 走 MarkdownWriteQueue 串行化
     func softDelete(id: String) throws {
         let now = iso8601(Date())
         try db.dbWriter.write { grdb in
@@ -192,7 +184,7 @@ final class CardRepository: @unchecked Sendable {
                 """, arguments: [now, now, id])
         }
 
-        // v1.3.0：.md 走队列（actor 串行处理 + 去重 + 失败解耦）
+        // .md 走队列（actor 串行处理 + 去重 + 失败解耦）
         let cardId = id
         Task {
             guard let card = try? CardRepository.shared.card(id: cardId) else { return }
@@ -200,7 +192,7 @@ final class CardRepository: @unchecked Sendable {
         }
     }
 
-    /// v1.4.2 根因修复：把完整内容回写 + 同时置 deletedAt（单事务原子）。
+    /// 把完整内容回写 + 同时置 deletedAt（单事务原子）。
     /// 用于"卡片被逐步清空 → 回收站但保留清空前完整内容"场景。
     /// 与 save() 的区别：save() 防御性拒绝 deletedAt != nil 的卡；本方法专门写入
     /// 带 deletedAt 的完整内容（content + 软删除标记一次落库，不会出现中间残缺态）。
@@ -221,8 +213,8 @@ final class CardRepository: @unchecked Sendable {
     }
 
     /// 从回收站恢复（deletedAt = NULL）
-    /// v1.2.9 T4：同 softDelete，SQLite 成功后异步重写 .md 反映 deletedAt=nil。
-    /// v1.3.0：mdVersion += 1；.md 走 MarkdownWriteQueue 串行化
+    /// 同 softDelete，SQLite 成功后异步重写 .md 反映 deletedAt=nil。
+    /// mdVersion += 1；.md 走 MarkdownWriteQueue 串行化
     func restore(id: String) throws {
         let now = iso8601(Date())
         try db.dbWriter.write { grdb in
@@ -246,9 +238,7 @@ final class CardRepository: @unchecked Sendable {
     }
 
     /// 批量把 records → Cards（一次性 JOIN 拉取 fields/tags，避免 N+1）
-    /// v1.2.9 T5 CoW 修复：原 `fieldsByCard[id, default: []].append(...)` 每次
-    /// append 都触发值类型数组复制（Dictionary 默认值是空数组，每次访问
-    /// default 都触发 CoW）。改为按 cardId 顺序预填充空数组，避免复制。
+    /// 按 cardId 顺序预填充空数组，避免 Dictionary 默认值的 CoW 复制
     private func hydrate(records: [CardRecord], in grdb: Database) throws -> [Card] {
         guard !records.isEmpty else { return [] }
 
@@ -307,19 +297,19 @@ final class CardRepository: @unchecked Sendable {
                 createdAt: parseISO(rec.createdAt) ?? Date(),
                 updatedAt: parseISO(rec.updatedAt) ?? Date(),
                 deletedAt: rec.deletedAt.flatMap(parseISO),
-                mdVersion: rec.mdVersion  // v1.3.0
+                mdVersion: rec.mdVersion
             )
         }
     }
 
-    // MARK: - v1.2.9 T5：SQL 聚合统计
+    // MARK: - SQL 聚合统计
 
     /// 3 路 SQL 聚合刷新侧栏统计 — 不 hydrate 完整 Card
     /// 1. typeCounts：GROUP BY type 聚合
     /// 2. tagCounts：JOIN cardTags + tags GROUP BY name
     /// 3. summaries：轻量字段（id/type/title/updatedAt/deletedAt）+ tags 批量查
     ///   性能：10k 卡全库 ~10ms（vs 修复前 hydrate 全库 ~100ms）
-    /// v1.6.2 PERF-1：三查询合并为单事务，消除事务间数据不一致窗口
+    /// 三查询合并为单事务，消除事务间数据不一致窗口
     func refreshStatsSQL() throws -> (
         summaries: [CardSummary],
         typeCounts: [CardType: Int],
@@ -356,8 +346,7 @@ final class CardRepository: @unchecked Sendable {
                 """)
 
             // 3. summaries：仅查轻量字段，tags + fields 单独批量查
-            //    v1.3.0：拼 searchText（title + tags + 字段值预拼接）
-            //    v1.3.4 PATCH：summaries 必须包含 deleted 卡，否则回收站永远为空。
+            //    summaries 必须包含 deleted 卡，否则回收站永远为空。
             //    主列表/搜索在 ListState.filteredCards 中按 deletedAt 过滤。
             let recs = try Row.fetchAll(grdb, sql: """
                 SELECT id, type, title, updatedAt, deletedAt FROM cards
@@ -389,7 +378,7 @@ final class CardRepository: @unchecked Sendable {
                     tagsByCard[cardId]!.append(name)
                 }
 
-                // v1.3.0：批量查 fields（仅 value，不查 name/order）用于拼 searchText
+                // 批量查 fields（仅 value，不查 name/order）用于拼 searchText
                 let fieldSQL = """
                     SELECT cardId, fieldValue FROM cardFields
                     WHERE cardId IN (\(placeholders))
@@ -415,7 +404,7 @@ final class CardRepository: @unchecked Sendable {
                     let fieldValues = fieldValuesByCard[id] ?? []
                     let updatedAt = parseISO(row["updatedAt"] as? String ?? "") ?? Date()
                     let deletedAt = (row["deletedAt"] as? String).flatMap(parseISO)
-                    // v1.3.0：title + tags + 字段值预拼接，tokenize 一次覆盖全部
+                    // title + tags + 字段值预拼接，tokenize 一次覆盖全部
                     let searchText = ([title] + tags + fieldValues).joined(separator: " ")
                     return CardSummary(
                         id: id, type: type, title: title,
@@ -455,7 +444,7 @@ final class CardRepository: @unchecked Sendable {
     /// 启动时跑一次：修复 .md 与 SQLite 之间的不一致。
     /// - .md 有但 SQLite 没有：从 .md 解析并写回 SQLite
     /// - SQLite 有但 .md 没有：从 SQLite 重建 .md
-    /// - 两边 ID 集合完全一致：仍要校验 mdVersion（v1.3.0）
+    /// - 两边 ID 集合完全一致：仍要校验 mdVersion
     /// - mdVersion 落后：从 SQLite 重建对应 .md
     ///
     /// 关键对账（影响首屏 DB 数据完整性，必须在首屏渲染前同步完成）：
@@ -470,7 +459,7 @@ final class CardRepository: @unchecked Sendable {
         let missingInDB = mdIDs.subtracting(dbIDs)
         guard !missingInDB.isEmpty else { return ReconcileResult() }
 
-        // v1.6.1：在 @Sendable 数据库写闭包内构造局部结果，避免并发修改外部 var
+        // 在 @Sendable 数据库写闭包内构造局部结果，避免并发修改外部 var
         let result = try await db.dbWriter.write { grdb -> ReconcileResult in
             var partial = ReconcileResult()
             for id in missingInDB {
@@ -530,7 +519,7 @@ final class CardRepository: @unchecked Sendable {
         await MarkdownWriteQueue.shared.retryFailures()
     }
 
-    /// v1.3.0：扫描所有 .md frontmatter 第一行的 mdVersion，与 SQLite 对比；
+    /// 扫描所有 .md frontmatter 第一行的 mdVersion，与 SQLite 对比；
     /// 落后 / 缺失 mdVersion 字段的 .md 一律入队重写
     private func checkMarkdownVersionConsistency() throws {
         // 1. 一次性把 SQLite 中所有 (id → mdVersion) 拉出来（不 hydrate 全字段）
@@ -586,7 +575,7 @@ final class CardRepository: @unchecked Sendable {
                 // .md 落后于 SQLite
                 awaitEnqueueFallback(id: id)
             } else if !firstLine.hasPrefix("mdVersion:") {
-                // 老格式 .md（v1.2.9 之前）— 入队重写为 v1.3.0 格式
+                // 老格式 .md（无 mdVersion 字段）— 入队重写
                 awaitEnqueueFallback(id: id)
             }
         }
@@ -602,8 +591,7 @@ final class CardRepository: @unchecked Sendable {
 
     // MARK: - 公共辅助
 
-    /// v1.6.0：供 CardService.bootstrapDeferred 调用的 purge 转发
-    /// v1.6.1 PERF-3：改为 async throws，内部用 withTaskGroup 限流
+    /// 供 CardService.bootstrapDeferred 调用的 purge 转发（内部用 withTaskGroup 限流）
     func purgeOldTrashPublic(retentionDays: Int) async throws {
         try await db.purgeOldTrash(retentionDays: retentionDays)
     }
@@ -611,7 +599,6 @@ final class CardRepository: @unchecked Sendable {
     /// DB 是否处于 in-memory 模式（fallback）— UI 层可以展示警告
     var isInMemory: Bool { db.isInMemory }
 
-    // v1.6.2 CODE-1：统一用 DateFormatting（Date.ISO8601FormatStyle，值类型 Sendable）
     private func iso8601(_ d: Date) -> String {
         DateFormatting.string(d)
     }

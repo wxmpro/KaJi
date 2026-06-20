@@ -2,12 +2,7 @@
 //  KaJiAnimation.swift
 //  KaJi
 //
-//  v1.3.0 引入：统一动画时长常量。
-//  v1.3.2 升级：完整化命名（hover / selection / modeSwitch / searchExpand / windowResize），
-//  统一 sidebarToggle 与 editorModeSwitch 为 modeSwitch（避免混用）；
-//  删除未被引用的 searchResultAppear 死代码。
-//
-//  命名按"角色"（sidebarToggle / modeSwitch / searchResultAppear）；
+//  统一动画时长常量。命名按"角色"（hover / selection / modeSwitch / searchExpand）；
 //  后续调整一个常量，全局生效。
 //
 

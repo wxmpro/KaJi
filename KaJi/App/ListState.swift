@@ -5,9 +5,6 @@
 //  列表与右栏模式状态。
 //  负责列表筛选、右栏 editor/list 切换、当前 filter 下卡片缓存。
 //
-//  v1.2.9 T5 改造：cachedFilteredCards: [Card] → [CardSummary]（轻量）
-//  v1.4.0：迁移到 @Observable；用 StatsState.onUpdate 回调替代 objectWillChange 订阅
-//
 
 import SwiftUI
 
@@ -45,9 +42,7 @@ final class ListState {
     init(statsState: StatsState, cardService: CardService = .shared) {
         self.statsState = statsState
         self.cardService = cardService
-        // v1.4.0：替代 v1.3.4 的 objectWillChange 订阅（@Observable 没有 objectWillChange）
-        // Bug 9 修复：使用 addUpdateObserver 数组化 API，支持多个观察者
-        // v1.6.1：去掉 .async 推迟一帧；StatsState.update(with:) 同调用栈已完成赋值
+        // 用 StatsState 观察者回调替代 objectWillChange 订阅（@Observable 没有 objectWillChange）
         observerToken = statsState.addUpdateObserver { [weak self] in
             self?.refreshFilteredCards()
         }
@@ -60,8 +55,7 @@ final class ListState {
         rightPaneMode = .list
     }
 
-    /// 重新计算并缓存当前筛选条件下的卡片
-    /// v1.2.9 T5 配套修复：值相等时**不**触发 objectWillChange
+    /// 重新计算并缓存当前筛选条件下的卡片。值相等时不更新（避免无谓重渲染）
     func refreshFilteredCards() {
         let new = cardService.filteredCards(from: statsState.cachedSummaries, matching: listFilter)
         if new != cachedFilteredCards { cachedFilteredCards = new }

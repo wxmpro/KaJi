@@ -2,14 +2,14 @@
 //  CardIDGenerator.swift
 //  KaJi
 //
-//  v1.3.2 彻底重构：干掉"读 existing → 找下一个"模型（多进程下会读到过期 snapshot）。
+//  17 位纯数字 ID 生成器。
 //
-//  新模型：
-//  - 进程内单调计数器：同进程内永远不重（counter 自增）
+//  新模型（干掉"读 existing → 找下一个"）：
+//  - 进程内单调计数器：同进程内永远不重
 //  - 跨进程靠写入 UNIQUE 约束兜底（CardRepository.persist 用 INSERT + catch CONSTRAINT）
 //  - monotonic clock 抗系统时钟回退
 //
-//  17 位格式保持不变：YYYYMMDDHHMMSS + 3 位 ms 内序列
+//  17 位格式：YYYYMMDDHHMMSS + 3 位 ms 内序列
 //  - 文件名 / URL / 内部存储：17 位
 //  - UI 显示（displayID）：14 位（前缀 prefix(14)），见 Card.displayID
 //
@@ -51,7 +51,7 @@ struct CardIDGenerator: Sendable {
         let ms = UInt64(now.timeIntervalSince1970 * 1000)
 
         // 2. 进程内单调递增（低 20 位计数器）
-        //    v1.3.4 PATCH：修复 1970 年 ID 问题。原实现用 uptimeNanoseconds 导致
+        //    修复 1970 年 ID 问题：原实现用 uptimeNanoseconds 导致
         //    Date(timeIntervalSince1970:) 生成 1970 年日期。改用 wall clock 毫秒。
         //    当时钟回退时，不重置计数器，继续递增，避免同一毫秒 ID 重复。
         let seq = counter.withLock { c -> UInt32 in
@@ -75,7 +75,7 @@ struct CardIDGenerator: Sendable {
         }
 
         // 3. 用 Calendar 提取 YYYYMMDDHHMMSS（6 个字段 = 14 位）
-        //    v1.3.4 PATCH：用系统当前时区，让用户看到的 UUID 日期/时间与本机一致。
+        //    用系统当前时区，让用户看到的 UUID 日期/时间与本机一致。
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = .current
         let comps = cal.dateComponents([.year, .month, .day, .hour, .minute, .second], from: now)

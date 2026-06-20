@@ -2,9 +2,7 @@
 //  ContentLimit.swift
 //  KaJi
 //
-//  3500 字符限制 — 按 PRD V2 第 2 条 + 你的修正：
-//  "字段内容 = 字段名 + 字段值，标签计入，唯一编码不计"
-//
+//  3500 字符限制。
 //  计算 = sum(label.length + value.length) + sum(tag.length) + title.length
 //
 //  修复策略（按信息重要性的倒序）：
@@ -16,7 +14,7 @@
 import Foundation
 
 enum ContentLimit {
-    /// 3500 — 写死；v1.0 不可配置（PRD V2 #11）
+    /// 3500 — 写死；不可配置
     static let maxChars: Int = 3500
 
     /// 一张卡的总字符数
@@ -51,9 +49,7 @@ enum ContentLimit {
     // MARK: - 内部策略
 
     /// 从最后一个有内容的字段开始截断值，直到空间足够或没有可截内容
-    /// v1.2.9 S3 修复：原实现按 `fieldName + fieldOrder` 反向查找字段索引。
-    /// 当某类型定义了重复 fieldName 的字段时，会匹配到错误字段。
-    /// 改用 enumerated() 直接遍历 c.fields 原地修改，精确对应。
+    /// 用 enumerated() 直接遍历 c.fields 原地修改，精确对应
     private static func truncateFields(_ card: Card, excess: inout Int) -> Card {
         var c = card
         for i in (0..<c.fields.count).reversed() {

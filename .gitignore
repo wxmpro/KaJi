@@ -75,3 +75,17 @@ sandbox-build/
 
 # Orphan test files — NOT committed to GitHub (never integrated into Xcode test target)
 KaJiTests/
+
+# === KaJi 用户数据 — 防御性排除 ===
+# 用户真实数据存放在 ~/Library/Application Support/KaJi/（不在项目里）
+# 但开发时若在项目里建了测试卡 / fixture DB，绝对不应 commit
+KaJi/cards/
+KaJi/*.sqlite
+KaJi/*.sqlite-shm
+KaJi/*.sqlite-wal
+KaJi/.md_failures/
+**/.md_failures/
+**/cards/
+
+# === DMG 打包产物 ===
+dist/

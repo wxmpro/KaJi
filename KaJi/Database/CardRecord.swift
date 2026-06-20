@@ -23,7 +23,7 @@ struct CardRecord: Codable, FetchableRecord, MutablePersistableRecord {
     var fileMtime: Int?
     var fileHash: String?
     var fileSize: Int
-    // v1.3.0：每次 SQLite 写 +1；用于 reconcile 时 .md 一致性校验
+    /// 每次 SQLite 写 +1；用于 reconcile 时 .md 一致性校验
     var mdVersion: Int64 = 0
 }
 

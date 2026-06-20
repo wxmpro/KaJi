@@ -67,12 +67,9 @@ enum SettingsService {
 
     // MARK: - 自动保存间隔
 
-    // v1.2.8 P1-3 修复：cache UserDefaults 值，避免每次 debounce 都 double 读 + > 0 判断。
-    // 旧实现每次 PersistenceCoordinator.debounce 触发时读一次 UserDefaults +
-    // `> 0 ? value : 0.8` fallback（虽然 UserDefaults 内部有缓存，但 fallback 逻辑每次跑）。
-    // 新实现：首次 getter 从 UserDefaults 读，后续 getter 直接返回 cache；
-    // setter 同时更新 cache 和 UserDefaults，保证一致性。
-    // 0 UI 风险：值在 setter 之前的任何时刻都跟 UserDefaults 同步。
+    // 缓存 UserDefaults 值，避免每次 debounce 都 double 读 + > 0 判断
+    // 首次 getter 从 UserDefaults 读，后续 getter 直接返回 cache；
+    // setter 同时更新 cache 和 UserDefaults
     private static var cachedAutoSaveInterval: TimeInterval = 0.8
     private static var autoSaveIntervalLoaded: Bool = false
 
@@ -94,11 +91,7 @@ enum SettingsService {
 
     // MARK: - 回收站保留天数
 
-    // v1.2.9 S2 修复：cache UserDefaults 值，策略与 autoSaveInterval 一致。
-    // 旧实现每次都读 UserDefaults + fallback 判断（虽然 UserDefaults 内部有缓存，
-    // 但 fallback 逻辑每次跑），与 autoSaveInterval 的缓存模式不一致。
-    // 新实现：首次 getter 从 UserDefaults 读，后续 getter 直接返回 cache；
-    // setter 同时更新 cache 和 UserDefaults。
+    // 缓存 UserDefaults 值，策略与 autoSaveInterval 一致
     private static var cachedTrashRetentionDays: Int = 30
     private static var trashRetentionDaysLoaded: Bool = false
 
