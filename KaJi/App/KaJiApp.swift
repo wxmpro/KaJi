@@ -202,5 +202,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.titlebarSeparatorStyle = .none
         // v1.3.1 P0 关键修复：消除 toolbar 下方那条 1px 分隔线
         window.toolbar?.showsBaselineSeparator = false
+        // v1.7.0：让 titlebar 透明 + content view 延伸至 titlebar 区域，
+        // 让 sidebar Liquid Glass 玻璃背景透到 traffic-lights 区域
+        // （与 Apple Podcast / Freeform 视觉一致：traffic-lights 落在 sidebar 同色/玻璃背景里）
+        window.titlebarAppearsTransparent = true
+        window.styleMask.insert(.fullSizeContentView)
     }
 }

@@ -34,16 +34,23 @@ struct CardListView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if cards.isEmpty {
-                let isTrash = listState.listFilter == .trash
-                ContentUnavailableView {
-                    Label(isTrash ? "回收站为空" : "暂无卡片",
-                          systemImage: isTrash ? "trash" : "rectangle.stack")
-                } description: {
-                    Text(isTrash
-                         ? "没有已删除的卡片"
-                         : "在「\(listState.listFilterTitle)」下没有卡片")
+                // v1.7.0：搜索结果为空时，用 macOS 14+ 系统预置的搜索空态
+                // （替代 v1.6.x 手写的"在「\(title)」下没有卡片"）
+                if case .search = listState.listFilter {
+                    ContentUnavailableView.search
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    let isTrash = listState.listFilter == .trash
+                    ContentUnavailableView {
+                        Label(isTrash ? "回收站为空" : "暂无卡片",
+                              systemImage: isTrash ? "trash" : "rectangle.stack")
+                    } description: {
+                        Text(isTrash
+                             ? "没有已删除的卡片"
+                             : "在「\(listState.listFilterTitle)」下没有卡片")
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 4) {

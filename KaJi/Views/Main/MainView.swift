@@ -41,6 +41,10 @@ struct MainView: View {
                 BackButton()
             }
         }
+        // macOS 26 Liquid Glass：让 toolbar 背景可见 + 颜色跟随系统，
+        // 使 sidebar 视觉上延伸到 titlebar（traffic-lights 落在 sidebar 同色背景里，与 Podcast/Freeform 一致）
+        .toolbarBackground(.visible, for: .windowToolbar)
+        .toolbarColorScheme(nil, for: .windowToolbar)
         .onSubmit(of: .search) {
             let keyword = ui.searchKeyword.trimmingCharacters(in: .whitespaces)
             if keyword.isEmpty {
@@ -51,17 +55,9 @@ struct MainView: View {
         }
         .onAppear {
             data.undoManager = undoManager
-            configureWindowChrome()
         }
         .onDisappear {
             data.undoManager = nil
-        }
-    }
-
-    private func configureWindowChrome() {
-        NSApp.windows.forEach { window in
-            window.title = ""
-            window.titlebarSeparatorStyle = .none
         }
     }
 }

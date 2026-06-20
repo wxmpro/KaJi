@@ -12,6 +12,7 @@ struct SidebarView: View {
     @Environment(EditorDataState.self) private var data
     @Environment(ListState.self) private var listState
     @Environment(StatsState.self) private var statsState
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         // 预计算标签统计：避免在 List 行闭包里反复读库
@@ -26,6 +27,19 @@ struct SidebarView: View {
         .listStyle(.sidebar)
         .environment(\.defaultMinListRowHeight, 22)
         .listRowInsets(EdgeInsets())
+        // List 自身背景透出，让 Liquid Glass 玻璃透到 List 行
+        .scrollContentBackground(.hidden)
+        .background(Color.clear)
+        // macOS 26 Liquid Glass 背景层：
+        // 用 .background { ... } 让 Liquid Glass 占据整个 List frame，
+        // .ignoresSafeArea() 让玻璃延伸到 titlebar 顶部（含 traffic-lights 区域），
+        // 使 traffic-lights 视觉上落在 sidebar Liquid Glass 玻璃背景里（与 Podcast/Freeform 一致）
+        .background {
+            Rectangle()
+                .fill(Color.clear)
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 0))
+                .ignoresSafeArea()
+        }
     }
 
     // MARK: Snapshots

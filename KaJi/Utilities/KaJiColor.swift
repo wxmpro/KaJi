@@ -33,4 +33,9 @@ enum KaJiColor {
     static let systemSeparator = Color(nsColor: .separatorColor)
     static let systemControl  = Color(nsColor: .controlColor)                 // v1.3.2 新增：hover 浮现色
     static let systemSelected = Color(nsColor: .selectedControlColor)         // v1.3.2 新增：picker 选中态
+
+    // MARK: - 侧栏（macOS 26 设计：sidebar 颜色延伸至 titlebar，让 traffic-lights 视觉上落在 sidebar 同色背景里）
+    /// sidebar 整体背景色；NavigationSplitView 的 sidebar 列用它填到 titlebar 顶部
+    /// 系统色 .windowBackgroundColor 自动跟随浅深模式，与系统窗口同源
+    static let sidebarBackground = Color(nsColor: .windowBackgroundColor)
 }

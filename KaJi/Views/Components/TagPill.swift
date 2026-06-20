@@ -24,8 +24,9 @@ struct TagPill: View {
             )
             .overlay(
                 Capsule()
-                    // v1.3.2：分隔线统一走 KaJiColor.systemSeparator
-                    .stroke(KaJiColor.systemSeparator.opacity(0.35), lineWidth: 0.5)
+                    // v1.7.0：分隔线走 macOS hierarchical shape style .quaternary，自动跟随深浅模式
+                    // （替代 v1.3.2 写死的 systemSeparator.opacity(0.35)）
+                    .stroke(.quaternary, lineWidth: 0.5)
             )
     }
 }

@@ -47,7 +47,8 @@ struct RemovableTagPill: View {
         )
         .overlay(
             Capsule()
-                .stroke(KaJiColor.systemSeparator.opacity(0.35), lineWidth: 0.5)
+                // v1.7.0：分隔线走 macOS hierarchical shape style .quaternary
+                .stroke(.quaternary, lineWidth: 0.5)
         )
         .onHover { hovering in
             isHovering = hovering
