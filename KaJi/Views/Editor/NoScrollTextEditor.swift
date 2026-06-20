@@ -23,6 +23,10 @@ struct NoScrollTextEditor: NSViewRepresentable {
     let isReadOnly: Bool
     let onChange: (String, String) -> Void
 
+    /// 只读态下的占位文本（text 为空时显示，不会回写 Binding）
+    var placeholder: String? = nil
+    var placeholderColor: NSColor = .tertiaryLabelColor
+
     // MARK: - NSViewRepresentable 协议
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -44,12 +48,24 @@ struct NoScrollTextEditor: NSViewRepresentable {
 
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let textView = context.coordinator.textView else { return }
+
+        // 只读 + 空文本 + 提供了占位文本：显示占位文本，且不回写 Binding
+        let isShowingPlaceholder = isReadOnly && text.isEmpty && placeholder != nil
+        let displayText = isShowingPlaceholder ? placeholder! : text
+        let displayColor = isShowingPlaceholder ? placeholderColor : NSColor.labelColor
+
         // 守护：避免循环同步导致光标跳到 0
-        if textView.string != text {
-            textView.string = text
+        if textView.string != displayText {
+            textView.string = displayText
         }
+
         textView.isEditable = !isReadOnly
         textView.isSelectable = true
+
+        // 占位文本用 secondary 色；正常文本用 labelColor
+        if textView.textColor != displayColor {
+            textView.textColor = displayColor
+        }
     }
 
     // ★★★ 关键：官方 API 精确控制高度（macOS 13+）★★★
@@ -169,6 +185,10 @@ struct NoScrollTextEditor: NSViewRepresentable {
 
         func textDidChange(_ notification: Notification) {
             guard let tv = textView else { return }
+
+            // 只读态禁止编辑，占位文本也不应回写 Binding
+            guard !parent.isReadOnly else { return }
+
             let new = tv.string
             let old = parent.text
             guard new != old else { return }

@@ -152,10 +152,12 @@ struct FormEditor: View {
                         }
                     }
                 }
-                .frame(maxWidth: cardMaxWidth, maxHeight: cardMaxHeight)
+                // idealWidth/Height = 0：让 NavigationSplitView detail 列的固有宽度不受卡片内容撑开，
+                // 从而使窗口/卡片在水平方向能随用户缩小，而不是卡在 content-intrinsic 宽度。
+                .frame(minWidth: 0, idealWidth: 0, maxWidth: cardMaxWidth, minHeight: 0, idealHeight: 0, maxHeight: cardMaxHeight)
                 Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -355,28 +357,20 @@ struct FormEditor: View {
         onChange: @escaping (String, String) -> Void
     ) -> some View {
         Group {
-            if isReadOnly {
-                Text(text.wrappedValue.isEmpty ? "（空）" : text.wrappedValue)
-                    .font(.system(size: contentFontSize))
-                    .lineSpacing(6)
-                    .foregroundStyle(text.wrappedValue.isEmpty ? .tertiary : .primary)
-                    .frame(maxWidth: .infinity, minHeight: lineHeight, alignment: .topLeading)
-                    .textSelection(.enabled)
-            } else {
-                // TextEditor → NoScrollTextEditor
-                // 强制行高 = editorLineHeight，从源头消除横线穿字 bug
-                NoScrollTextEditor(
-                    text: text,
-                    isReadOnly: false,
-                    onChange: onChange
-                )
-                    .font(.system(size: contentFontSize))
-                    .lineSpacing(6)
-                    .scrollContentBackground(.hidden)
-                    .background(Color.clear)
-                    .frame(minHeight: lineHeight, alignment: .topLeading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            // 统一用 NoScrollTextEditor：可编辑态和只读态行高完全一致，
+            // 避免 SwiftUI Text 的 line metrics 与 ruling paper 横线错位导致穿字。
+            NoScrollTextEditor(
+                text: text,
+                isReadOnly: isReadOnly,
+                onChange: onChange,
+                placeholder: isReadOnly ? "（空）" : nil
+            )
+                .font(.system(size: contentFontSize))
+                .lineSpacing(6)
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
+                .frame(minHeight: lineHeight, alignment: .topLeading)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .background(
             GeometryReader { geo in
