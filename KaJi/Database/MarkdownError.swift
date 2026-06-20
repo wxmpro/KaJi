@@ -24,6 +24,8 @@ enum MarkdownError: LocalizedError {
     case invariantViolation(field: String, reason: String)
     /// .md 文件写入失败
     case writeFailed(cardId: String, underlying: Error)
+    /// 卡片 ID 不合法（非 17 位纯数字）
+    case invalidID(id: String)
 
     var errorDescription: String? {
         switch self {
@@ -39,6 +41,8 @@ enum MarkdownError: LocalizedError {
             return ".md 不变量违反：字段 `\(field)` \(reason)"
         case .writeFailed(let id, let err):
             return ".md 写入失败 (\(id))：\(err.localizedDescription)"
+        case .invalidID(let id):
+            return "卡片 ID 不合法（\(id)）：必须是 17 位纯数字"
         }
     }
 }

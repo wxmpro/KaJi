@@ -83,6 +83,8 @@ final class StatsState {
         if !tagSame { cachedTagCounts = stats.tagCounts }
         // 重建倒排索引
         cardService.updateSearchIndex(from: stats.summaries)
+        // 关键：全量更新后让 filterCache 失效（summaries 整体替换，count 可能变也可能不变）
+        cardService.invalidateFilterCache()
         // 触发所有观察者
         for observer in updateObservers.values { observer() }
     }
@@ -174,7 +176,11 @@ final class StatsState {
         // 5. 增量同步倒排索引
         cardService.updateSearchIndex(from: cachedSummaries)
 
-        // 6. 触发观察者
+        // 6. 关键：增量更新后让 filterCache 失效（改卡 count 不变但 summary 字段变了，
+        //    旧 cached result 会导致 UI 不显示新 tags / title / deletedAt — v1.7.4 P0）
+        cardService.invalidateFilterCache()
+
+        // 7. 触发观察者
         for observer in updateObservers.values { observer() }
     }
 

@@ -200,26 +200,45 @@ final class CardService: @unchecked Sendable {
 
     // MARK: - filter 分桶缓存
     /// 按 ListFilter 分桶缓存结果（.all / .type(t) / .tag(s) / .trash）。
-    /// 命中条件：summaries.count 未变 + 桶 key 匹配。
+    /// 命中条件：桶 key 匹配 + filterCacheVersion 未变 + summaries.count 未变。
+    /// - summaries.count 防止增/删卡 stale（增删必然 count 变）
+    /// - filterCacheVersion 防止**改卡** stale（改卡 count 不变，但 summary 字段变化；
+    ///   StatsState.applyIncremental/update 末尾必须 invalidate）
     /// .search 不缓存（query 变化频繁；.none 也不缓存）。
     /// 主线程单线程访问（ListState.refreshFilteredCards 主线程调用），
     /// 不需要额外同步原语（与 searchIndex 保持一致）。
-    private var filterCache: [String: [CardSummary]] = [:]
-    private var filterCacheSummariesCount: Int = -1
+    private struct CachedFilter {
+        let version: Int
+        let count: Int
+        let summaries: [CardSummary]
+    }
+    private var filterCache: [String: CachedFilter] = [:]
+    private var filterCacheVersion: Int = 0
+
+    /// 让所有桶缓存失效。StatsState.applyIncremental / update 末尾必须调，
+    /// 否则改卡（count 不变但 summary 字段变化）会返回旧 cached 列表，
+    /// 表现为 UI 不更新（v1.7.4 tags 不更新就是这种症状的子集）。
+    func invalidateFilterCache() {
+        filterCacheVersion &+= 1
+    }
 
     func filteredCards(from summaries: [CardSummary], matching filter: ListFilter?) -> [CardSummary] {
-        // 桶缓存命中：summaries.count 未变 + 桶 key 匹配 → O(1)
+        // 桶缓存命中：version 未变 + count 未变 + 桶 key 匹配 → O(1)
         if let cacheKey = Self.filterCacheKey(filter),
-           filterCacheSummariesCount == summaries.count,
-           let cached = filterCache[cacheKey] {
-            return cached
+           let cached = filterCache[cacheKey],
+           cached.version == filterCacheVersion,
+           cached.count == summaries.count {
+            return cached.summaries
         }
 
         // 重算 + 缓存
         let result = computeFilteredCards(from: summaries, matching: filter)
         if let cacheKey = Self.filterCacheKey(filter) {
-            filterCacheSummariesCount = summaries.count
-            filterCache[cacheKey] = result
+            filterCache[cacheKey] = CachedFilter(
+                version: filterCacheVersion,
+                count: summaries.count,
+                summaries: result
+            )
         }
         return result
     }

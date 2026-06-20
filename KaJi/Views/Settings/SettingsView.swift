@@ -2,19 +2,40 @@
 //  SettingsView.swift
 //  KaJi
 //
-//  设置窗口：macOS 原生 NavigationSplitView 风格。
+//  设置窗口：顶部 tab 按钮 + 下方内容（参考 Apple Podcasts 风格）。
 //  包含「通用」「高级」「关于」三个标签页。
 //
 
 import SwiftUI
 import AppKit
 
+private enum SettingsTab: Int, CaseIterable, Identifiable {
+    case general, advanced, about
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .general: "通用"
+        case .advanced: "高级"
+        case .about: "关于"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .general: "gearshape"
+        case .advanced: "wrench.and.screwdriver"
+        case .about: "info.circle"
+        }
+    }
+}
+
 struct SettingsView: View {
     @AppStorage("KaJi.theme") private var themeRawValue: String = "follow"
     // autoSaveInterval / trashRetentionDays 走 SettingsService setter（@AppStorage 直写
     // UserDefaults 不触发 SettingsService 缓存更新，会导致设置改后 debounce 间隔不变）
 
-    @State private var selectedTab: Int = 0
+    @State private var selectedTab: SettingsTab = .general
 
     private var autoSaveIntervalBinding: Binding<Double> {
         Binding(
@@ -40,26 +61,41 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
-            List(selection: $selectedTab) {
-                Label("通用", systemImage: "gearshape").tag(0)
-                Label("高级", systemImage: "wrench.and.screwdriver").tag(1)
-                Label("关于", systemImage: "info.circle").tag(2)
-            }
-            .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
-        } detail: {
-            Group {
-                switch selectedTab {
-                case 0: generalTab
-                case 1: advancedTab
-                default: aboutTab
+        VStack(spacing: 0) {
+            tabBar
+            content
+        }
+        .frame(width: 560, height: 360)
+    }
+
+    // MARK: - 顶部 tab 栏
+
+    private var tabBar: some View {
+        HStack(spacing: 12) {
+            ForEach(SettingsTab.allCases) { tab in
+                SettingsTabButton(
+                    title: tab.title,
+                    systemImage: tab.systemImage,
+                    isSelected: selectedTab == tab
+                ) {
+                    selectedTab = tab
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .navigationSplitViewStyle(.balanced)
-        .frame(width: 720, height: 480)
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity)
+        .frame(height: 72)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch selectedTab {
+        case .general: generalTab
+        case .advanced: advancedTab
+        case .about: aboutTab
+        }
     }
 
     // MARK: - 通用
@@ -154,40 +190,41 @@ struct SettingsView: View {
     // MARK: - 关于
 
     private var aboutTab: some View {
-        VStack(spacing: 16) {
-            Spacer()
-
-            Image(systemName: "square.stack.3d.up")
-                .font(.system(size: 64, weight: .light))
-                .foregroundStyle(.secondary)
-
-            VStack(spacing: 4) {
-                Text("卡迹 KaJi")
-                    .font(.system(size: 20, weight: .semibold))
-
-                Text("版本 \(appVersion) (\(buildNumber))")
-                    .font(.system(size: 12))
+        ScrollView {
+            VStack(spacing: 16) {
+                Image(systemName: "square.stack.3d.up")
+                    .font(.system(size: 56, weight: .light))
                     .foregroundStyle(.secondary)
+
+                VStack(spacing: 4) {
+                    Text("卡迹 KaJi")
+                        .font(.system(size: 18, weight: .semibold))
+
+                    Text("版本 \(appVersion) (\(buildNumber))")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+
+                Text("macOS 原生卡片笔记")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+
+                Button("检查更新") {
+                    guard let url = URL(string: "https://github.com/wxmpro/KaJi-macOS/releases") else { return }
+                    NSWorkspace.shared.open(url)
+                }
+                .controlSize(.small)
+                .padding(.top, 4)
+
+                Text("© 2026 KaJi. All rights reserved.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 8)
             }
-
-            Text("macOS 原生卡片笔记")
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
-
-            Button("检查更新") {
-                guard let url = URL(string: "https://github.com/wxmpro/KaJi-macOS/releases") else { return }
-                NSWorkspace.shared.open(url)
-            }
-            .controlSize(.small)
-            .padding(.top, 8)
-
-            Spacer()
-
-            Text("© 2026 KaJi. All rights reserved.")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 24)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - 辅助
@@ -222,6 +259,37 @@ struct SettingsView: View {
 
     private var buildNumber: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+    }
+}
+
+// MARK: - 顶部 tab 按钮
+
+/// 顶部 tab 按钮：图标在上、文字在下；选中态有圆角矩形背景 + 强调色。
+/// 参考 Apple Podcasts 设置窗口的「通用 / 播放 / 高级」三按钮风格。
+private struct SettingsTabButton: View {
+    let title: String
+    let systemImage: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 16, weight: .regular))
+                Text(title)
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .frame(width: 68, height: 44)
+            .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(title)
     }
 }
 

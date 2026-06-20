@@ -103,9 +103,19 @@ private struct TagsAndItemsSection: View {
 
         Section {
             if tagCounts.isEmpty {
-                Text("暂无标签")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                // 与 SidebarRow(style: .small) 视觉对齐：
+                // hPadding 16 + iconFrame 18 + hSpacing 8 = 42pt 到文字位置
+                HStack(spacing: 8) {
+                    Image(systemName: "tag")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                        .frame(width: 18, alignment: .center)
+                    Text("暂无标签")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.vertical, 4)
+                .padding(.horizontal, 16)
             } else {
                 ForEach(tagCounts, id: \.0) { tag, _ in
                     let selected = listState.rightPaneMode == .list

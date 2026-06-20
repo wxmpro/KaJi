@@ -36,28 +36,47 @@ struct CardFileIO {
         return appSupport.appendingPathComponent("KaJi", isDirectory: true)
     }
 
-    /// cards/ 目录（每张卡一个 .md）
+    /// cards/ 目录根（每张卡一个 .md，按 YYYY/MM/ 归档：cards/YYYY/MM/<id>.md）
     static func cardsDir() throws -> URL {
         try dataRoot().appendingPathComponent("cards", isDirectory: true)
     }
 
-    /// 单卡 .md 路径
+    /// 从 17 位 ID 解析年月（YYYY-MM）
+    /// - 17 位 ID 格式：YYYYMMDDHHMMSSsss（前 8 位 = 日期，前 14 位 = 时间到秒）
+    /// - 年取前 4 位，月份取 5-6 位
+    private static func yearMonth(from id: String) throws -> String {
+        guard CardIDGenerator.isValid(id) else {
+            throw MarkdownError.invalidID(id: id)
+        }
+        return String(id.prefix(4)) + "-" + String(id.dropFirst(4).prefix(2))
+    }
+
+    /// 单卡 .md 路径：cards/YYYY-MM/<id>.md
     static func fileURL(for id: String) throws -> URL {
-        try cardsDir().appendingPathComponent("\(id).md")
+        let ym = try yearMonth(from: id)
+        return try cardsDir()
+            .appendingPathComponent(ym, isDirectory: true)
+            .appendingPathComponent("\(id).md")
     }
 
     /// 列出 cards 目录下所有 .md 文件的 id（用于启动对账）
+    /// 递归扫 cards/YYYY/MM/*.md
     static func listAllIDs() throws -> Set<String> {
         let dir = try cardsDir()
         try ensureDirectory(dir)
-        let urls = try FileManager.default.contentsOfDirectory(
+        guard let enumerator = FileManager.default.enumerator(
             at: dir,
-            includingPropertiesForKeys: [.isRegularFileKey]
-        )
-        return Set(urls.compactMap { url in
-            guard url.pathExtension.lowercased() == "md" else { return nil }
-            return url.deletingPathExtension().lastPathComponent
-        })
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+        var ids = Set<String>()
+        for case let url as URL in enumerator {
+            guard url.pathExtension.lowercased() == "md" else { continue }
+            ids.insert(url.deletingPathExtension().lastPathComponent)
+        }
+        return ids
     }
 
     // MARK: - 写盘
@@ -66,9 +85,8 @@ struct CardFileIO {
     /// - Returns: 最终 .md URL
     @discardableResult
     static func write(_ card: Card) throws -> URL {
-        let dir = try cardsDir()
-        try ensureDirectory(dir)
         let url = try fileURL(for: card.id)
+        try ensureDirectory(url.deletingLastPathComponent())
         let content = renderMarkdown(card)
         let tmp = url.appendingPathExtension("tmp")
         do {
