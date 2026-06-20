@@ -30,6 +30,7 @@ struct MainView: View {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 0) {
                     BackButton()
+                    NewCardToolbarButton()
                     Spacer()
                     SearchToolbarField(
                         text: $ui.searchKeyword,
@@ -45,6 +46,7 @@ struct MainView: View {
                     )
                     .frame(width: 240)
                     Spacer()
+                    RestoreCardButton()
                     DeleteCardButton()
                 }
                 .frame(maxWidth: .infinity)

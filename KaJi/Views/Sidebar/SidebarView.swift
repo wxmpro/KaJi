@@ -79,7 +79,8 @@ private struct CardsAndTypesSection: View {
                     iconColor: type.color,
                     count: nil,
                     isSelected: selected,
-                    style: .small
+                    style: .small,
+                    newCardType: type
                 ) {
                     withAnimation(KaJiAnimation.modeSwitch) {
                         listState.showList(.type(type))

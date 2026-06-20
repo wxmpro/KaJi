@@ -19,6 +19,8 @@ struct SidebarRow: View {
     let count: Int?
     let isSelected: Bool
     var style: Style = .large
+    /// 右键「新建卡片」时应创建的类型；nil 表示默认自由卡
+    var newCardType: CardType? = nil
     var action: () -> Void
 
     private var iconSize: CGFloat { style == .large ? 16 : 9 }
@@ -61,7 +63,7 @@ struct SidebarRow: View {
         .buttonStyle(SidebarRowButtonStyle(colorScheme: colorScheme))
         .contextMenu {
             Button("新建卡片") {
-                data.startNewDraft(type: .free)
+                data.startNewDraft(type: newCardType ?? .free)
             }
         }
     }
