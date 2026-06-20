@@ -206,25 +206,65 @@ final class CardService: @unchecked Sendable {
     /// 非搜索分支仍走 [CardSummary] 线性过滤（O(N) 但无 fields hydrate 成本）。
     private let searchIndex = CardSearchIndex()
 
+    // MARK: - v1.7.2 P1-1：filter 分桶缓存
+    /// 按 ListFilter 分桶缓存结果（.all / .type(t) / .tag(s) / .trash）。
+    /// 命中条件：summaries.count 未变 + 桶 key 匹配。
+    /// .search 不缓存（query 变化频繁；.none 也不缓存）。
+    /// 主线程单线程访问（ListState.refreshFilteredCards 主线程调用），
+    /// 不需要额外同步原语（与 searchIndex 保持一致）。
+    private var filterCache: [String: [CardSummary]] = [:]
+    private var filterCacheSummariesCount: Int = -1
+
     func filteredCards(from summaries: [CardSummary], matching filter: ListFilter?) -> [CardSummary] {
-        let result: [CardSummary]
+        // 桶缓存命中：summaries.count 未变 + 桶 key 匹配 → O(1)
+        if let cacheKey = Self.filterCacheKey(filter),
+           filterCacheSummariesCount == summaries.count,
+           let cached = filterCache[cacheKey] {
+            return cached
+        }
+
+        // 重算 + 缓存
+        let result = computeFilteredCards(from: summaries, matching: filter)
+        if let cacheKey = Self.filterCacheKey(filter) {
+            filterCacheSummariesCount = summaries.count
+            filterCache[cacheKey] = result
+        }
+        return result
+    }
+
+    /// 实际计算 filter 结果（v1.7.2 拆分出 computeFilteredCards，便于与桶缓存逻辑隔离）
+    /// v1.7.2 P2-2 优化：去掉了 `result.sorted` —— `summaries` 已 sorted（StatsState.update
+    /// 首次 sort，applyIncremental 维护不变式），Swift `filter` 是稳定的，结果仍 sorted。
+    /// 节省每次 filter 的 O(N log N) sort。10万卡 + K=1：~170万次比较 → 0。
+    private func computeFilteredCards(from summaries: [CardSummary], matching filter: ListFilter?) -> [CardSummary] {
         switch filter {
         case .type(let type):
-            result = summaries.filter { $0.type == type.rawValue && $0.deletedAt == nil }
+            return summaries.filter { $0.type == type.rawValue && $0.deletedAt == nil }
         case .tag(let tag):
-            result = summaries.filter { $0.tags.contains(tag) && $0.deletedAt == nil }
+            return summaries.filter { $0.tags.contains(tag) && $0.deletedAt == nil }
         case .trash:
-            result = summaries.filter { $0.deletedAt != nil }
+            return summaries.filter { $0.deletedAt != nil }
         case .all:
-            result = summaries.filter { $0.deletedAt == nil }
+            return summaries.filter { $0.deletedAt == nil }
         case .search(let keyword):
             // v1.2.9 T5：用倒排索引命中
             let hits = searchIndex.search(keyword)
-            result = summaries.filter { hits.contains($0.id) && $0.deletedAt == nil }
+            return summaries.filter { hits.contains($0.id) && $0.deletedAt == nil }
         case .none:
-            result = []
+            return []
         }
-        return result.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    /// 桶缓存 key（用于按 filter 分桶）。nil 表示不缓存。
+    private static func filterCacheKey(_ filter: ListFilter?) -> String? {
+        switch filter {
+        case .none: return nil       // 空 filter 不缓存
+        case .all: return "all"
+        case .type(let t): return "type:\(t.rawValue)"
+        case .tag(let s): return "tag:\(s)"
+        case .trash: return "trash"
+        case .search: return nil     // 搜索 query 变化频繁，不缓存
+        }
     }
 
     /// 外部调用入口：刷新搜索索引（StatsState.update 触发，在主线程）

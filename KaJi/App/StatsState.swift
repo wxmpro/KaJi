@@ -72,7 +72,14 @@ final class StatsState {
         typeCounts: [CardType: Int],
         tagCounts: [(String, Int)]
     )) {
-        if cachedSummaries != stats.summaries { cachedSummaries = stats.summaries }
+        if cachedSummaries != stats.summaries {
+            // v1.7.2 P2-2：首次 sort 保证 sorted 不变式
+            // 之后 applyIncremental（P1-2）维护不变式，filter 可跳过 sort
+            cachedSummaries = stats.summaries.sorted { lhs, rhs in
+                if lhs.updatedAt != rhs.updatedAt { return lhs.updatedAt > rhs.updatedAt }
+                return lhs.id < rhs.id
+            }
+        }
         if cachedTypeCounts != stats.typeCounts { cachedTypeCounts = stats.typeCounts }
         let tagSame = cachedTagCounts.count == stats.tagCounts.count
             && zip(cachedTagCounts, stats.tagCounts).allSatisfy { $0 == $1 }
@@ -119,16 +126,27 @@ final class StatsState {
             }
         }
 
-        // 2. 更新 cachedSummaries
-        //    v1.6.5 bug fix：稳定排序 — 同 updatedAt 按 id 字典序，
-        //    避免 applyIncremental 反复触发时，Dictionary.values 无序迭代 +
-        //    sort 仅按主键导致同 updatedAt 的卡顺序随机跳动（侧栏/列表重排）。
-        var byID = oldByID
-        for summary in changed { byID[summary.id] = summary }
-        for id in removed { byID.removeValue(forKey: id) }
-        cachedSummaries = byID.values.sorted { lhs, rhs in
-            if lhs.updatedAt != rhs.updatedAt { return lhs.updatedAt > rhs.updatedAt }
-            return lhs.id < rhs.id
+        // 2. 更新 cachedSummaries（v1.7.2 P1-2 增量调整，不再全量 sort）
+        //    不变式：cachedSummaries 按 (updatedAt desc, id asc) 排序
+        //    性能：O(K * (log N + N)) ≈ O(KN)
+        //      vs 旧实现 O(N log N) 全量 sort（每次 commitDraft 都跑）
+        //    10万卡 + K=1：~10万次内存移动 vs ~170万次比较 → ~17x 加速
+        //    v1.6.5 bug fix 仍保留：同 updatedAt 按 id 字典序，避免侧栏/列表重排
+
+        // 2.1 先移除 removed
+        for id in removed {
+            if let idx = cachedSummaries.firstIndex(where: { $0.id == id }) {
+                cachedSummaries.remove(at: idx)
+            }
+        }
+
+        // 2.2 changed cards：移除旧的，二分查找插入位置，插入新的
+        for newSummary in changed {
+            if let idx = cachedSummaries.firstIndex(where: { $0.id == newSummary.id }) {
+                cachedSummaries.remove(at: idx)
+            }
+            let insertIdx = Self.insertPosition(for: newSummary, in: cachedSummaries)
+            cachedSummaries.insert(newSummary, at: insertIdx)
         }
 
         // 3. 应用 typeCounts diff
@@ -166,6 +184,34 @@ final class StatsState {
 
         // 6. 触发观察者
         for observer in updateObservers.values { observer() }
+    }
+
+    /// v1.7.2 P1-2：二分查找插入位置（按 updatedAt desc, id asc 排序的不变式）。
+    /// O(log N)，配合 Array.insert(at:) 实现 O(log N + N) 增量调整。
+    /// 返回第一个让 `summary` 应该排在 `array[i]` 之前的位置。
+    private static func insertPosition(for summary: CardSummary, in array: [CardSummary]) -> Int {
+        var lo = 0
+        var hi = array.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            let midSummary = array[mid]
+            if midSummary.updatedAt != summary.updatedAt {
+                // desc 排序：updatedAt 大的排前面
+                if summary.updatedAt > midSummary.updatedAt {
+                    hi = mid
+                } else {
+                    lo = mid + 1
+                }
+            } else {
+                // 同 updatedAt：按 id asc 排序
+                if summary.id < midSummary.id {
+                    hi = mid
+                } else {
+                    lo = mid + 1
+                }
+            }
+        }
+        return lo
     }
 
     /// 重新计算并缓存侧栏统计（数据变化时调用）

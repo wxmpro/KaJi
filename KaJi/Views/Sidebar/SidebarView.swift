@@ -4,25 +4,30 @@
 //
 //  左侧边栏：导航入口（新建、卡片类型、标签、回收站）。
 //
+//  v1.7.2 性能优化：把 4 个 section 拆为独立 View struct，
+//  每个 section 独立 @Environment 订阅自己需要的 state，
+//  避免 sidebar 整体重建（25 个 row 反复创建）。
+//
+//  - NewCardSection：只订阅 EditorDataState
+//  - CardsAndTypesSection：只订阅 ListState（rightPaneMode + listFilter）
+//  - TagsAndItemsSection：订阅 ListState + StatsState（tagCounts）
+//  - TrashSection：订阅 ListState + StatsState（trashCount）
+//
+//  效果：点"新建卡片"只有 NewCardSection 重建；点卡片类型只有
+//  CardsAndTypesSection 重建；stats 加载只触发 Tags/Trash 重建。
+//
 
 import SwiftUI
 
+// MARK: - 顶层 SidebarView
+
 struct SidebarView: View {
-    // v1.4.0：@EnvironmentObject → @Environment（@Observable 细粒度订阅）
-    @Environment(EditorDataState.self) private var data
-    @Environment(ListState.self) private var listState
-    @Environment(StatsState.self) private var statsState
-    @Environment(\.colorScheme) private var colorScheme
-
     var body: some View {
-        // 预计算标签统计：避免在 List 行闭包里反复读库
-        let tagCounts = tagCountsSnapshot
-
         List {
-            newCardSection
-            cardsAndTypesSection
-            tagsAndItemsSection(tagCounts: tagCounts)
-            trashSection
+            NewCardSection()
+            CardsAndTypesSection()
+            TagsAndItemsSection()
+            TrashSection()
         }
         .listStyle(.sidebar)
         .environment(\.defaultMinListRowHeight, 22)
@@ -41,18 +46,14 @@ struct SidebarView: View {
                 .ignoresSafeArea()
         }
     }
+}
 
-    // MARK: Snapshots
+// MARK: - Section 1: 新建卡片（只订阅 EditorDataState）
 
-    private var tagCountsSnapshot: [(String, Int)] {
-        // StatsState.tagCounts() 已按字典聚合（天然去重），并按使用次数倒序。
-        // 侧栏只展示最常用的前 10 个，避免列表过长。
-        Array(statsState.tagCounts().prefix(10))
-    }
+private struct NewCardSection: View {
+    @Environment(EditorDataState.self) private var data
 
-    // MARK: Sections
-
-    private var newCardSection: some View {
+    var body: some View {
         Section {
             SidebarRow(
                 title: "新建卡片",
@@ -68,8 +69,14 @@ struct SidebarView: View {
         }
         .listRowSeparator(.hidden)
     }
+}
 
-    private var cardsAndTypesSection: some View {
+// MARK: - Section 2: 卡片 + 12 种类型（只订阅 ListState）
+
+private struct CardsAndTypesSection: View {
+    @Environment(ListState.self) private var listState
+
+    var body: some View {
         Section {
             SidebarRow(
                 title: "卡片",
@@ -104,8 +111,19 @@ struct SidebarView: View {
             }
         }
     }
+}
 
-    private func tagsAndItemsSection(tagCounts: [(String, Int)]) -> some View {
+// MARK: - Section 3: 标签 section header + top 10 tags（订阅 ListState + StatsState）
+
+private struct TagsAndItemsSection: View {
+    @Environment(ListState.self) private var listState
+    @Environment(StatsState.self) private var statsState
+
+    var body: some View {
+        // StatsState.tagCounts() 已按字典聚合（天然去重），并按使用次数倒序。
+        // 侧栏只展示最常用的前 10 个，避免列表过长。
+        let tagCounts = Array(statsState.tagCounts().prefix(10))
+
         Section {
             if tagCounts.isEmpty {
                 Text("暂无标签")
@@ -145,14 +163,21 @@ struct SidebarView: View {
             .padding(.bottom, 4)
         }
     }
+}
 
-    private var trashSection: some View {
+// MARK: - Section 4: 回收站（订阅 ListState + StatsState）
+
+private struct TrashSection: View {
+    @Environment(ListState.self) private var listState
+    @Environment(StatsState.self) private var statsState
+
+    var body: some View {
+        let selected = listState.rightPaneMode == .list
+            && listState.listFilter == .trash
+        let trashCount = statsState.cachedSummaries.filter { $0.deletedAt != nil }.count
+        let trashIcon = trashCount > 0 ? "arrow.up.trash.fill" : "arrow.up.trash"
+
         Section {
-            let selected = listState.rightPaneMode == .list
-                && listState.listFilter == .trash
-            let trashCount = statsState.cachedSummaries.filter { $0.deletedAt != nil }.count
-            let trashIcon = trashCount > 0 ? "arrow.up.trash.fill" : "arrow.up.trash"
-
             SidebarRow(
                 title: "回收站",
                 icon: trashIcon,
