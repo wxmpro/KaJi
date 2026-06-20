@@ -58,7 +58,8 @@ struct FormEditor: View {
     }
 
     private let labelWidth: CGFloat = 56
-    private let lineHeight: CGFloat = 24
+    /// v1.6.11：lineHeight 改为引用 KaJiMetrics.editorLineHeight（公共唯一权威值），消除硬编码
+    private var lineHeight: CGFloat { KaJiMetrics.editorLineHeight }
     private let contentFontSize: CGFloat = 16
     private let cardMaxWidth: CGFloat = 700
     private let cardMaxHeight: CGFloat = 560
@@ -315,7 +316,9 @@ struct FormEditor: View {
             Canvas { context, size in
                 guard size.height > 0 else { return }
                 let firstY: CGFloat = lineHeight
-                let lastY: CGFloat = max(firstY, size.height - 8)
+                // v1.6.11：lastY 算法改为 floor 到 lineHeight 倍数，保证每行（含最后一行 / 正在打字那行）底部都画横线
+                // 旧算法 `size.height - 8` 让最后一行永远画不到横线
+                let lastY: CGFloat = (size.height / lineHeight).rounded(.down) * lineHeight
                 var y = firstY
                 while y <= lastY {
                     var path = Path()
@@ -363,16 +366,19 @@ struct FormEditor: View {
                     .frame(maxWidth: .infinity, minHeight: lineHeight, alignment: .topLeading)
                     .textSelection(.enabled)
             } else {
-                TextEditor(text: text)
+                // v1.6.11：TextEditor → NoScrollTextEditor
+                // 强制行高 = editorLineHeight，从源头消除横线穿字 bug
+                NoScrollTextEditor(
+                    text: text,
+                    isReadOnly: false,
+                    onChange: onChange
+                )
                     .font(.system(size: contentFontSize))
                     .lineSpacing(6)
                     .scrollContentBackground(.hidden)
                     .background(Color.clear)
                     .frame(minHeight: lineHeight, alignment: .topLeading)
                     .fixedSize(horizontal: false, vertical: true)
-                    .onChange(of: text.wrappedValue) { old, new in
-                        onChange(old, new)
-                    }
             }
         }
         .background(

@@ -60,6 +60,8 @@
 		F46F58ADE5EDFCD8D6BD5616 /* ListFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701910040469901400ED7260 /* ListFilter.swift */; };
 		F7BAE71F5032DCF452AD5B9D /* CardTypeChangeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A7BCF285D1FC16090347EBC /* CardTypeChangeService.swift */; };
 		FE6CF422C1D482F633B360FC /* KaJiLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 785F909EF4BDD3325862CE2A /* KaJiLayout.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A1A /* KaJiMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B2B2B2B2B2B2B2B2B2B2B2B2 /* KaJiMetrics.swift */; };
+		3C3C3C3C3C3C3C3C3C3C3C3C /* NoScrollTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4D4D4D4D4D4D4D4D4D4D4D4 /* NoScrollTextEditor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -99,6 +101,7 @@
 		99058EEBBAFC619FB5585363 /* SemanticColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticColor.swift; sourceTree = "<group>"; };
 		9CE95E491876197E909A86B0 /* CardFileIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardFileIO.swift; sourceTree = "<group>"; };
 		9F741B3A0BFC712111BEE2D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		2B2B2B2B2B2B2B2B2B2B2B2B2 /* KaJiMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiMetrics.swift; sourceTree = "<group>"; };
 		A2AB17E85BF57933CCADA200 /* SidebarRowButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarRowButtonStyle.swift; sourceTree = "<group>"; };
 		A84AB7B6767CC5810E228175 /* Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Card.swift; sourceTree = "<group>"; };
 		AAD817D86E38BFFFC44FC5D6 /* StatsState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsState.swift; sourceTree = "<group>"; };
@@ -116,6 +119,7 @@
 		DC665ADE9272594BE0D8993D /* EditorUIState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorUIState.swift; sourceTree = "<group>"; };
 		E546D7FFEB130D7DD5217111 /* ContentLimit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentLimit.swift; sourceTree = "<group>"; };
 		EBFA0ED78BDDA942EBEA38DB /* TagPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagPill.swift; sourceTree = "<group>"; };
+		4D4D4D4D4D4D4D4D4D4D4D4D4 /* NoScrollTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoScrollTextEditor.swift; sourceTree = "<group>"; };
 		F37E554B9932F709452BBD64 /* EditorDataState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorDataState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -142,6 +146,7 @@
 				10A038ED89F28B1D4CE0A7C6 /* KaJiColor.swift */,
 				6489221647680ACFE6E3CE11 /* KaJiError.swift */,
 				785F909EF4BDD3325862CE2A /* KaJiLayout.swift */,
+				2B2B2B2B2B2B2B2B2B2B2B2B2 /* KaJiMetrics.swift */,
 				99058EEBBAFC619FB5585363 /* SemanticColor.swift */,
 				0EB6B78BC1C7BA574E35BF37 /* SettingsService.swift */,
 			);
@@ -209,6 +214,7 @@
 				68BBF8A5B05CAD17C03D69B4 /* CardTypePickerView.swift */,
 				5D9764329C9E9B202E4BCF7A /* FormEditor.swift */,
 				835C9B4A682ADB75BF679FB6 /* NotesEditor.swift */,
+				4D4D4D4D4D4D4D4D4D4D4D4D4 /* NoScrollTextEditor.swift */,
 			);
 			path = Editor;
 			sourceTree = "<group>";
@@ -401,6 +407,8 @@
 				BE722BE1DE54F6CC46D2A3A7 /* KaJiError.swift in Sources */,
 				15CDCB8A03895B9787DFC299 /* KaJiHoverBackground.swift in Sources */,
 				FE6CF422C1D482F633B360FC /* KaJiLayout.swift in Sources */,
+				1A1A1A1A1A1A1A1A1A1A1A1A /* KaJiMetrics.swift in Sources */,
+				3C3C3C3C3C3C3C3C3C3C3C3C /* NoScrollTextEditor.swift in Sources */,
 				6725010D5EC9CC79B292172A /* KaJiListRowButtonStyle.swift in Sources */,
 				F46F58ADE5EDFCD8D6BD5616 /* ListFilter.swift in Sources */,
 				C96FD0E18FCB4C21F166C7F8 /* ListFilterTitle.swift in Sources */,
@@ -476,7 +484,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 34;
+				CURRENT_PROJECT_VERSION = 35;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -499,7 +507,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.6.10;
+				MARKETING_VERSION = 1.6.11;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -564,7 +572,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 34;
+				CURRENT_PROJECT_VERSION = 35;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -581,7 +589,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.6.10;
+				MARKETING_VERSION = 1.6.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;
