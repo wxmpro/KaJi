@@ -49,7 +49,7 @@ final class CardService: @unchecked Sendable {
 
     /// 生成一张新卡（不写库）
     /// CardIDGenerator 进程内单调 + DB UNIQUE 约束兜底跨进程。
-    func generateNewCard(type: CardType) async throws -> Card {
+    func generateNewCard(typeId: String) async throws -> Card {
         for _ in 1...10 {
             let candidateId: String
             do {
@@ -61,7 +61,7 @@ final class CardService: @unchecked Sendable {
             guard CardIDGenerator.isValid(candidateId) else {
                 throw KaJiError.database(.idConflictExhausted(attempts: 10))
             }
-            return Card.new(type: type, id: candidateId, title: "", tags: [], fields: [:])
+            return Card.new(typeId: typeId, id: candidateId, title: "", tags: [], fields: [:])
         }
         throw KaJiError.database(.idConflictExhausted(attempts: 10))
     }
@@ -175,7 +175,7 @@ final class CardService: @unchecked Sendable {
     /// 性能：10k 卡全库 ~10ms（vs 修复前 hydrate ~100ms）
     func refreshStats() async throws -> (
         summaries: [CardSummary],
-        typeCounts: [CardType: Int],
+        typeCounts: [String: Int],
         tagCounts: [(String, Int)]
     ) {
         let repo = repository
@@ -248,8 +248,8 @@ final class CardService: @unchecked Sendable {
     /// applyIncremental 维护不变式），Swift `filter` 是稳定的，结果仍 sorted。
     private func computeFilteredCards(from summaries: [CardSummary], matching filter: ListFilter?) -> [CardSummary] {
         switch filter {
-        case .type(let type):
-            return summaries.filter { $0.type == type.rawValue && $0.deletedAt == nil }
+        case .type(let typeId):
+            return summaries.filter { $0.type == typeId && $0.deletedAt == nil }
         case .tag(let tag):
             return summaries.filter { $0.tags.contains(tag) && $0.deletedAt == nil }
         case .trash:
@@ -269,7 +269,7 @@ final class CardService: @unchecked Sendable {
         switch filter {
         case .none: return nil       // 空 filter 不缓存
         case .all: return "all"
-        case .type(let t): return "type:\(t.rawValue)"
+        case .type(let typeId): return "type:\(typeId)"
         case .tag(let s): return "tag:\(s)"
         case .trash: return "trash"
         case .search: return nil     // 搜索 query 变化频繁，不缓存
@@ -287,7 +287,7 @@ final class CardService: @unchecked Sendable {
     /// 复制当前卡片全部内容到剪贴板（Markdown 格式）
     func copyAllContentToPasteboard(for card: Card) {
         var lines: [String] = []
-        lines.append("## \(card.cardType.rawValue)")
+        lines.append("## \(card.cardTypeDef.name)")
         lines.append("")
         lines.append("**标题：** \(card.title)")
         for field in card.orderedFields {

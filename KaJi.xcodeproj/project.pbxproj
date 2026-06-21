@@ -15,6 +15,7 @@
 		15CDCB8A03895B9787DFC299 /* KaJiHoverBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3647E15E9080E317364F3262 /* KaJiHoverBackground.swift */; };
 		17E4C7ECE8A2F6BA64E22A9A /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD9140953A0EFC4A19583E5 /* ExportService.swift */; };
 		1BA4C082D6D4A04C32DB6C4B /* EditorDataState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F37E554B9932F709452BBD64 /* EditorDataState.swift */; };
+		1F63C58EC9532736D2D54109 /* CardTypeDefPersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61F8777B8A6DD427F07615F7 /* CardTypeDefPersistenceService.swift */; };
 		263E2C014AF87EC372355BF5 /* MarkdownError.swift in Sources */ = {isa = PBXBuildFile; fileRef = D134CE08B1F7EA2F7435A19E /* MarkdownError.swift */; };
 		2A81A09556177893A6023CEA /* CardIDGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF832ED09C5A71F672E6D89 /* CardIDGenerator.swift */; };
 		2BA854C00453FBC40D0F208A /* CardSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6003CA6215C6187DFF8E81 /* CardSummary.swift */; };
@@ -26,6 +27,7 @@
 		4532EEE3BC391DC2DAC197AE /* CardRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A4616229289AE1DE903BD24 /* CardRecord.swift */; };
 		49A8091BAC9A7FEEC6313A55 /* DatabaseError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55639F3791C04CC7E7618DA3 /* DatabaseError.swift */; };
 		4F7BCED919CC55520575E767 /* MarkdownFailureTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE8B2A7B5977BB9438D335B8 /* MarkdownFailureTracker.swift */; };
+		563D2257C79298FE5E4B317B /* CardTypeFieldMigrationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32000FF56E2998455D2D1F62 /* CardTypeFieldMigrationService.swift */; };
 		582195DC99E9F0DC111EB3DE /* SearchToolbarField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FECCCF5ACB3B8F390337C282 /* SearchToolbarField.swift */; };
 		618ECF479D1E64370FEF3CC2 /* KaJiMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = C90FD45CE941E8326C1D998B /* KaJiMetrics.swift */; };
 		6725010D5EC9CC79B292172A /* KaJiListRowButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57C625A6DAC0E8BF6A1F87FA /* KaJiListRowButtonStyle.swift */; };
@@ -40,11 +42,13 @@
 		9B4940E50A6D2CD1F65C5BD4 /* SidebarRowButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2AB17E85BF57933CCADA200 /* SidebarRowButtonStyle.swift */; };
 		9F30FC57C2B0F84213BFDB54 /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42CFF8F25761CACD3184597E /* AppDatabase.swift */; };
 		A506B368E84598D6C89B8961 /* Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84AB7B6767CC5810E228175 /* Card.swift */; };
+		A50B127E57500A21D2A063C8 /* CardTypeDef.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25A7E6DB1028C938E52A1B03 /* CardTypeDef.swift */; };
 		A7A39C65CC8BF3F542C7D1BB /* RestoreCardButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEA3B988DE7108AFA73934E2 /* RestoreCardButton.swift */; };
 		A899C988E7464C10213B53FA /* CardListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3912C8DB85C77F9AC3AB76A9 /* CardListRow.swift */; };
 		ABA537F37BCAC718A53AE1D8 /* DeleteCardButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B21BFFAF7E7E564B0D75E0E /* DeleteCardButton.swift */; };
 		AC8F168F7B0F8CD8FECFE200 /* NotesEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 835C9B4A682ADB75BF679FB6 /* NotesEditor.swift */; };
 		B025592EF8739C26C9049196 /* DateFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9AB45BCE761CC148D162A10 /* DateFormatting.swift */; };
+		B09C239833CFB99DDB97B799 /* CardTypeRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DF5E4DA0A134FB69CC46C2A /* CardTypeRegistry.swift */; };
 		BB24EB4047FEF199101454B5 /* CardListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05004F2A32A2EF016AD2F506 /* CardListView.swift */; };
 		BBB886041FBCCCB94A180FF0 /* SettingsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EB6B78BC1C7BA574E35BF37 /* SettingsService.swift */; };
 		BE722BE1DE54F6CC46D2A3A7 /* KaJiError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6489221647680ACFE6E3CE11 /* KaJiError.swift */; };
@@ -57,8 +61,10 @@
 		DB89DF8FE9DDCFD0DF6FB272 /* CardTypePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68BBF8A5B05CAD17C03D69B4 /* CardTypePickerView.swift */; };
 		DE07670AB3C5E00CB28CAD8C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1AD77866E3925FC7D31C5E0 /* SettingsView.swift */; };
 		DEE197EBEFEBBD91A9F64939 /* CardField.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE706C53BA6C1856A9781F63 /* CardField.swift */; };
+		E24BD17EC1B26F94BBD8B154 /* CardTypeRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA87D65ECF9FBC000123C27 /* CardTypeRecords.swift */; };
 		E4D3A3BBE4BBB2569ABAD35A /* DraftState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84D65FEF3994CFA76AB4A78D /* DraftState.swift */; };
 		E89DB5F0EC33FDFD5E878571 /* CardSearchIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = C26582D96158C6EFF137CB3B /* CardSearchIndex.swift */; };
+		EE21FAF9283191D2AEBE4CCA /* CardTypeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B87BD516F53EED92EB3F2E7D /* CardTypeSettingsView.swift */; };
 		F13E1FCE2C351691C9E40159 /* TagPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBFA0ED78BDDA942EBEA38DB /* TagPill.swift */; };
 		F1866F381DEF2F829AD6DD9C /* KaJiAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398C6BEC82BFAA44E5481337 /* KaJiAnimation.swift */; };
 		F423DE0FE152E2ADAB4B0A11 /* ContentLimit.swift in Sources */ = {isa = PBXBuildFile; fileRef = E546D7FFEB130D7DD5217111 /* ContentLimit.swift */; };
@@ -78,7 +84,10 @@
 		154D44EF8F2CA8D582AD7D78 /* EditorAlertState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorAlertState.swift; sourceTree = "<group>"; };
 		1A7BCF285D1FC16090347EBC /* CardTypeChangeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTypeChangeService.swift; sourceTree = "<group>"; };
 		2206F53F4916153A64D20B14 /* ListFilterTitle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListFilterTitle.swift; sourceTree = "<group>"; };
+		25A7E6DB1028C938E52A1B03 /* CardTypeDef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTypeDef.swift; sourceTree = "<group>"; };
+		2DF5E4DA0A134FB69CC46C2A /* CardTypeRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTypeRegistry.swift; sourceTree = "<group>"; };
 		304FB0D795B06174E9F89E4A /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		32000FF56E2998455D2D1F62 /* CardTypeFieldMigrationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTypeFieldMigrationService.swift; sourceTree = "<group>"; };
 		3647E15E9080E317364F3262 /* KaJiHoverBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiHoverBackground.swift; sourceTree = "<group>"; };
 		3912C8DB85C77F9AC3AB76A9 /* CardListRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardListRow.swift; sourceTree = "<group>"; };
 		398C6BEC82BFAA44E5481337 /* KaJiAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiAnimation.swift; sourceTree = "<group>"; };
@@ -92,6 +101,7 @@
 		5D9764329C9E9B202E4BCF7A /* FormEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormEditor.swift; sourceTree = "<group>"; };
 		5F8F653DA233D32531D182AC /* SidebarRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarRow.swift; sourceTree = "<group>"; };
 		60F46A35E904ABF137D03552 /* CardRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardRepository.swift; sourceTree = "<group>"; };
+		61F8777B8A6DD427F07615F7 /* CardTypeDefPersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTypeDefPersistenceService.swift; sourceTree = "<group>"; };
 		6489221647680ACFE6E3CE11 /* KaJiError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiError.swift; sourceTree = "<group>"; };
 		65D443FD69E1F5C34DF1EF0D /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		6874E088173C778F8230B0FB /* NewCardToolbarButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewCardToolbarButton.swift; sourceTree = "<group>"; };
@@ -105,11 +115,13 @@
 		8D9938BF638F8608F3A66F1F /* ListState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListState.swift; sourceTree = "<group>"; };
 		99058EEBBAFC619FB5585363 /* SemanticColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticColor.swift; sourceTree = "<group>"; };
 		9CE95E491876197E909A86B0 /* CardFileIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardFileIO.swift; sourceTree = "<group>"; };
+		9DA87D65ECF9FBC000123C27 /* CardTypeRecords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTypeRecords.swift; sourceTree = "<group>"; };
 		9F741B3A0BFC712111BEE2D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A2AB17E85BF57933CCADA200 /* SidebarRowButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarRowButtonStyle.swift; sourceTree = "<group>"; };
 		A84AB7B6767CC5810E228175 /* Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Card.swift; sourceTree = "<group>"; };
 		AAD817D86E38BFFFC44FC5D6 /* StatsState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsState.swift; sourceTree = "<group>"; };
 		AE706C53BA6C1856A9781F63 /* CardField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardField.swift; sourceTree = "<group>"; };
+		B87BD516F53EED92EB3F2E7D /* CardTypeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTypeSettingsView.swift; sourceTree = "<group>"; };
 		BE8B2A7B5977BB9438D335B8 /* MarkdownFailureTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownFailureTracker.swift; sourceTree = "<group>"; };
 		BEA3B988DE7108AFA73934E2 /* RestoreCardButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreCardButton.swift; sourceTree = "<group>"; };
 		C1AD77866E3925FC7D31C5E0 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -162,6 +174,7 @@
 		4A678DBDCEDA13CEEA647585 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				2DF5E4DA0A134FB69CC46C2A /* CardTypeRegistry.swift */,
 				154D44EF8F2CA8D582AD7D78 /* EditorAlertState.swift */,
 				F37E554B9932F709452BBD64 /* EditorDataState.swift */,
 				DC665ADE9272594BE0D8993D /* EditorUIState.swift */,
@@ -188,6 +201,7 @@
 				C26582D96158C6EFF137CB3B /* CardSearchIndex.swift */,
 				8C6003CA6215C6187DFF8E81 /* CardSummary.swift */,
 				C2C2B4B24CA43949D4AA46CF /* CardType.swift */,
+				25A7E6DB1028C938E52A1B03 /* CardTypeDef.swift */,
 				84D65FEF3994CFA76AB4A78D /* DraftState.swift */,
 				701910040469901400ED7260 /* ListFilter.swift */,
 			);
@@ -210,6 +224,8 @@
 				1536CBD99F2A9B3B09E7D1B2 /* CardLifecycleService.swift */,
 				5832713E45FBEA4ADB655DC7 /* CardService.swift */,
 				1A7BCF285D1FC16090347EBC /* CardTypeChangeService.swift */,
+				61F8777B8A6DD427F07615F7 /* CardTypeDefPersistenceService.swift */,
+				32000FF56E2998455D2D1F62 /* CardTypeFieldMigrationService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -271,6 +287,7 @@
 		DB5864904E83C1708BF705AF /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				B87BD516F53EED92EB3F2E7D /* CardTypeSettingsView.swift */,
 				C1AD77866E3925FC7D31C5E0 /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -283,6 +300,7 @@
 				9CE95E491876197E909A86B0 /* CardFileIO.swift */,
 				6A4616229289AE1DE903BD24 /* CardRecord.swift */,
 				60F46A35E904ABF137D03552 /* CardRepository.swift */,
+				9DA87D65ECF9FBC000123C27 /* CardTypeRecords.swift */,
 				55639F3791C04CC7E7618DA3 /* DatabaseError.swift */,
 				D134CE08B1F7EA2F7435A19E /* MarkdownError.swift */,
 				BE8B2A7B5977BB9438D335B8 /* MarkdownFailureTracker.swift */,
@@ -398,7 +416,13 @@
 				2BA854C00453FBC40D0F208A /* CardSummary.swift in Sources */,
 				831A4B4C570C3BB8B74CF63D /* CardType.swift in Sources */,
 				F7BAE71F5032DCF452AD5B9D /* CardTypeChangeService.swift in Sources */,
+				A50B127E57500A21D2A063C8 /* CardTypeDef.swift in Sources */,
+				1F63C58EC9532736D2D54109 /* CardTypeDefPersistenceService.swift in Sources */,
+				563D2257C79298FE5E4B317B /* CardTypeFieldMigrationService.swift in Sources */,
 				DB89DF8FE9DDCFD0DF6FB272 /* CardTypePickerView.swift in Sources */,
+				E24BD17EC1B26F94BBD8B154 /* CardTypeRecords.swift in Sources */,
+				B09C239833CFB99DDB97B799 /* CardTypeRegistry.swift in Sources */,
+				EE21FAF9283191D2AEBE4CCA /* CardTypeSettingsView.swift in Sources */,
 				F423DE0FE152E2ADAB4B0A11 /* ContentLimit.swift in Sources */,
 				49A8091BAC9A7FEEC6313A55 /* DatabaseError.swift in Sources */,
 				B025592EF8739C26C9049196 /* DateFormatting.swift in Sources */,
@@ -496,7 +520,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 47;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -519,7 +543,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.8.5;
+				MARKETING_VERSION = 1.9.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -584,7 +608,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 47;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -601,7 +625,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.8.5;
+				MARKETING_VERSION = 1.9.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;

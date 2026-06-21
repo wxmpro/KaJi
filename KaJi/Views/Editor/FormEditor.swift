@@ -47,7 +47,7 @@ struct FormEditor: View {
     // 派生
     private var card: Card { data.draft.card }
     private var isReadOnly: Bool { data.draft.isReadOnly }
-    private var currentFields: [String] { card.cardType.fields }
+    private var currentFields: [String] { card.cardTypeDef.allFields }
     private var displayID: String {
         card.isPlaceholder ? "" : card.displayID
     }
@@ -132,8 +132,8 @@ struct FormEditor: View {
 
                         VStack {
                             Spacer()
-                            CardTypePickerView(selectedType: card.cardType) { type in
-                                data.requestCardTypeChange(to: type)
+                            CardTypePickerView(selectedTypeId: card.type) { typeId in
+                                data.requestCardTypeChange(to: typeId)
                                 showingTypePicker = false
                             }
                             .padding(.horizontal, 14)
@@ -296,9 +296,9 @@ struct FormEditor: View {
         } label: {
             HStack(spacing: 4) {
                 Circle()
-                    .fill(card.cardType.color)
+                    .fill(card.cardTypeDef.color)
                     .frame(width: 6, height: 6)
-                Text(card.cardType.rawValue)
+                Text(card.cardTypeDef.name)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.primary)
             }

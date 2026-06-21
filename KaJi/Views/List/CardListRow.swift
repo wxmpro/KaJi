@@ -24,7 +24,7 @@ struct CardListRow: View {
         } label: {
             HStack(spacing: 0) {
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(card.cardType.color)
+                    .fill(card.cardTypeDef.color)
                     .frame(width: 4)
                     .padding(.vertical, 2)
 
@@ -37,9 +37,9 @@ struct CardListRow: View {
                     HStack(spacing: 6) {
                         HStack(spacing: 4) {
                             Circle()
-                                .fill(card.cardType.color)
+                                .fill(card.cardTypeDef.color)
                                 .frame(width: 6, height: 6)
-                            Text(card.cardType.rawValue)
+                            Text(card.cardTypeDef.name)
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
                         }

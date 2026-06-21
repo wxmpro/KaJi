@@ -37,7 +37,7 @@ final class CardLifecycleService {
         do {
             try cardService.softDelete(id: card.id)
             if data.draft.cardID == card.id {
-                data.draft = .empty(data.draft.cardType)
+                data.draft = .empty(data.draft.cardTypeID)
             }
             statsState?.rebuildStats { [weak self] error in
                 self?.data?.alert?.saveError = "统计刷新失败：\(error.localizedDescription)"

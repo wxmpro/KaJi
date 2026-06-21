@@ -15,7 +15,7 @@ struct BackButton: View {
         Button {
             if listState.rightPaneMode == .list {
                 // 在列表页：返回 → 开新空白卡
-                data.startNewDraft(type: .free)
+                data.startNewDraft(typeId: "自由卡")
             } else {
                 // 在卡片详情页：返回 → 回到列表（触发 commitDraft 立即持久化）
                 Task { @MainActor in

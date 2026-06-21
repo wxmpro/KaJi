@@ -31,7 +31,7 @@ struct CardFieldRecord: Codable, FetchableRecord, MutablePersistableRecord {
     static let databaseTableName = "cardFields"
 
     var cardId: String
-    var fieldName: String
+    var fieldName: String?   // 阶段2废弃真源，保留列做兼容
     var fieldValue: String
     var fieldOrder: Int
 }

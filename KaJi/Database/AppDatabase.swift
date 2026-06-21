@@ -47,6 +47,8 @@ final class AppDatabase: @unchecked Sendable {
         if useInMemory {
             var config = Configuration()
             config.label = "KaJi.DB.InMemory"
+            // 统一 DB 队列 QoS，避免主线程（User-interactive）等待 Utility 线程持有的连接时触发 priority inversion
+            config.qos = .userInitiated
             // DatabaseQueue — in-memory 必须用 Queue，Pool 强制 WAL
             dbWriter = try DatabaseQueue(path: ":memory:", configuration: config)
             isInMemory = true
@@ -58,6 +60,8 @@ final class AppDatabase: @unchecked Sendable {
             )
             var config = Configuration()
             config.label = "KaJi.DB"
+            // 统一 DB 队列 QoS，避免主线程等待低优先级线程持有的连接
+            config.qos = .userInitiated
             // 跨进程并发兜底 — 第二进程等 5s 不立即失败
             // GRDB IMMEDIATE 事务 + busy_timeout 协同，避免 SQLITE_BUSY 直接抛错
             config.busyMode = .timeout(5)
@@ -158,6 +162,71 @@ final class AppDatabase: @unchecked Sendable {
             )
         }
 
+        // 阶段 2：自定义卡片类型基础设施
+        // - 类型定义表 cardTypeDefs（内置 override + 自定义类型）
+        // - 类型字段表 cardTypeFields
+        // - 全局顺序表 typeOrder
+        // - 侧栏展示表 typeVisibility
+        // - cardFields.fieldName 保留列但废弃真源，改为按 fieldOrder 对齐类型定义
+        m.registerMigration("v2_customCardTypes") { db in
+            // 1. 类型定义主表
+            try db.create(table: "cardTypeDefs") { t in
+                t.column("id", .text).primaryKey()
+                t.column("name", .text).notNull()
+                t.column("colorRaw", .text).notNull()
+                t.column("sortOrder", .integer).notNull()
+                t.column("createdAt", .text).notNull()
+            }
+
+            // 2. 类型字段定义表（EAV，与卡片字段表分离）
+            try db.create(table: "cardTypeFields") { t in
+                t.column("typeId", .text).notNull().references("cardTypeDefs", onDelete: .cascade)
+                t.column("fieldName", .text).notNull()
+                t.column("fieldOrder", .integer).notNull()
+                t.primaryKey(["typeId", "fieldName"])
+            }
+
+            // 3. 全局顺序表
+            try db.create(table: "typeOrder") { t in
+                t.column("orderIndex", .integer).primaryKey()
+                t.column("typeId", .text).notNull().unique()
+            }
+
+            // 4. 侧栏展示集合表
+            try db.create(table: "typeVisibility") { t in
+                t.column("typeId", .text).primaryKey()
+                t.column("isVisible", .integer).notNull()
+            }
+
+            // 5. cardFields 主键从 (cardId, fieldName) 改为 (cardId, fieldOrder)
+            //    因为 fieldName 不再作为真源，同一 cardId + fieldOrder 唯一
+            try db.execute(sql: "DROP INDEX IF EXISTS idx_cardFields_fieldName")
+            try db.execute(sql: """
+                CREATE TABLE cardFields_new (
+                    cardId TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+                    fieldName TEXT,
+                    fieldValue TEXT NOT NULL DEFAULT '',
+                    fieldOrder INTEGER NOT NULL,
+                    PRIMARY KEY (cardId, fieldOrder)
+                )
+                """)
+            try db.execute(sql: """
+                INSERT INTO cardFields_new (cardId, fieldName, fieldValue, fieldOrder)
+                SELECT cardId, fieldName, fieldValue, fieldOrder FROM cardFields
+                """)
+            try db.execute(sql: "DROP TABLE cardFields")
+            try db.execute(sql: "ALTER TABLE cardFields_new RENAME TO cardFields")
+        }
+
+        // 阶段 4 补充：cardTypeDefs 增加 isDeleted 标志。
+        // 删除自定义类型（连卡一起删）时，类型定义保留并标记为已删除，
+        // 直到回收站中该 typeId 的卡片被彻底清空，才允许释放显示名。
+        m.registerMigration("v2.1_cardTypeDefs_isDeleted") { db in
+            try db.alter(table: "cardTypeDefs") { t in
+                t.add(column: "isDeleted", .boolean).notNull().defaults(to: false)
+            }
+        }
+
         return m
     }
 
@@ -180,6 +249,23 @@ final class AppDatabase: @unchecked Sendable {
             try db.execute(sql: """
                 DELETE FROM cards WHERE deletedAt IS NOT NULL AND deletedAt < ?
                 """, arguments: [cutoffStr])
+
+            // 1b. 清理回收站已清空的已删除类型定义，释放被占用的显示名
+            let deletedDefs = try CardTypeDefRecord
+                .filter(Column("isDeleted") == true)
+                .fetchAll(db)
+            for def in deletedDefs {
+                let count = try Int.fetchOne(db, sql: """
+                    SELECT COUNT(*) FROM cards WHERE type = ? AND deletedAt IS NOT NULL
+                    """, arguments: [def.id]) ?? 0
+                if count == 0 {
+                    try CardTypeDefRecord.deleteOne(db, key: def.id)
+                    try CardTypeFieldRecord
+                        .filter(Column("typeId") == def.id)
+                        .deleteAll(db)
+                }
+            }
+
             return ids
         }
 

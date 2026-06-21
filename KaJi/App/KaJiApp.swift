@@ -32,7 +32,7 @@ struct KaJiApp: App {
             // MARK: File Menu
             CommandGroup(replacing: .newItem) {
                 Button("新建卡片") {
-                    appDelegate.data.startNewDraft(type: .free)
+                    appDelegate.data.startNewDraft(typeId: "自由卡")
                 }
                 .keyboardShortcut("n", modifiers: .command)
             }
@@ -93,6 +93,7 @@ struct KaJiApp: App {
         Settings {
             SettingsView()
         }
+        .defaultSize(width: 640, height: 460)
     }
 }
 

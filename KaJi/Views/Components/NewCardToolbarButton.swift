@@ -15,17 +15,17 @@ struct NewCardToolbarButton: View {
     @Environment(EditorDataState.self) private var data
     @Environment(ListState.self) private var listState
 
-    /// 根据当前上下文推断要新建的卡片类型
-    private var targetType: CardType {
+    /// 根据当前上下文推断要新建的卡片类型 typeId
+    private var targetTypeId: String {
         switch listState.rightPaneMode {
         case .editor:
             // 编辑器内：若当前卡可编辑，则沿用其类型；回收站只读态 fallback 自由卡
-            return data.draft.canEdit ? data.currentCardType : .free
+            return data.draft.canEdit ? data.currentCardTypeID : "自由卡"
         case .list:
-            if case .type(let type) = listState.listFilter {
-                return type
+            if case .type(let typeId) = listState.listFilter {
+                return typeId
             }
-            return .free
+            return "自由卡"
         }
     }
 
@@ -42,14 +42,14 @@ struct NewCardToolbarButton: View {
     var body: some View {
         Button {
             guard !isTrashContext else { return }
-            data.startNewDraft(type: targetType)
+            data.startNewDraft(typeId: targetTypeId)
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(isTrashContext ? Color.secondary.opacity(0.5) : Color.primary)
                 .frame(width: 32, height: 32)
         }
-        .help(isTrashContext ? "回收站内无法新建" : "新建\(targetType.rawValue)")
+        .help(isTrashContext ? "回收站内无法新建" : "新建\(CardTypeRegistry.shared.name(for: targetTypeId))")
         .kajiHover(cornerRadius: 16)
     }
 }

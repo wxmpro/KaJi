@@ -32,74 +32,71 @@ final class CardTypeChangeService {
     }
 
     /// 用户请求切换卡片类型
-    func requestChange(to type: CardType) {
-        guard let data = data, let alert = data.alert, type != data.draft.cardType else { return }
+    func requestChange(to typeId: String) {
+        guard let data = data, let alert = data.alert, typeId != data.draft.cardTypeID else { return }
 
         // 空草稿直接通过 draft.setType 切换类型，不弹窗
         if case .empty = data.draft {
-            data.draft.setType(type)
+            data.draft.setType(typeId)
             return
         }
 
         if currentCardHasContent() {
-            alert.pendingCardType = type
+            alert.pendingCardType = typeId
             alert.showingTypeChangeAlert = true
         } else {
-            applyChange(to: type)
+            applyChange(to: typeId)
         }
     }
 
     func confirmPendingChange() {
-        guard let data = data, let alert = data.alert, let type = alert.pendingCardType else { return }
-        applyChange(to: type)
+        guard let data = data, let alert = data.alert, let typeId = alert.pendingCardType else { return }
+        applyChange(to: typeId)
         alert.pendingCardType = nil
     }
 
-    private func applyChange(to type: CardType) {
+    private func applyChange(to typeId: String) {
         guard let data = data else { return }
 
-        // 串行化。旧实现 fire-and-forget `Task { commitDraft() }`
-        // 后紧接同步 updateDraft，Task 实际晚于 updateDraft 运行 → commitDraft
-        // 持久化的已是新类型，「先 flush 旧内容」意图被破坏。
-        // 改为单 Task 内顺序：先 await commit 旧内容 → 再 updateDraft 改类型
-        // → 再 commit 新类型 → 注册 undo。
-        let previousType = data.draft.cardType
+        let previousTypeId = data.draft.cardTypeID
         let previousFields = data.draft.card.fields
+        let registry = CardTypeRegistry.shared
+        let newFieldNames = registry.allFields(for: typeId)
 
         Task { @MainActor in
             _ = await data.commitDraft()
 
             data.updateDraft { card in
-                card.type = type.rawValue
-                card.fields = type.fields.enumerated().map { idx, name in
+                card.type = typeId
+                card.fields = newFieldNames.enumerated().map { idx, name in
                     CardField(cardId: card.id, fieldName: name, fieldValue: "", fieldOrder: idx)
                 }
             }
             _ = await data.commitDraft()
 
             data.undoManager?.registerUndo(withTarget: data) { target in
-                target.undoCardTypeChange(to: previousType, fields: previousFields)
+                target.undoCardTypeChange(to: previousTypeId, fields: previousFields)
             }
             data.undoManager?.setActionName("切换卡片类型")
         }
     }
 
-    func undoChange(to type: CardType, fields: [CardField]) {
+    func undoChange(to typeId: String, fields: [CardField]) {
         guard let data = data else { return }
-        let currentType = data.draft.cardType
+        let currentTypeId = data.draft.cardTypeID
         let currentFields = data.draft.card.fields
 
         Task { @MainActor in
             _ = await data.commitDraft()
 
             data.updateDraft { card in
-                card.type = type.rawValue
+                card.type = typeId
                 card.fields = fields
             }
             _ = await data.commitDraft()
 
             data.undoManager?.registerUndo(withTarget: data) { target in
-                target.undoCardTypeChange(to: currentType, fields: currentFields)
+                target.undoCardTypeChange(to: currentTypeId, fields: currentFields)
             }
             data.undoManager?.setActionName("切换卡片类型")
         }

@@ -10,8 +10,8 @@ import Foundation
 
 /// 草稿状态机：穷举所有可能状态
 enum DraftState: Equatable {
-    /// 全新空白（无 UUID，未持久化），携带用户选择的类型
-    case empty(CardType = .free)
+    /// 全新空白（无 UUID，未持久化），携带用户选择的类型 typeId
+    case empty(String = "自由卡")
 
     /// 编辑中（已持久化或持久化中）
     case editing(Card)
@@ -30,13 +30,15 @@ extension DraftState {
     /// 派生：当前卡（任意状态都有值）
     var card: Card {
         switch self {
-        case .empty(let type):
+        case .empty(let typeId):
+            let registry = CardTypeRegistry.shared
+            let fieldNames = registry.allFields(for: typeId)
             return Card(
                 id: Card.placeholderID,
-                type: type.rawValue,
+                type: typeId,
                 title: "",
                 tags: [],
-                fields: type.fields.enumerated().map { idx, name in
+                fields: fieldNames.enumerated().map { idx, name in
                     CardField(cardId: Card.placeholderID, fieldName: name, fieldValue: "", fieldOrder: idx)
                 },
                 createdAt: .distantPast,
@@ -55,11 +57,11 @@ extension DraftState {
         }
     }
 
-    /// 派生：当前卡类型
-    var cardType: CardType {
+    /// 派生：当前卡类型 typeId
+    var cardTypeID: String {
         switch self {
-        case .empty(let type): return type
-        case .editing(let c), .trash(let c): return c.cardType
+        case .empty(let typeId): return typeId
+        case .editing(let c), .trash(let c): return c.type
         }
     }
 
@@ -104,9 +106,9 @@ extension DraftState {
     // MARK: - 状态变更原语
 
     /// 设置空草稿的类型（仅 .empty 状态有效）
-    mutating func setType(_ type: CardType) {
+    mutating func setType(_ typeId: String) {
         if case .empty = self {
-            self = .empty(type)
+            self = .empty(typeId)
         }
     }
 }

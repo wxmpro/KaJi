@@ -153,9 +153,12 @@ final class CardRepository: @unchecked Sendable {
         try CardFieldRecord
             .filter(Column("cardId") == card.id)
             .deleteAll(grdb)
+        let typeDef = CardTypeRegistry.shared.def(for: card.type)
+        let orderedFieldNames = typeDef.allFields
         for f in card.fields {
+            let fieldName = f.fieldOrder < orderedFieldNames.count ? orderedFieldNames[f.fieldOrder] : f.fieldName
             var fieldRec = CardFieldRecord(
-                cardId: f.cardId, fieldName: f.fieldName,
+                cardId: f.cardId, fieldName: fieldName,
                 fieldValue: f.fieldValue, fieldOrder: f.fieldOrder
             )
             try fieldRec.insert(grdb)
@@ -262,7 +265,7 @@ final class CardRepository: @unchecked Sendable {
                 lastFieldCardId = rec.cardId
             }
             fieldsByCard[rec.cardId]!.append(
-                CardField(cardId: rec.cardId, fieldName: rec.fieldName, fieldValue: rec.fieldValue, fieldOrder: rec.fieldOrder)
+                CardField(cardId: rec.cardId, fieldName: rec.fieldName ?? "", fieldValue: rec.fieldValue, fieldOrder: rec.fieldOrder)
             )
         }
 
@@ -290,14 +293,32 @@ final class CardRepository: @unchecked Sendable {
 
         // 3. 组装
         return records.map { rec in
-            Card(
+            let typeId = rec.type.isEmpty ? "自由卡" : rec.type
+            let typeDef = CardTypeRegistry.shared.def(for: typeId)
+            let rawFields = fieldsByCard[rec.id] ?? []
+            let alignedFields = Self.alignFields(rawFields, with: typeDef, cardId: rec.id)
+            return Card(
                 id: rec.id, type: rec.type, title: rec.title,
                 tags: tagsByCard[rec.id] ?? [],
-                fields: fieldsByCard[rec.id] ?? [],
+                fields: alignedFields,
                 createdAt: parseISO(rec.createdAt) ?? Date(),
                 updatedAt: parseISO(rec.updatedAt) ?? Date(),
                 deletedAt: rec.deletedAt.flatMap(parseISO),
                 mdVersion: rec.mdVersion
+            )
+        }
+    }
+
+    /// 按当前类型定义对齐字段名（方案甲：字段名跟定义走）
+    private static func alignFields(_ rawFields: [CardField], with typeDef: CardTypeDef, cardId: String) -> [CardField] {
+        let orderedFieldNames = typeDef.allFields
+        return rawFields.sorted { $0.fieldOrder < $1.fieldOrder }.enumerated().compactMap { index, field in
+            guard index < orderedFieldNames.count else { return nil }
+            return CardField(
+                cardId: cardId,
+                fieldName: orderedFieldNames[index],
+                fieldValue: field.fieldValue,
+                fieldOrder: index
             )
         }
     }
@@ -312,12 +333,12 @@ final class CardRepository: @unchecked Sendable {
     /// 三查询合并为单事务，消除事务间数据不一致窗口
     func refreshStatsSQL() throws -> (
         summaries: [CardSummary],
-        typeCounts: [CardType: Int],
+        typeCounts: [String: Int],
         tagCounts: [(String, Int)]
     ) {
         try db.dbWriter.read { grdb -> (
             summaries: [CardSummary],
-            typeCounts: [CardType: Int],
+            typeCounts: [String: Int],
             tagCounts: [(String, Int)]
         ) in
             // 1. typeCounts
@@ -326,13 +347,15 @@ final class CardRepository: @unchecked Sendable {
                 WHERE deletedAt IS NULL
                 GROUP BY type
                 """)
-            var typeDict: [CardType: Int] = Dictionary(
-                uniqueKeysWithValues: CardType.allCases.map { ($0, 0) }
+            let registry = CardTypeRegistry.shared
+            var typeDict: [String: Int] = Dictionary(
+                uniqueKeysWithValues: registry.ordered.map { ($0.id, 0) }
             )
             for row in typeRows {
-                let type: String = row["type"] ?? "free"
+                let type: String = row["type"] ?? "自由卡"
                 let cnt: Int = row["cnt"] ?? 0
-                typeDict[CardType(rawValue: type) ?? .free, default: 0] += cnt
+                let typeId = registry.def(for: type).id
+                typeDict[typeId, default: 0] += cnt
             }
 
             // 2. tagCounts（JOIN cardTags + tags）

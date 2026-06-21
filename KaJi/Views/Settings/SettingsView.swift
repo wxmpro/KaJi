@@ -10,12 +10,13 @@ import SwiftUI
 import AppKit
 
 private enum SettingsTab: Int, CaseIterable, Identifiable {
-    case general, advanced, about
+    case general, cardTypes, advanced, about
     var id: Int { rawValue }
 
     var title: String {
         switch self {
         case .general: "通用"
+        case .cardTypes: "卡片类型"
         case .advanced: "高级"
         case .about: "关于"
         }
@@ -24,6 +25,7 @@ private enum SettingsTab: Int, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .general: "gearshape"
+        case .cardTypes: "rectangle.stack.badge.plus"
         case .advanced: "wrench.and.screwdriver"
         case .about: "info.circle"
         }
@@ -64,8 +66,9 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             tabBar
             content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 560, height: 360)
+        .frame(minWidth: 640, minHeight: 460)
     }
 
     // MARK: - 顶部 tab 栏
@@ -93,6 +96,7 @@ struct SettingsView: View {
     private var content: some View {
         switch selectedTab {
         case .general: generalTab
+        case .cardTypes: CardTypeSettingsView()
         case .advanced: advancedTab
         case .about: aboutTab
         }
@@ -136,6 +140,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .padding(20)
     }
 
     // MARK: - 高级
@@ -185,6 +190,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .padding(20)
     }
 
     // MARK: - 关于
@@ -222,8 +228,7 @@ struct SettingsView: View {
                     .padding(.top, 8)
             }
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 24)
+            .padding(20)
         }
     }
 

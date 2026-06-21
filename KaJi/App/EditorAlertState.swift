@@ -12,7 +12,7 @@ import SwiftUI
 final class EditorAlertState {
     // MARK: - 类型切换弹窗
     var showingTypeChangeAlert: Bool = false
-    var pendingCardType: CardType? = nil
+    var pendingCardType: String? = nil
 
     // MARK: - 错误告警
     var saveError: String?

@@ -10,6 +10,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 struct CardSummary: Identifiable, Hashable {
     let id: String
@@ -42,8 +43,8 @@ struct CardSummary: Identifiable, Hashable {
         self.deletedAt = card.deletedAt
     }
 
-    /// CardType 便利访问
-    var cardType: CardType { CardType(rawValue: type) ?? .free }
+    /// 当前类型定义（基于 Registry）
+    var cardTypeDef: CardTypeDef { CardTypeRegistry.shared.def(for: type) }
 
     /// 14 位显示 ID
     var displayID: String { String(id.prefix(14)) }

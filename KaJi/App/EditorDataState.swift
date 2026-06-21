@@ -84,8 +84,8 @@ final class EditorDataState {
 
     /// 开新空白草稿
     /// - 修复 R4 bug：自动清空 draft.cardID
-    func startNewDraft(type: CardType = .free) {
-        draft = .empty(type)
+    func startNewDraft(typeId: String = "自由卡") {
+        draft = .empty(typeId)
         editSessionOrigin = nil
         alert?.saveError = nil
         withAnimation(KaJiAnimation.modeSwitch) {
@@ -123,13 +123,13 @@ final class EditorDataState {
         }
         let isEmptyDraft = draft.isEmptyDraft
         var card = draft.card
-        let draftType = draft.cardType
+        let draftTypeId = draft.cardTypeID
 
         if isEmptyDraft {
             do {
                 let id = try CardIDGenerator.next()
                 card = Card.new(
-                    type: draftType,
+                    typeId: draftTypeId,
                     id: id,
                     title: card.title,
                     tags: card.tags,
@@ -152,7 +152,7 @@ final class EditorDataState {
         if card.isEmpty {
             if isEmptyDraft {
                 // 空草稿生成的空新卡：直接 discard
-                draft = .empty(draftType)
+                draft = .empty(draftTypeId)
                 editSessionOrigin = nil
                 return .success(Card.placeholder)
             } else {
@@ -179,7 +179,7 @@ final class EditorDataState {
                         target.restoreFromTrash(snapshot)
                     }
                     undoManager?.setActionName("删除卡片")
-                    draft = .empty(draftType)
+                    draft = .empty(draftTypeId)
                     editSessionOrigin = nil
                 } catch {
                     Self.log.error("commitDraft softDelete failed: \(error.localizedDescription, privacy: .public)")
@@ -223,7 +223,7 @@ final class EditorDataState {
     // MARK: - 状态入口 4：丢弃草稿
 
     func discardDraft() {
-        draft = .empty(draft.cardType)
+        draft = .empty(draft.cardTypeID)
     }
 
     // MARK: - 增量更新
@@ -243,7 +243,7 @@ final class EditorDataState {
         }
     }
 
-    var currentCardType: CardType { draft.cardType }
+    var currentCardTypeID: String { draft.cardTypeID }
     var currentCardTags: [String] { draft.tags }
     var selectedCardID: String? { draft.cardID }
 
@@ -275,16 +275,16 @@ final class EditorDataState {
 
     // MARK: - 类型切换
 
-    func requestCardTypeChange(to type: CardType) {
-        typeChangeService.requestChange(to: type)
+    func requestCardTypeChange(to typeId: String) {
+        typeChangeService.requestChange(to: typeId)
     }
 
     func confirmPendingCardTypeChange() {
         typeChangeService.confirmPendingChange()
     }
 
-    func undoCardTypeChange(to type: CardType, fields: [CardField]) {
-        typeChangeService.undoChange(to: type, fields: fields)
+    func undoCardTypeChange(to typeId: String, fields: [CardField]) {
+        typeChangeService.undoChange(to: typeId, fields: fields)
     }
 
     // MARK: - 剪贴板

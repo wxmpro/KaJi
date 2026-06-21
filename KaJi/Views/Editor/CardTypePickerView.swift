@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct CardTypePickerView: View {
-    let selectedType: CardType
-    let onSelect: (CardType) -> Void
+    let selectedTypeId: String
+    let onSelect: (String) -> Void
 
     var body: some View {
         // 横向 ScrollView：水平方向可压缩，不再以固有宽度（N×46pt）撑破宿主卡片。
@@ -17,15 +17,15 @@ struct CardTypePickerView: View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(CardType.allCases) { type in
+                    ForEach(CardTypeRegistry.shared.ordered) { typeDef in
                         Button {
-                            onSelect(type)
+                            onSelect(typeDef.id)
                         } label: {
                             VStack(spacing: 4) {
                                 Circle()
-                                    .fill(type.color)
+                                    .fill(typeDef.color)
                                     .frame(width: 7, height: 7)
-                                Text(type.rawValue)
+                                Text(typeDef.name)
                                     .font(.system(size: 10))
                                     .foregroundStyle(.primary)
                                     .lineLimit(1)
@@ -33,12 +33,12 @@ struct CardTypePickerView: View {
                             .frame(width: 46, height: 42)
                             .background(
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(selectedType == type ? KaJiColor.systemSelected : Color.clear)
+                                    .fill(selectedTypeId == typeDef.id ? KaJiColor.systemSelected : Color.clear)
                             )
                             .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         }
                         .buttonStyle(.plain)
-                        .id(type)
+                        .id(typeDef.id)
                     }
                 }
                 // 选中态圆角背景不被 ScrollView 边缘裁切
@@ -46,7 +46,7 @@ struct CardTypePickerView: View {
             }
             // 打开时滚动到当前选中类型，保证窄窗口下高亮项可见
             .onAppear {
-                proxy.scrollTo(selectedType, anchor: .center)
+                proxy.scrollTo(selectedTypeId, anchor: .center)
             }
         }
     }

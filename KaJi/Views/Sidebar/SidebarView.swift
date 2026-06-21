@@ -41,7 +41,7 @@ private struct NewCardSection: View {
                 isSelected: false,
                 style: .large
             ) {
-                data.startNewDraft(type: .free)
+                data.startNewDraft(typeId: "自由卡")
             }
         }
         .listRowSeparator(.hidden)
@@ -69,21 +69,21 @@ private struct CardsAndTypesSection: View {
             }
             .padding(.top, -6)
 
-            ForEach(CardType.allCases) { type in
+            ForEach(CardTypeRegistry.shared.sidebarVisible) { typeDef in
                 let selected = listState.rightPaneMode == .list
-                    && listState.listFilter == .type(type)
+                    && listState.listFilter == .type(typeDef.id)
 
                 SidebarRow(
-                    title: type.rawValue,
+                    title: typeDef.name,
                     icon: "circle.fill",
-                    iconColor: type.color,
+                    iconColor: typeDef.color,
                     count: nil,
                     isSelected: selected,
                     style: .small,
-                    newCardType: type
+                    newCardType: typeDef.id
                 ) {
                     withAnimation(KaJiAnimation.modeSwitch) {
-                        listState.showList(.type(type))
+                        listState.showList(.type(typeDef.id))
                     }
                 }
             }

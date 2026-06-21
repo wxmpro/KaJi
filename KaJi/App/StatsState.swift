@@ -34,7 +34,7 @@ final class StatsState {
     }
 
     // MARK: - 侧栏统计缓存
-    var cachedTypeCounts: [CardType: Int] = [:]
+    var cachedTypeCounts: [String: Int] = [:]
     var cachedTagCounts: [(String, Int)] = []
 
     // MARK: - 轻量卡片缓存
@@ -54,8 +54,8 @@ final class StatsState {
     }
 
     /// 按类型统计卡片数
-    func cardsCount(of type: CardType) -> Int {
-        cachedTypeCounts[type, default: 0]
+    func cardsCount(of typeId: String) -> Int {
+        cachedTypeCounts[typeId, default: 0]
     }
 
     /// 标签使用统计（按数量倒序）
@@ -66,7 +66,7 @@ final class StatsState {
     /// 用外部已计算好的统计结果刷新缓存
     func update(with stats: (
         summaries: [CardSummary],
-        typeCounts: [CardType: Int],
+        typeCounts: [String: Int],
         tagCounts: [(String, Int)]
     )) {
         if cachedSummaries != stats.summaries {
@@ -95,7 +95,7 @@ final class StatsState {
     func applyIncremental(changed: [CardSummary], removed: Set<String> = []) {
         guard !changed.isEmpty || !removed.isEmpty else { return }
 
-        var typeDiff: [CardType: Int] = [:]
+        var typeDiff: [String: Int] = [:]
         var tagDiff: [String: Int] = [:]
 
         // 1. 先根据当前缓存计算旧值 diff
@@ -104,7 +104,7 @@ final class StatsState {
         for id in removed {
             guard let old = oldByID[id] else { continue }
             if old.deletedAt == nil {
-                typeDiff[old.cardType, default: 0] -= 1
+                typeDiff[old.type, default: 0] -= 1
                 for tag in old.tags { tagDiff[tag, default: 0] -= 1 }
             }
         }
@@ -113,13 +113,13 @@ final class StatsState {
             if let old = oldByID[summary.id] {
                 // 旧值 -1（只计未删除的）
                 if old.deletedAt == nil {
-                    typeDiff[old.cardType, default: 0] -= 1
+                    typeDiff[old.type, default: 0] -= 1
                     for tag in old.tags { tagDiff[tag, default: 0] -= 1 }
                 }
             }
             // 新值 +1（只计未删除的）
             if summary.deletedAt == nil {
-                typeDiff[summary.cardType, default: 0] += 1
+                typeDiff[summary.type, default: 0] += 1
                 for tag in summary.tags { tagDiff[tag, default: 0] += 1 }
             }
         }
@@ -145,12 +145,12 @@ final class StatsState {
         }
 
         // 3. 应用 typeCounts diff
-        for (type, delta) in typeDiff {
-            let newValue = cachedTypeCounts[type, default: 0] + delta
+        for (typeId, delta) in typeDiff {
+            let newValue = cachedTypeCounts[typeId, default: 0] + delta
             if newValue != 0 {
-                cachedTypeCounts[type] = newValue
+                cachedTypeCounts[typeId] = newValue
             } else {
-                cachedTypeCounts.removeValue(forKey: type)
+                cachedTypeCounts.removeValue(forKey: typeId)
             }
         }
 

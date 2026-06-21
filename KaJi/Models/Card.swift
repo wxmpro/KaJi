@@ -13,6 +13,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 struct Card: Identifiable, Hashable, Codable {
     let id: String                // 17 位
@@ -28,14 +29,18 @@ struct Card: Identifiable, Hashable, Codable {
 
     // MARK: - 派生
 
-    var cardType: CardType { CardType(rawValue: type) ?? .free }
+    /// 当前类型定义（基于 Registry）
+    var cardTypeDef: CardTypeDef { CardTypeRegistry.shared.def(for: type) }
 
     /// 按 fieldOrder 排序后的字段（UI 渲染顺序）
     var orderedFields: [CardField] { fields.sorted { $0.fieldOrder < $1.fieldOrder } }
 
-    /// 取指定字段名的值（不区分大小写严格匹配）
+    /// 取指定字段名的值。
+    /// 阶段2起按 fieldOrder 对齐类型定义查找，不直接依赖 cardFields.fieldName。
     func value(ofField named: String) -> String {
-        fields.first { $0.fieldName == named }?.fieldValue ?? ""
+        let typeDef = CardTypeRegistry.shared.def(for: type)
+        guard let order = typeDef.allFields.firstIndex(of: named) else { return "" }
+        return fields.first { $0.fieldOrder == order }?.fieldValue ?? ""
     }
 
     /// 卡片"内容字符数" — 含标题、所有字段名+字段值、标签；不含唯一编码
@@ -73,18 +78,19 @@ struct Card: Identifiable, Hashable, Codable {
 
     /// 构造一张新卡（不写库）
     static func new(
-        type: CardType,
+        typeId: String,
         id: String,
         title: String = "",
         tags: [String] = [],
         fields: [String: String] = [:]
     ) -> Card {
         let now = Date()
-        let cardFields = type.fields.enumerated().map { idx, name in
+        let fieldNames = CardTypeRegistry.shared.allFields(for: typeId)
+        let cardFields = fieldNames.enumerated().map { idx, name in
             CardField(cardId: id, fieldName: name, fieldValue: fields[name] ?? "", fieldOrder: idx)
         }
         return Card(
-            id: id, type: type.rawValue, title: title, tags: tags,
+            id: id, type: typeId, title: title, tags: tags,
             fields: cardFields,
             createdAt: now, updatedAt: now, deletedAt: nil
         )
@@ -98,10 +104,10 @@ extension Card {
     static let placeholderID = String(repeating: "0", count: 17)
 
     /// 占位卡（无 UUID，未持久化）。UI 永远不显示 placeholder 的 ID。
-    /// type 默认 .free；可在 commitDraft 时根据 draft.cardType 调整
+    /// type 默认自由卡；可在 commitDraft 时根据 draft.cardTypeID 调整
     static let placeholder = Card(
         id: placeholderID,
-        type: CardType.free.rawValue,
+        type: "自由卡",
         title: "",
         tags: [],
         fields: [],

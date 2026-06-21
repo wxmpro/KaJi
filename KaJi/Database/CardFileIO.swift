@@ -16,12 +16,13 @@ import os
 struct CardFileIO {
     private static let log = Logger(subsystem: "com.kaji.app", category: "cardfileio")
 
-    // 已知字段名集合从 CardType.allCases 动态构建，
+    // 已知字段名集合从 CardTypeRegistry 动态构建，
     // 与 renderMarkdown 输出的中文字段名永久同步
     private static let knownFieldNames: Set<String> = {
         var names: Set<String> = ["title", "tags"]
-        for type in CardType.allCases {
-            names.formUnion(type.fields)
+        let registry = CardTypeRegistry.shared
+        for typeDef in registry.ordered {
+            names.formUnion(typeDef.allFields)
         }
         return names
     }()
@@ -134,8 +135,12 @@ struct CardFileIO {
         out += "tags: [\(card.tags.map { quote($0) }.joined(separator: ", "))]\n"
         out += "---\n\n"
         out += "#### \(card.title.isEmpty ? "（无标题）" : card.title)\n\n"
+        // 字段名按当前 Registry 定义渲染（方案甲：字段名跟定义走）
+        let typeDef = CardTypeRegistry.shared.def(for: card.type)
+        let orderedFieldNames = typeDef.allFields
         for f in card.orderedFields {
-            out += "##### \(f.fieldName)\n\n\(f.fieldValue.isEmpty ? "（空）" : f.fieldValue)\n\n"
+            let fieldName = f.fieldOrder < orderedFieldNames.count ? orderedFieldNames[f.fieldOrder] : f.fieldName
+            out += "##### \(fieldName)\n\n\(f.fieldValue.isEmpty ? "（空）" : f.fieldValue)\n\n"
         }
         out += "**标签**: \(card.tags.isEmpty ? "无" : card.tags.joined(separator: ", "))\n\n"
         out += "**UUID**: `\(card.id)`\n\n"
@@ -209,15 +214,18 @@ struct CardFileIO {
         // body 解析 — 按 "## 字段名" 拆段，严格校验字段名合法性
         var fields: [CardField] = []
         let bodyLines = body.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-        var currentField: String?
+        var currentFieldName: String?
         var currentValue: [String] = []
         var order = 0
+        let typeDef = CardTypeRegistry.shared.def(for: type.isEmpty ? "自由卡" : type)
+        let orderedFieldNames = typeDef.allFields
+
         func flush() {
-            if let f = currentField {
-                let val = currentValue.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-                fields.append(CardField(cardId: id, fieldName: f, fieldValue: val, fieldOrder: order))
-                order += 1
-            }
+            guard currentFieldName != nil else { return }
+            let val = currentValue.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            let fieldName = order < orderedFieldNames.count ? orderedFieldNames[order] : (currentFieldName ?? "")
+            fields.append(CardField(cardId: id, fieldName: fieldName, fieldValue: val, fieldOrder: order))
+            order += 1
             currentValue = []
         }
         for line in bodyLines {
@@ -230,17 +238,17 @@ struct CardFileIO {
                     throw MarkdownError.unknownField(name: candidateName, line: currentLine)
                 }
                 flush()
-                currentField = candidateName
+                currentFieldName = candidateName
             } else if line.hasPrefix("# ") {
                 continue   // 标题行忽略（已在 frontmatter）
-            } else if currentField != nil {
+            } else if currentFieldName != nil {
                 currentValue.append(line)
             }
         }
         flush()
 
         return Card(
-            id: id, type: type.isEmpty ? CardType.free.rawValue : type,
+            id: id, type: type.isEmpty ? "自由卡" : type,
             title: title, tags: tags, fields: fields,
             createdAt: createdAt, updatedAt: updatedAt, deletedAt: deletedAt,
             mdVersion: mdVersion

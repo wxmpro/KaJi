@@ -10,7 +10,8 @@ import Foundation
 
 /// 卡片列表的筛选条件
 enum ListFilter: Equatable {
-    case type(CardType)
+    /// 按卡片类型筛选，关联值为 typeId（String）
+    case type(String)
     case tag(String)
     case trash
     case all
@@ -21,11 +22,11 @@ extension ListFilter {
     /// 筛选条件对应的展示标题（用于顶部条）
     var title: String {
         switch self {
-        case .type(let t):   return t.rawValue
-        case .tag(let s):    return "#\(s)"
-        case .trash:         return "回收站"
-        case .all:           return "全部卡片"
-        case .search(let s): return "搜索：\(s)"
+        case .type(let typeId): return CardTypeRegistry.shared.name(for: typeId)
+        case .tag(let s):       return "#\(s)"
+        case .trash:            return "回收站"
+        case .all:              return "全部卡片"
+        case .search(let s):    return "搜索：\(s)"
         }
     }
 }
