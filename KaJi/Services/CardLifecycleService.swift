@@ -39,9 +39,6 @@ final class CardLifecycleService {
             if data.draft.cardID == card.id {
                 data.draft = .empty(data.draft.cardTypeID)
             }
-            statsState?.rebuildStats { [weak self] error in
-                self?.data?.alert?.saveError = "统计刷新失败：\(error.localizedDescription)"
-            }
             data.undoManager?.registerUndo(withTarget: data) { target in
                 target.restoreFromTrash(card)
             }
@@ -62,9 +59,6 @@ final class CardLifecycleService {
         do {
             try cardService.restore(id: card.id)
             data.draft = .editing(card)
-            statsState?.rebuildStats { [weak self] error in
-                self?.data?.alert?.saveError = "统计刷新失败：\(error.localizedDescription)"
-            }
             data.undoManager?.registerUndo(withTarget: data) { target in
                 target.softDeleteCard(card)
             }

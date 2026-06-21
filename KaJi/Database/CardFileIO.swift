@@ -83,9 +83,9 @@ struct CardFileIO {
     // MARK: - 写盘
 
     /// 写卡到 .md（原子：tmp → rename）
-    /// - Returns: 最终 .md URL
+    /// - Returns: 最终 .md URL 和 mtime
     @discardableResult
-    static func write(_ card: Card) throws -> URL {
+    static func write(_ card: Card) throws -> (URL, Double) {
         let url = try fileURL(for: card.id)
         try ensureDirectory(url.deletingLastPathComponent())
         let content = renderMarkdown(card)
@@ -93,7 +93,9 @@ struct CardFileIO {
         do {
             try content.write(to: tmp, atomically: true, encoding: .utf8)
             _ = try FileManager.default.replaceItemAt(url, withItemAt: tmp)
-            return url
+            let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
+            let mtime = (attrs[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
+            return (url, mtime)
         } catch {
             try? FileManager.default.removeItem(at: tmp)
             log.error(".md 写入失败 (\(card.id)): \(error.localizedDescription, privacy: .public)")

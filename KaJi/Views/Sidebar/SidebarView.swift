@@ -162,7 +162,7 @@ private struct TrashSection: View {
     var body: some View {
         let selected = listState.rightPaneMode == .list
             && listState.listFilter == .trash
-        let trashCount = statsState.cachedSummaries.filter { $0.deletedAt != nil }.count
+        let trashCount = statsState.trashCount()
         let trashIcon = trashCount > 0 ? "arrow.up.trash.fill" : "arrow.up.trash"
 
         Section {

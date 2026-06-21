@@ -63,7 +63,6 @@
 		DEE197EBEFEBBD91A9F64939 /* CardField.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE706C53BA6C1856A9781F63 /* CardField.swift */; };
 		E24BD17EC1B26F94BBD8B154 /* CardTypeRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA87D65ECF9FBC000123C27 /* CardTypeRecords.swift */; };
 		E4D3A3BBE4BBB2569ABAD35A /* DraftState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84D65FEF3994CFA76AB4A78D /* DraftState.swift */; };
-		E89DB5F0EC33FDFD5E878571 /* CardSearchIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = C26582D96158C6EFF137CB3B /* CardSearchIndex.swift */; };
 		EE21FAF9283191D2AEBE4CCA /* CardTypeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B87BD516F53EED92EB3F2E7D /* CardTypeSettingsView.swift */; };
 		F13E1FCE2C351691C9E40159 /* TagPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBFA0ED78BDDA942EBEA38DB /* TagPill.swift */; };
 		F1866F381DEF2F829AD6DD9C /* KaJiAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398C6BEC82BFAA44E5481337 /* KaJiAnimation.swift */; };
@@ -127,7 +126,6 @@
 		BE8B2A7B5977BB9438D335B8 /* MarkdownFailureTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownFailureTracker.swift; sourceTree = "<group>"; };
 		BEA3B988DE7108AFA73934E2 /* RestoreCardButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreCardButton.swift; sourceTree = "<group>"; };
 		C1AD77866E3925FC7D31C5E0 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		C26582D96158C6EFF137CB3B /* CardSearchIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardSearchIndex.swift; sourceTree = "<group>"; };
 		C2C2B4B24CA43949D4AA46CF /* CardType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardType.swift; sourceTree = "<group>"; };
 		C42899B993087244F357079F /* DetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailView.swift; sourceTree = "<group>"; };
 		C90FD45CE941E8326C1D998B /* KaJiMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiMetrics.swift; sourceTree = "<group>"; };
@@ -200,7 +198,6 @@
 			children = (
 				A84AB7B6767CC5810E228175 /* Card.swift */,
 				AE706C53BA6C1856A9781F63 /* CardField.swift */,
-				C26582D96158C6EFF137CB3B /* CardSearchIndex.swift */,
 				8C6003CA6215C6187DFF8E81 /* CardSummary.swift */,
 				C2C2B4B24CA43949D4AA46CF /* CardType.swift */,
 				25A7E6DB1028C938E52A1B03 /* CardTypeDef.swift */,
@@ -426,7 +423,6 @@
 				BB24EB4047FEF199101454B5 /* CardListView.swift in Sources */,
 				4532EEE3BC391DC2DAC197AE /* CardRecord.swift in Sources */,
 				7C5DA8257EB2C228A849E895 /* CardRepository.swift in Sources */,
-				E89DB5F0EC33FDFD5E878571 /* CardSearchIndex.swift in Sources */,
 				018964F353241A631E2FB565 /* CardService.swift in Sources */,
 				2BA854C00453FBC40D0F208A /* CardSummary.swift in Sources */,
 				831A4B4C570C3BB8B74CF63D /* CardType.swift in Sources */,
@@ -535,7 +531,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 49;
+				CURRENT_PROJECT_VERSION = 50;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -558,7 +554,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.9.2;
+				MARKETING_VERSION = 1.9.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -623,7 +619,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 49;
+				CURRENT_PROJECT_VERSION = 50;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -640,7 +636,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.9.2;
+				MARKETING_VERSION = 1.9.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;

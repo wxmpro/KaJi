@@ -155,10 +155,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if reconcileResult.failedCount > 0 {
                     self.alertState.saveError = "从 .md 恢复了 \(reconcileResult.restoredCount) 张，但 \(reconcileResult.failedCount) 张失败（首张：\(reconcileResult.failedIDs.first ?? "?")，原因：\(reconcileResult.firstErrorDescription ?? "未知")）。如果 .md 来自旧版本，请升级后重试。"
                 }
-                // 2. 首屏数据加载 — 完成即清 loading 态，列表/侧栏立即可用
-                let stats = try await CardService.shared.refreshStats()
-                self.statsState.update(with: stats)
-                self.statsState.isBootstrapping = false
+                // 2. 首屏数据加载 — 启动 StatsState 的观察者
+                self.statsState.startObservingStats()
+                // initial list observation is started when Sidebar first selects an item, or we can force it here
+                self.listState.showList(.all)
                 self.data.draft = .empty()
                 // 3. 延迟对账（纯 .md 修复 + 全量 mdVersion 扫描 + purge）—
                 //    移出首屏关键路径，后台低优先级跑，不阻塞用户

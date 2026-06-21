@@ -90,7 +90,8 @@ actor MarkdownWriteQueue {
         guard let (id, card) = pending.first else { return }
         pending.removeValue(forKey: id)
         do {
-            _ = try CardFileIO.write(card)
+            let (_, mtime) = try CardFileIO.write(card)
+            try await CardRepository.shared.updateFileMtime(id: id, mtime: mtime)
             MarkdownFailureTracker.clearFailure(id: id)
         } catch {
             MarkdownFailureTracker.markFailed(id: id, error: error)

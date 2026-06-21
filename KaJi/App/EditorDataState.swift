@@ -89,8 +89,7 @@ final class EditorDataState {
         editSessionOrigin = nil
         alert?.saveError = nil
         withAnimation(KaJiAnimation.modeSwitch) {
-            listState?.listFilter = nil
-            listState?.refreshFilteredCards()
+            listState?.showList(nil) // 清空 filter，只进入 editor 模式
             listState?.rightPaneMode = .editor
         }
     }
@@ -171,10 +170,6 @@ final class EditorDataState {
 
                 do {
                     try cardService.softDeletePreservingContent(snapshot)
-                    let stats = try await cardService.refreshStats()
-                    statsState?.update(with: stats)
-                    // update(with:) 已通过 StatsState observer 在下一帧触发列表刷新，
-                    // 不需要显式 refreshFilteredCards，避免双重 O(N) 过滤
                     undoManager?.registerUndo(withTarget: self) { target in
                         target.restoreFromTrash(snapshot)
                     }
@@ -208,9 +203,6 @@ final class EditorDataState {
             }
             // 持久化成功后刷新会话原点峰值
             refreshEditSessionOrigin(with: saved)
-            // 增量刷新统计 —— 只更新当前卡 summary，不重查全库
-            let changedSummaries = await cardService.refreshStatsIncremental(changed: [saved])
-            statsState?.applyIncremental(changed: changedSummaries, removed: [])
             return .success(saved)
         } catch {
             Self.log.error("commitDraft persist failed: \(error.localizedDescription, privacy: .public)")

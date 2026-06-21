@@ -227,6 +227,39 @@ final class AppDatabase: @unchecked Sendable {
             }
         }
 
+        // 阶段 5：重建 FTS5 并启用 trigram 分词器，替换低效的内存倒排索引
+        m.registerMigration("v3_fts5_trigram") { db in
+            try db.execute(sql: """
+                CREATE VIRTUAL TABLE cardsFts USING fts5(
+                    id UNINDEXED,
+                    searchText,
+                    tokenize='trigram'
+                )
+                """)
+            
+            // 全量初始化 FTS5 索引数据
+            // 提取每张卡的标题、标签、字段并拼成 searchText
+            let cards = try Row.fetchAll(db, sql: "SELECT id, title FROM cards")
+            for cardRow in cards {
+                guard let id: String = cardRow["id"] else { continue }
+                let title: String = cardRow["title"] ?? ""
+                
+                let tags = try String.fetchAll(db, sql: """
+                    SELECT t.name FROM tags t
+                    JOIN cardTags ct ON t.id = ct.tagId
+                    WHERE ct.cardId = ?
+                    """, arguments: [id])
+                
+                let fields = try String.fetchAll(db, sql: """
+                    SELECT fieldValue FROM cardFields
+                    WHERE cardId = ?
+                    """, arguments: [id])
+                
+                let searchText = ([title] + tags + fields).joined(separator: " ")
+                try db.execute(sql: "INSERT INTO cardsFts (id, searchText) VALUES (?, ?)", arguments: [id, searchText])
+            }
+        }
+
         return m
     }
 
@@ -246,6 +279,13 @@ final class AppDatabase: @unchecked Sendable {
             let ids = try String.fetchAll(db, sql: """
                 SELECT id FROM cards WHERE deletedAt IS NOT NULL AND deletedAt < ?
                 """, arguments: [cutoffStr])
+            
+            // FTS5 虚拟表需要手动清理
+            let placeholders = ids.map { _ in "?" }.joined(separator: ",")
+            if !ids.isEmpty {
+                try db.execute(sql: "DELETE FROM cardsFts WHERE id IN (\(placeholders))", arguments: StatementArguments(ids))
+            }
+            
             try db.execute(sql: """
                 DELETE FROM cards WHERE deletedAt IS NOT NULL AND deletedAt < ?
                 """, arguments: [cutoffStr])
