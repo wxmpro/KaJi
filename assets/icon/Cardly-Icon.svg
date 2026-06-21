@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Cardly / 卡迹 macOS App Icon · 1024x1024 · Apple HIG compliant -->
+
+  <!-- 圆角白色背景 (22.37% corner radius) -->
+  <rect x="0" y="0" width="1024" height="1024" rx="229" ry="229" fill="#ffffff"/>
+
+  <!-- 5 条黑色细横线 (信纸) -->
+  <line x1="120" y1="200" x2="904" y2="200" stroke="#000000" stroke-width="3"/>
+  <line x1="120" y1="360" x2="904" y2="360" stroke="#000000" stroke-width="3"/>
+  <line x1="120" y1="520" x2="904" y2="520" stroke="#000000" stroke-width="3"/>
+  <line x1="120" y1="680" x2="904" y2="680" stroke="#000000" stroke-width="3"/>
+  <line x1="120" y1="840" x2="904" y2="840" stroke="#000000" stroke-width="3"/>
+
+  <!-- 右上角暖橙小点 (一念的微光) -->
+  <circle cx="850" cy="150" r="24" fill="#d4814a"/>
+</svg>

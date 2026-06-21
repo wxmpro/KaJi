@@ -52,6 +52,11 @@ fastlane/test_output
 *.svg
 *.ico
 *.icns
+
+# 例外：应用图标与 README 头图为公开资源，必须随仓库
+!KaJi/Assets.xcassets/**/*.png
+!assets/icon/**/*.png
+!assets/icon/**/*.svg
 Screenshots/
 screenshots/
 Screen\ Shot*.*
@@ -89,3 +94,7 @@ KaJi/.md_failures/
 
 # === DMG 打包产物 ===
 dist/
+
+# 协作约束文档 — 本地保留，不推送
+AGENTS.md
+CLAUDE.md

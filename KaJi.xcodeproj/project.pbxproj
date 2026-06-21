@@ -69,6 +69,7 @@
 		F1866F381DEF2F829AD6DD9C /* KaJiAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398C6BEC82BFAA44E5481337 /* KaJiAnimation.swift */; };
 		F423DE0FE152E2ADAB4B0A11 /* ContentLimit.swift in Sources */ = {isa = PBXBuildFile; fileRef = E546D7FFEB130D7DD5217111 /* ContentLimit.swift */; };
 		F46F58ADE5EDFCD8D6BD5616 /* ListFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701910040469901400ED7260 /* ListFilter.swift */; };
+		F55D2FF69A099EA12C26C894 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1CCF17A2B87FA7212E510F44 /* Assets.xcassets */; };
 		F7BAE71F5032DCF452AD5B9D /* CardTypeChangeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A7BCF285D1FC16090347EBC /* CardTypeChangeService.swift */; };
 		FE6CF422C1D482F633B360FC /* KaJiLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 785F909EF4BDD3325862CE2A /* KaJiLayout.swift */; };
 /* End PBXBuildFile section */
@@ -83,6 +84,7 @@
 		1536CBD99F2A9B3B09E7D1B2 /* CardLifecycleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardLifecycleService.swift; sourceTree = "<group>"; };
 		154D44EF8F2CA8D582AD7D78 /* EditorAlertState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorAlertState.swift; sourceTree = "<group>"; };
 		1A7BCF285D1FC16090347EBC /* CardTypeChangeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTypeChangeService.swift; sourceTree = "<group>"; };
+		1CCF17A2B87FA7212E510F44 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2206F53F4916153A64D20B14 /* ListFilterTitle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListFilterTitle.swift; sourceTree = "<group>"; };
 		25A7E6DB1028C938E52A1B03 /* CardTypeDef.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTypeDef.swift; sourceTree = "<group>"; };
 		2DF5E4DA0A134FB69CC46C2A /* CardTypeRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTypeRegistry.swift; sourceTree = "<group>"; };
@@ -331,6 +333,7 @@
 				8ABB4BF25E009BD6339BC04A /* Services */,
 				0328227C906EB3DFB519D181 /* Utilities */,
 				EC4FEA1D2EBE0204A4A08B86 /* Views */,
+				1CCF17A2B87FA7212E510F44 /* Assets.xcassets */,
 				9F741B3A0BFC712111BEE2D2 /* Info.plist */,
 			);
 			path = KaJi;
@@ -344,6 +347,7 @@
 			buildConfigurationList = 9C3AE4026742DA872086C352 /* Build configuration list for PBXNativeTarget "KaJi" */;
 			buildPhases = (
 				32D506E2D12FBD7176A7AA19 /* Sources */,
+				49BA35EDD8DB012848586007 /* Resources */,
 				476B83EF75277E031CD8F3E4 /* Frameworks */,
 			);
 			buildRules = (
@@ -394,6 +398,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		49BA35EDD8DB012848586007 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F55D2FF69A099EA12C26C894 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		32D506E2D12FBD7176A7AA19 /* Sources */ = {
@@ -520,7 +535,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 48;
+				CURRENT_PROJECT_VERSION = 49;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -543,7 +558,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.9.1;
+				MARKETING_VERSION = 1.9.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -608,7 +623,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 48;
+				CURRENT_PROJECT_VERSION = 49;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -625,7 +640,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.9.1;
+				MARKETING_VERSION = 1.9.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;
