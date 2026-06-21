@@ -55,10 +55,11 @@ enum ExportService {
         }
     }
 
-    /// 在后台队列执行：读库 + 写所有 .md 文件
+    /// 在 User-initiated 优先级后台队列执行：读库 + 写所有 .md 文件
     /// 文件名冲突时自动重命名（加 -1、-2…），避免覆盖用户目录中已有文件。
+    /// 使用 .userInitiated 而非 .utility，避免导出过程中高优先级线程等待 DB 连接。
     private nonisolated static func exportAllCards(to url: URL) async throws -> Int {
-        try await Task.detached(priority: .utility) {
+        try await Task.detached(priority: .userInitiated) {
             let cards = try CardRepository.shared.allCards(includeDeleted: false)
             var writtenCount = 0
             for card in cards {

@@ -35,11 +35,13 @@ final class CardService: @unchecked Sendable {
     }
 
     /// 延迟对账 + 回收站清理 —— 纯 .md 派生修复 + purge，
-    /// 不影响首屏 DB 数据，在首屏渲染后以低优先级后台执行。
+    /// 不影响首屏 DB 数据，在首屏渲染后以 User-initiated 优先级后台执行。
+    /// 使用 .userInitiated 而非 .utility，避免主线程/User-initiated 线程访问 DB 时
+    /// 被 .utility 任务持有的连接阻塞（priority inversion）。
     /// 含全量 mdVersion 扫描（已移出首屏关键路径）。
     func bootstrapDeferred(retentionDays: Int) async throws {
         let repo = repository
-        try await Task.detached(priority: .utility) {
+        try await Task.detached(priority: .userInitiated) {
             try await repo.reconcileDeferred()
             try await repo.purgeOldTrashPublic(retentionDays: retentionDays)
         }.value
@@ -68,17 +70,18 @@ final class CardService: @unchecked Sendable {
 
     // MARK: - 持久化
 
-    /// 写卡到 SQLite + .md：在后台 utility 队列执行
+    /// 写卡到 SQLite + .md：在 User-initiated 优先级后台执行
     /// SQLite 是强一致锚点；.md 是派生视图，写入失败会由启动对账修复
     /// 捕获 idConflict 重试 — 跨进程场景下第二进程与第一进程撞 ID 时自动重生成
     /// 循环真正重试 10 次，并同步更新 CardField.cardId
+    /// 使用 .userInitiated 而非 .utility，避免高优先级线程等待低优先级任务持有的 DB 连接。
     func persist(card: Card) async throws -> Card {
         let repo = repository
         var current = card
         for attempt in 1...10 {
             do {
                 // 通过捕获列表 [current] 把当前卡快照传给 Task，避免闭包捕获 var
-                return try await Task.detached(priority: .utility) { [current] in
+                return try await Task.detached(priority: .userInitiated) { [current] in
                     try repo.save(card: current)
                 }.value
             } catch DatabaseError.idConflict {
@@ -167,27 +170,29 @@ final class CardService: @unchecked Sendable {
 
     // MARK: - 统计
 
-    /// 读全量卡并计算侧栏统计（后台执行）
+    /// 读全量卡并计算侧栏统计（User-initiated 优先级后台执行）
     /// 3 路 SQL 聚合替代 hydrate 全库
     /// - typeCounts：GROUP BY type（O(N) → 一次 SQL）
     /// - tagCounts：JOIN cardTags + tags（O(M) → 一次 SQL）
     /// - summaries：轻量 [CardSummary]（不查 fields，内存 20MB → 1.2MB）
     /// 性能：10k 卡全库 ~10ms（vs 修复前 hydrate ~100ms）
+    /// 使用 .userInitiated 而非 .utility，避免高优先级线程等待低优先级任务持有的 DB 连接。
     func refreshStats() async throws -> (
         summaries: [CardSummary],
         typeCounts: [String: Int],
         tagCounts: [(String, Int)]
     ) {
         let repo = repository
-        return try await Task.detached(priority: .utility) {
+        return try await Task.detached(priority: .userInitiated) {
             try repo.refreshStatsSQL()
         }.value
     }
 
     /// 增量统计 —— 只把 changed 卡转成 CardSummary，不扫全库
     /// 返回 changed summaries，由 StatsState.applyIncremental 负责合并到缓存并计算 diff
+    /// 使用 .userInitiated 而非 .utility，与 refreshStats 保持一致，避免 priority inversion。
     func refreshStatsIncremental(changed: [Card]) async -> [CardSummary] {
-        await Task.detached(priority: .utility) {
+        await Task.detached(priority: .userInitiated) {
             changed.map { CardSummary(from: $0) }
         }.value
     }
