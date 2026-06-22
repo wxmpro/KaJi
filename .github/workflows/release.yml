@@ -109,6 +109,16 @@ jobs:
       - name: xcodegen
         run: xcodegen generate
 
+      - name: xcodebuild Release
+        run: |
+          xcodebuild \
+            -project KaJi.xcodeproj \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -destination "platform=macOS,arch=arm64" \
+            build 2>&1 | tail -40
+
       - name: Package DMG (notarized Developer ID)
         if: env.MACOS_SIGN_IDENTITY != ''
         run: |
