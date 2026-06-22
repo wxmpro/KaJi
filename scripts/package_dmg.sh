@@ -35,6 +35,7 @@ NOTARIZE=0
 NOTARIZE_APPLE_ID=""
 NOTARIZE_TEAM_ID=""
 NOTARIZE_PASSWORD=""
+SKIP_BUILD=0
 
 for arg in "$@"; do
   case "$arg" in
@@ -56,6 +57,7 @@ for arg in "$@"; do
       shift
       NOTARIZE_PASSWORD="$1"
       ;;
+    --skip-build) SKIP_BUILD=1 ;;
     -h|--help)
       sed -n '2,18p' "$0"
       exit 0
@@ -77,8 +79,13 @@ fi
 DMG_NAME="${APP_NAME}-v${VERSION}.dmg"
 
 # 读版本号（在 xcodegen 之后从刷新的 pbxproj 读，避免读到旧值）
-echo "==> 1/7 xcodegen generate"
-xcodegen generate
+if [ "$SKIP_BUILD" = "1" ]; then
+  echo "==> 1/7 xcodegen generate [SKIP]"
+  echo "==> 2/7 xcodebuild ${CONFIGURATION} [SKIP]"
+else
+  echo "==> 1/7 xcodegen generate"
+  xcodegen generate
+fi
 
 VERSION=$(DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
   xcodebuild -showBuildSettings \
@@ -92,15 +99,20 @@ fi
 DMG_NAME="${APP_NAME}-v${VERSION}.dmg"
 echo "    -> 版本号: $VERSION, DMG: $DMG_NAME"
 
-echo "==> 2/7 xcodebuild ${CONFIGURATION}"
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-  xcodebuild \
-    -project "$PROJECT_DIR/$APP_NAME.xcodeproj" \
-    -scheme "$SCHEME" \
-    -configuration "$CONFIGURATION" \
-    -derivedDataPath "$DERIVED_DATA" \
-    -destination "platform=macOS,arch=arm64" \
-    build 2>&1 | tail -8
+if [ "$SKIP_BUILD" = "1" ]; then
+  # .app 已由 CI 上一步 build 好；CI 把 .app 复制到脚本默认 DERIVED_DATA 路径
+  :
+else
+  echo "==> 2/7 xcodebuild ${CONFIGURATION}"
+  DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+    xcodebuild \
+      -project "$PROJECT_DIR/$APP_NAME.xcodeproj" \
+      -scheme "$SCHEME" \
+      -configuration "$CONFIGURATION" \
+      -derivedDataPath "$DERIVED_DATA" \
+      -destination "platform=macOS,arch=arm64" \
+      build 2>&1 | tail -8
+fi
 
 APP_PATH="$DERIVED_DATA/Build/Products/$CONFIGURATION/$APP_NAME.app"
 if [ ! -d "$APP_PATH" ]; then

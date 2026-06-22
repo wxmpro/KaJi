@@ -109,29 +109,6 @@ jobs:
       - name: xcodegen
         run: xcodegen generate
 
-      - name: xcodebuild Release
-        run: |
-          xcodebuild \
-            -project KaJi.xcodeproj \
-            -scheme "$SCHEME" \
-            -configuration "$CONFIGURATION" \
-            -derivedDataPath "$DERIVED_DATA" \
-            -destination "platform=macOS,arch=arm64" \
-            build 2>&1 | tail -40
-
-      - name: Code sign (ad-hoc / Developer ID auto)
-        run: |
-          APP="$DERIVED_DATA/Build/Products/$CONFIGURATION/KaJi.app"
-          if [ -n "$MACOS_SIGN_IDENTITY" ]; then
-            echo "mode=Developer ID: $MACOS_SIGN_IDENTITY"
-            codesign --force --deep --options runtime --sign "$MACOS_SIGN_IDENTITY" "$APP"
-            codesign --verify --verbose=2 --strict "$APP"
-          else
-            echo "mode=ad-hoc"
-            codesign --force --deep --options runtime --sign "-" "$APP"
-            codesign --verify --verbose=2 "$APP"
-          fi
-
       - name: Package DMG (notarized Developer ID)
         if: env.MACOS_SIGN_IDENTITY != ''
         run: |
@@ -140,9 +117,28 @@ jobs:
             --team-id "$MACOS_NOTARIZE_TEAM_ID" \
             --password "$MACOS_NOTARIZE_PASSWORD"
 
-      - name: Package DMG (ad-hoc)
+      - name: Package DMG (ad-hoc, CI-built artifact)
         if: env.MACOS_SIGN_IDENTITY == ''
-        run: ./scripts/package_dmg.sh --release
+        run: |
+          # CI 已经 build 完，把 .app 复制到脚本期望的 DERIVED_DATA 路径，再调脚本（--skip-build 跳过内部 build）
+          SRC_APP="$DERIVED_DATA/Build/Products/$CONFIGURATION/KaJi.app"
+          DST_APP="${{ github.workspace }}/build/derived-dmg/Build/Products/$CONFIGURATION/KaJi.app"
+          mkdir -p "$(dirname "$DST_APP")"
+          cp -R "$SRC_APP" "$DST_APP"
+          ./scripts/package_dmg.sh --release --skip-build
+
+      - name: Package DMG (ad-hoc, skip internal build)
+        if: env.MACOS_SIGN_IDENTITY == ''
+        run: |
+          # package_dmg.sh 内部会再跑一次 xcodegen + xcodebuild。
+          # CI 上一步已经 build 完了，复制 .app 到脚本期望的路径即可。
+          SRC_APP="$DERIVED_DATA/Build/Products/$CONFIGURATION/KaJi.app"
+          DST_APP="${{ github.workspace }}/build/derived-dmg/Build/Products/$CONFIGURATION/KaJi.app"
+          mkdir -p "$(dirname "$DST_APP")"
+          cp -R "$SRC_APP" "$DST_APP"
+          # 给脚本一个"已经 build 过"的占位，避免它重 build
+          # 用 SKIP_BUILD 环境变量让脚本跳过 1/7 xcodegen + 2/7 xcodebuild 步骤
+          SKIP_BUILD=1 ./scripts/package_dmg.sh --release
 
       - name: Generate appcast.xml
         run: ./scripts/generate_appcast.sh
