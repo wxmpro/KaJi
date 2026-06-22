@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>KaJi 更新源</title>
+    <link>https://github.com/wxmpro/KaJi/releases/latest</link>
+    <description>KaJi macOS — 最新版本</description>
+    <language>zh-CN</language>
+    <item>
+      <title>KaJi v1.11.0</title>
+      <link>https://github.com/wxmpro/KaJi/releases/download/v1.11.0/KaJi-v1.11.0.dmg</link>
+      <description><![CDATA[
+KaJi v1.11.0 — 切到 wxmpro/KaJi 公开仓库 + 检查更新改为打开下载页
+
+- 检查更新：发现新版本后引导前往 GitHub 下载页（手动安装）
+- 更新源：wxmpro/KaJi（公开）
+- 保留「自动检查」「自动下载」两个开关
+      ]]></description>
+      <pubDate>Mon, 22 Jun 2026 08:19:41 +0000</pubDate>
+      <enclosure
+        url="https://github.com/wxmpro/KaJi/releases/download/v1.11.0/KaJi-v1.11.0.dmg"
+        sparkle:version="52"
+        sparkle:shortVersionString="1.11.0"
+        length="3632123"
+        type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>
