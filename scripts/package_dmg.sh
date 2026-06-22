@@ -135,25 +135,32 @@ else
   echo "    -> Developer ID: $SIGN_IDENTITY"
 fi
 # 抄 vowky deploy/build.sh 的递归顺序：
-#   1) 内层 XPC / helper / Autoupdate（最深）
+#   1) Sparkle 内嵌 XPC / Updater.app / Autoupdate / Sparkle 主二进制（最深）
 #   2) Sparkle.framework 顶层
 #   3) .app 主程序
 # 这样所有内嵌二进制签名身份一致 → Sparkle 自动装替换 .app 时签名校验通过
+#
+# 关键：Sparkle.framework 含 4 个 Nested 组件（Downloader.xpc / Installer.xpc / Autoupdate / Updater.app），
+# 任何漏签都会导致 dyld 加载时 Team ID 不一致 SIGABRT
 APP_IN_STAGING="$STAGING_DIR/$APP_NAME.app"
 
-# 1) Sparkle 内嵌的 XPC 服务、Updater.app、Autoupdate 工具（必须在 framework 之前）
-for item in \
-  "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/Updater.app" \
-  "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc" \
-  "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework/Versions/B/Versions"/*/*/* \
-  "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate" \
-  "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle"; do
-  [ -e "$item" ] && codesign --force --sign "$SIGN_IDENTITY" "$item" 2>&1 | grep -v "^$" || true
-done
+# 1) Sparkle 内嵌的全部 Nested 组件（必须在 framework 之前）
+SPARKLE_FW="$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework"
+if [ -d "$SPARKLE_FW" ]; then
+  # 收集所有 .xpc / .app / Autoupdate 工具（任意嵌套深度）
+  NESTED_ITEMS=$(find "$SPARKLE_FW" \( -name "*.xpc" -o -name "*.app" -o -name "Autoupdate" \) -type d -o -name "Autoupdate" -type f 2>/dev/null)
+  # 把路径按深度倒序排（先签最深的）
+  echo "$NESTED_ITEMS" | tr ' ' '\n' | awk '{ print length, $0 }' | sort -rn | cut -d' ' -f2- | while read -r item; do
+    [ -e "$item" ] && codesign --force --sign "$SIGN_IDENTITY" "$item" 2>&1 | grep -v "^$" || true
+  done
+  # Sparkle 主二进制（在 Versions/B/Sparkle）
+  SPARKLE_BIN="$SPARKLE_FW/Versions/B/Sparkle"
+  [ -f "$SPARKLE_BIN" ] && codesign --force --sign "$SIGN_IDENTITY" "$SPARKLE_BIN"
+fi
 
 # 2) Sparkle.framework 顶层（必须在内嵌组件之后）
-if [ -d "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework" ]; then
-  codesign --force --sign "$SIGN_IDENTITY" "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework"
+if [ -d "$SPARKLE_FW" ]; then
+  codesign --force --sign "$SIGN_IDENTITY" "$SPARKLE_FW"
 fi
 
 # 3) 主 app
@@ -162,8 +169,9 @@ codesign --verify --verbose=2 "$APP_IN_STAGING"
 
 echo "    -> 签名身份核验（全部应为同一身份：$SIGN_IDENTITY）"
 codesign -dvv "$APP_IN_STAGING" 2>&1 | grep -E "Identifier|Authority|TeamIdentifier|Signature" | head -5
-if [ -d "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework" ]; then
-  codesign -dvv "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework" 2>&1 | grep -E "Authority|TeamIdentifier|Signature" | head -3
+if [ -d "$SPARKLE_FW" ]; then
+  echo "    -> Sparkle.framework Nested 组件签名（必须全 adhoc / TeamIdentifier=not set）"
+  codesign -d --deep -vv "$SPARKLE_FW" 2>&1 | grep -E "Nested=|^Executable=|^Identifier=|^TeamIdentifier=" | head -15
 fi
 
 echo "==> 5/7 hdiutil 打包 DMG"
