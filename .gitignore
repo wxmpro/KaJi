@@ -75,6 +75,15 @@ assets/images/
 # Project docs / plans / discussion drafts — NOT committed to GitHub
 docs/
 
+# === Sparkle 密钥（绝对禁止入 git）===
+*.key.pem
+*.pub.pem
+*sparkle*.pem
+*sparkle*.key
+sparkle-private.key
+secrets/
+sparkle-keys/
+
 # Sandbox / local test artifacts — NOT committed to GitHub
 sandbox-build/
 

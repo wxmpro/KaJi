@@ -31,6 +31,7 @@
 		582195DC99E9F0DC111EB3DE /* SearchToolbarField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FECCCF5ACB3B8F390337C282 /* SearchToolbarField.swift */; };
 		618ECF479D1E64370FEF3CC2 /* KaJiMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = C90FD45CE941E8326C1D998B /* KaJiMetrics.swift */; };
 		6725010D5EC9CC79B292172A /* KaJiListRowButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57C625A6DAC0E8BF6A1F87FA /* KaJiListRowButtonStyle.swift */; };
+		724118864E03C044E018D01B /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 1B530E4237BD7B44EEF89766 /* Sparkle */; };
 		74C30D76E0B8A18D477B5229 /* MarkdownWriteQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14B862C451F6D170DD651072 /* MarkdownWriteQueue.swift */; };
 		7977EA232F2B77CF76781C40 /* BackButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D1FB338D29EB82A143F8B4 /* BackButton.swift */; };
 		7C5DA8257EB2C228A849E895 /* CardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60F46A35E904ABF137D03552 /* CardRepository.swift */; };
@@ -66,6 +67,7 @@
 		EE21FAF9283191D2AEBE4CCA /* CardTypeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B87BD516F53EED92EB3F2E7D /* CardTypeSettingsView.swift */; };
 		F13E1FCE2C351691C9E40159 /* TagPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBFA0ED78BDDA942EBEA38DB /* TagPill.swift */; };
 		F1866F381DEF2F829AD6DD9C /* KaJiAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398C6BEC82BFAA44E5481337 /* KaJiAnimation.swift */; };
+		F30366059F7750F746C3F423 /* UpdaterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 087476DE5984687C47B8C0DF /* UpdaterService.swift */; };
 		F423DE0FE152E2ADAB4B0A11 /* ContentLimit.swift in Sources */ = {isa = PBXBuildFile; fileRef = E546D7FFEB130D7DD5217111 /* ContentLimit.swift */; };
 		F46F58ADE5EDFCD8D6BD5616 /* ListFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701910040469901400ED7260 /* ListFilter.swift */; };
 		F55D2FF69A099EA12C26C894 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1CCF17A2B87FA7212E510F44 /* Assets.xcassets */; };
@@ -75,6 +77,7 @@
 
 /* Begin PBXFileReference section */
 		05004F2A32A2EF016AD2F506 /* CardListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardListView.swift; sourceTree = "<group>"; };
+		087476DE5984687C47B8C0DF /* UpdaterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterService.swift; sourceTree = "<group>"; };
 		0A5CF4E98B6868AFAA27FD81 /* KaJi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KaJi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0EB6B78BC1C7BA574E35BF37 /* SettingsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsService.swift; sourceTree = "<group>"; };
 		10A038ED89F28B1D4CE0A7C6 /* KaJiColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaJiColor.swift; sourceTree = "<group>"; };
@@ -147,6 +150,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3E6244F89B67DDF82771DE3B /* GRDB in Frameworks */,
+				724118864E03C044E018D01B /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -225,6 +229,7 @@
 				1A7BCF285D1FC16090347EBC /* CardTypeChangeService.swift */,
 				61F8777B8A6DD427F07615F7 /* CardTypeDefPersistenceService.swift */,
 				32000FF56E2998455D2D1F62 /* CardTypeFieldMigrationService.swift */,
+				087476DE5984687C47B8C0DF /* UpdaterService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -354,6 +359,7 @@
 			name = KaJi;
 			packageProductDependencies = (
 				779A271A1B8E8EC1EBF80ABF /* GRDB */,
+				1B530E4237BD7B44EEF89766 /* Sparkle */,
 			);
 			productName = KaJi;
 			productReference = 0A5CF4E98B6868AFAA27FD81 /* KaJi.app */;
@@ -385,6 +391,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				D79B6037D77B893EBCAD6AB6 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				4DE42067A46B2B64C8619ABB /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BBCE1271F6A7B0E12C64A376 /* Products */;
@@ -474,6 +481,7 @@
 				06BBCC976ECC1D5F9B72B90D /* SidebarView.swift in Sources */,
 				C31FD60FD68F27EDEE671AD2 /* StatsState.swift in Sources */,
 				F13E1FCE2C351691C9E40159 /* TagPill.swift in Sources */,
+				F30366059F7750F746C3F423 /* UpdaterService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -531,7 +539,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 50;
+				CURRENT_PROJECT_VERSION = 51;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -554,7 +562,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.9.3;
+				MARKETING_VERSION = 1.10.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -619,7 +627,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 50;
+				CURRENT_PROJECT_VERSION = 51;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -636,7 +644,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.9.3;
+				MARKETING_VERSION = 1.10.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;
@@ -673,6 +681,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		4DE42067A46B2B64C8619ABB /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.7.0;
+			};
+		};
 		D79B6037D77B893EBCAD6AB6 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
@@ -684,6 +700,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		1B530E4237BD7B44EEF89766 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4DE42067A46B2B64C8619ABB /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		779A271A1B8E8EC1EBF80ABF /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D79B6037D77B893EBCAD6AB6 /* XCRemoteSwiftPackageReference "GRDB.swift" */;

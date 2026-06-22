@@ -37,6 +37,7 @@ struct SettingsView: View {
     // autoSaveInterval / trashRetentionDays 走 SettingsService setter（@AppStorage 直写
     // UserDefaults 不触发 SettingsService 缓存更新，会导致设置改后 debounce 间隔不变）
 
+    @Environment(UpdaterService.self) private var updater
     @State private var selectedTab: SettingsTab = .general
 
     private var autoSaveIntervalBinding: Binding<Double> {
@@ -209,18 +210,48 @@ struct SettingsView: View {
                     Text("版本 \(appVersion) (\(buildNumber))")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
+
+                    if let last = updater.lastUpdateCheckDate {
+                        Text("上次检查：\(last.formatted(date: .abbreviated, time: .shortened))")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.tertiary)
+                    }
                 }
 
                 Text("macOS 原生卡片笔记")
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
 
-                Button("检查更新") {
-                    guard let url = URL(string: "https://github.com/wxmpro/KaJi-macOS/releases") else { return }
-                    NSWorkspace.shared.open(url)
+                // === Sparkle 偏好（@Bindable 子 scope，避免污染根 view） ===
+                @Bindable var updaterBindable = updater
+
+                Toggle("自动检查更新", isOn: $updaterBindable.automaticallyChecksForUpdates)
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .frame(maxWidth: 240)
+
+                Toggle("自动下载更新", isOn: $updaterBindable.automaticallyDownloadsUpdates)
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .frame(maxWidth: 240)
+                    .disabled(!updater.automaticallyChecksForUpdates)
+
+                // === Sparkle 手动检查（弹窗形式） ===
+                Button("检查更新…") {
+                    updater.checkForUpdates()
                 }
                 .controlSize(.small)
                 .padding(.top, 4)
+                .help("Sparkle 会在新窗口显示可用更新与发行说明")
+
+                Button("查看发行说明") {
+                    if let url = URL(string: "https://github.com/wxmpro/KaJi-macOS/releases") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .controlSize(.small)
+                .buttonStyle(.link)
+                .font(.system(size: 11))
 
                 Text("© 2026 KaJi. All rights reserved.")
                     .font(.system(size: 11))

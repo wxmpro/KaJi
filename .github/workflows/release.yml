@@ -1,0 +1,174 @@
+# KaJi release workflow（v1.10.0 引入 — Sparkle 端到端自动化）
+#
+# 触发：push tag v*.*.* 或手动 workflow_dispatch
+# 流程：checkout → xcode build → 灌 SUPublicEDKey → 签名 → 打 dmg → 生成 appcast.xml
+#       → 创建 GitHub Release + 上传 dmg + appcast.xml → commit appcast.xml 到 main
+#
+# 双模式：
+#   - MACOS_SIGN_IDENTITY 为空 → ad-hoc 模式（无需 Apple Developer Program）
+#   - MACOS_SIGN_IDENTITY 非空 → Developer ID 模式 + notarytool 公证
+#
+# 必需 GitHub Secrets：
+#   - SPARKLE_PUBLIC_KEY         公钥 base64（44 字符）
+#   - SPARKLE_PRIVATE_KEY_BASE64 私钥 PEM 的 base64 串
+# 可选 Secrets（Developer ID 模式才需要）：
+#   - MACOS_SIGN_IDENTITY        "Developer ID Application: Name (TEAMID)"
+#   - MACOS_NOTARIZE_APPLE_ID    Apple ID 邮箱
+#   - MACOS_NOTARIZE_TEAM_ID     10 位 Team ID
+#   - MACOS_NOTARIZE_PASSWORD    App-specific password
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SCHEME: KaJi
+  CONFIGURATION: Release
+  DERIVED_DATA: ${{ github.workspace }}/build/derived-release
+  DIST_DIR: ${{ github.workspace }}/dist
+  SPARKLE_VERSION: "2.7.0"
+  APPCAST_PATH: appcast.xml
+
+jobs:
+  release:
+    name: Build + Sign + Publish
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.0.app/Contents/Developer
+      SPARKLE_PRIVATE_KEY_FILE: ${{ github.workspace }}/build/sparkle-private.key
+      SPARKLE_BIN_PATH: ${{ github.workspace }}/build/sparkle
+      MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+      MACOS_NOTARIZE_APPLE_ID: ${{ secrets.MACOS_NOTARIZE_APPLE_ID }}
+      MACOS_NOTARIZE_TEAM_ID: ${{ secrets.MACOS_NOTARIZE_TEAM_ID }}
+      MACOS_NOTARIZE_PASSWORD: ${{ secrets.MACOS_NOTARIZE_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$DEVELOPER_DIR"
+          xcodebuild -version
+
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.DERIVED_DATA }}
+          key: derived-v1-${{ runner.os }}-xcode26-${{ hashFiles('**/Package.resolved', 'project.yml', 'KaJi/Info.plist') }}
+          restore-keys: |
+            derived-v1-${{ runner.os }}-xcode26-
+
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData/SourcePackages
+          key: spm-v1-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            spm-v1-${{ runner.os }}-
+
+      - name: Validate Sparkle private key secret
+        run: |
+          if [ -z "${{ secrets.SPARKLE_PRIVATE_KEY_BASE64 }}" ]; then
+            echo "[FAIL] secrets.SPARKLE_PRIVATE_KEY_BASE64 未设置" >&2
+            exit 1
+          fi
+          echo "[OK] SPARKLE_PRIVATE_KEY_BASE64 secret 已就位"
+
+      - name: Restore Sparkle private key
+        run: |
+          mkdir -p "$(dirname "$SPARKLE_PRIVATE_KEY_FILE")"
+          echo "${{ secrets.SPARKLE_PRIVATE_KEY_BASE64 }}" | base64 -d > "$SPARKLE_PRIVATE_KEY_FILE"
+          chmod 600 "$SPARKLE_PRIVATE_KEY_FILE"
+          openssl pkey -in "$SPARKLE_PRIVATE_KEY_FILE" -noout -text | head -3
+
+      - name: Fetch Sparkle binaries
+        run: ./scripts/fetch_sparkle.sh
+
+      - name: xcodegen
+        run: xcodegen generate
+
+      - name: xcodebuild Release
+        run: |
+          xcodebuild \
+            -project KaJi.xcodeproj \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -destination "platform=macOS,arch=arm64" \
+            build 2>&1 | tail -40
+
+      - name: Code sign (ad-hoc / Developer ID auto)
+        run: |
+          APP="$DERIVED_DATA/Build/Products/$CONFIGURATION/KaJi.app"
+          if [ -n "$MACOS_SIGN_IDENTITY" ]; then
+            echo "mode=Developer ID: $MACOS_SIGN_IDENTITY"
+            codesign --force --deep --options runtime --sign "$MACOS_SIGN_IDENTITY" "$APP"
+            codesign --verify --verbose=2 --strict "$APP"
+          else
+            echo "mode=ad-hoc"
+            codesign --force --deep --options runtime --sign "-" "$APP"
+            codesign --verify --verbose=2 "$APP"
+          fi
+
+      - name: Package DMG (notarized Developer ID)
+        if: env.MACOS_SIGN_IDENTITY != ''
+        run: |
+          bash ./scripts/package_dmg.sh --release --notarize \
+            --apple-id "$MACOS_NOTARIZE_APPLE_ID" \
+            --team-id "$MACOS_NOTARIZE_TEAM_ID" \
+            --password "$MACOS_NOTARIZE_PASSWORD"
+
+      - name: Package DMG (ad-hoc)
+        if: env.MACOS_SIGN_IDENTITY == ''
+        run: ./scripts/package_dmg.sh --release
+
+      - name: Generate appcast.xml
+        run: ./scripts/generate_appcast.sh
+
+      - name: Create GitHub Release + upload DMG + appcast.xml
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            ${{ env.DIST_DIR }}/KaJi-v*.dmg
+            ${{ env.APPCAST_PATH }}
+          fail_on_unmatched_files: false
+
+      - name: Commit & push appcast.xml
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$APPCAST_PATH"
+          if git diff --cached --quiet; then
+            echo "appcast.xml 无变化，跳过 commit"
+          else
+            git commit -m "chore(appcast): 发布 ${{ github.ref_name }}"
+            git push
+          fi
+
+      - name: Cleanup secrets
+        if: always()
+        run: |
+          shred -u "$SPARKLE_PRIVATE_KEY_FILE" 2>/dev/null || rm -f "$SPARKLE_PRIVATE_KEY_FILE"
+          echo "[OK] secrets 已清理"

@@ -13,8 +13,8 @@ settings:
     MACOSX_DEPLOYMENT_TARGET: "26.0"
     PRODUCT_NAME: KaJi
     PRODUCT_BUNDLE_IDENTIFIER: com.kaji.app.KaJi
-    MARKETING_VERSION: "1.9.3"
-    CURRENT_PROJECT_VERSION: "50"
+    MARKETING_VERSION: "1.10.0"
+    CURRENT_PROJECT_VERSION: "51"
     GENERATE_INFOPLIST_FILE: NO
     ENABLE_HARDENED_RUNTIME: YES
     CODE_SIGN_STYLE: Automatic
@@ -27,6 +27,9 @@ packages:
   GRDB:
     url: https://github.com/groue/GRDB.swift
     from: "7.1.0"
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.7.0"
 
 targets:
   KaJi:
@@ -39,6 +42,8 @@ targets:
     dependencies:
       - package: GRDB
         product: GRDB
+      - package: Sparkle
+        product: Sparkle
     info:
       path: KaJi/Info.plist
       properties:
@@ -52,6 +57,14 @@ targets:
         NSPrincipalClass: NSApplication
         LSApplicationCategoryType: public.app-category.productivity
         NSHighResolutionCapable: true
+        # === Sparkle 2.x 在线更新（v1.10.0 引入）===
+        # SUFeedURL：appcast.xml 部署位置（仓库根 /appcast.xml，不走 docs/ 因为 docs/ 在 .gitignore）
+        # SUPublicEDKey：Ed25519 公钥 base64（44 字符），公钥公开可直接入库
+        SUFeedURL: "https://raw.githubusercontent.com/wxmpro/KaJi-macOS/main/appcast.xml"
+        SUEnableAutomaticChecks: true
+        SUAllowsAutomaticUpdates: true
+        SUScheduledCheckInterval: 86400
+        SUPublicEDKey: "a+Zx1Ugvn51+i8jzv8iK0rXzCfisexu83flc4iFXUkk="
     settings:
       base:
         INFOPLIST_FILE: KaJi/Info.plist

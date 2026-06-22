@@ -10,6 +10,7 @@
 
 import SwiftUI
 import AppKit
+import Sparkle
 
 @main
 struct KaJiApp: App {
@@ -23,6 +24,7 @@ struct KaJiApp: App {
                 .environment(appDelegate.alertState)
                 .environment(appDelegate.listState)
                 .environment(appDelegate.statsState)
+                .environment(UpdaterService.shared)
         }
         .windowToolbarStyle(.unifiedCompact(showsTitle: false))
         .windowStyle(.automatic)
@@ -92,12 +94,13 @@ struct KaJiApp: App {
 
         Settings {
             SettingsView()
+                .environment(UpdaterService.shared)
         }
         .defaultSize(width: 640, height: 460)
     }
 }
 
-/// AppDelegate：接管启动期职责（reconcile + purge + 首卡初始化）
+/// AppDelegate：接管启动期职责（reconcile + purge + 首卡初始化 + Sparkle updater）
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let statsState: StatsState
@@ -105,6 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let alertState: EditorAlertState
     let data: EditorDataState
     let ui: EditorUIState
+    let updater: UpdaterService
 
     override init() {
         self.statsState = StatsState()
@@ -116,6 +120,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             listState: listState,
             alert: alertState
         )
+        self.updater = UpdaterService.shared
         super.init()
     }
 
@@ -125,6 +130,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SettingsService.restoreThemeOnLaunch()
         configureWindows()
         bootstrap()
+        updater.start()
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
