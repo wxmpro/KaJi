@@ -64,7 +64,7 @@ targets:
         SUEnableAutomaticChecks: true
         SUAllowsAutomaticUpdates: true
         SUScheduledCheckInterval: 86400
-        SUPublicEDKey: "a+Zx1Ugvn51+i8jzv8iK0rXzCfisexu83flc4iFXUkk="
+        SUPublicEDKey: "HSFWsbVvHwemdQzzqTYZNNuP9JqYtg3FXmczSfZqmn4="
     settings:
       base:
         INFOPLIST_FILE: KaJi/Info.plist

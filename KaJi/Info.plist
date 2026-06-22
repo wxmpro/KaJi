@@ -37,7 +37,7 @@
 	<key>SUFeedURL</key>
 	<string>https://raw.githubusercontent.com/wxmpro/KaJi-macOS/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>a+Zx1Ugvn51+i8jzv8iK0rXzCfisexu83flc4iFXUkk=</string>
+	<string>HSFWsbVvHwemdQzzqTYZNNuP9JqYtg3FXmczSfZqmn4=</string>
 	<key>SUScheduledCheckInterval</key>
 	<integer>86400</integer>
 </dict>
