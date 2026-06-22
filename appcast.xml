@@ -8,30 +8,17 @@
     <description>卡迹 KaJi macOS 更新源</description>
     <language>zh-CN</language>
     <item>
-      <title>v1.11.1</title>
-      <link>https://github.com/wxmpro/KaJi/releases/tag/v1.11.1</link>
-      <description><![CDATA[<h3>v1.11.1</h3><p>见 GitHub Release 说明：<a href="https://github.com/wxmpro/KaJi/releases/tag/v1.11.1">v1.11.1</a>。</p>]]></description>
-      <pubDate>Mon, 22 Jun 2026 08:43:16 +0000</pubDate>
+      <title>v1.11.3</title>
+      <link>https://github.com/wxmpro/KaJi/releases/tag/v1.11.3</link>
+      <description><![CDATA[<h3>v1.11.3</h3><p>见 GitHub Release 说明：<a href="https://github.com/wxmpro/KaJi/releases/tag/v1.11.3">v1.11.3</a>。</p>]]></description>
+      <pubDate>Mon, 22 Jun 2026 09:32:22 +0000</pubDate>
       <enclosure
-        url="https://github.com/wxmpro/KaJi/releases/download/v1.11.1/KaJi-v1.11.1.dmg"
-        sparkle:version="53"
-        sparkle:shortVersionString="1.11.1"
-        length="3625526"
+        url="https://github.com/wxmpro/KaJi/releases/download/v1.11.3/KaJi-v1.11.3.dmg"
+        sparkle:version="55"
+        sparkle:shortVersionString="1.11.3"
+        length="2663767"
         type="application/x-apple-diskimage" />
-      <sparkle:edSignature base64="qH88cmAVmDYYjPzioIhzRUkdTG81hJ0jFpOHnh1tX8S37NJXUn7uqoe5fmJ5UBfSCVFfMbPJamR0zr/rJchLCw=="/>
-    </item>
-    <item>
-      <title>v1.11.2</title>
-      <link>https://github.com/wxmpro/KaJi/releases/tag/v1.11.2</link>
-      <description><![CDATA[<h3>v1.11.2</h3><p>见 GitHub Release 说明：<a href="https://github.com/wxmpro/KaJi/releases/tag/v1.11.2">v1.11.2</a>。</p>]]></description>
-      <pubDate>Mon, 22 Jun 2026 08:50:19 +0000</pubDate>
-      <enclosure
-        url="https://github.com/wxmpro/KaJi/releases/download/v1.11.2/KaJi-v1.11.2.dmg"
-        sparkle:version="54"
-        sparkle:shortVersionString="1.11.2"
-        length="3627848"
-        type="application/x-apple-diskimage" />
-      <sparkle:edSignature base64="55Un3pvfgxZyHi+mcinVhxDV5Ck8rRIcDPZ1mElmThu6fBjDbpPjKejT80udg8dXO8dhskOEu95fMsco7LPMBw=="/>
+      <sparkle:edSignature base64="Ha7lv4G92ygbapXC08vLMw3TtvN7qnRb/I5xwkxEPWjiYrmGhT00auPv6I3OD/ZR9l1FZOLjXeEvOwZDhFN7AQ=="/>
     </item>
   </channel>
 </rss>

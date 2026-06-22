@@ -13,8 +13,8 @@ settings:
     MACOSX_DEPLOYMENT_TARGET: "26.0"
     PRODUCT_NAME: KaJi
     PRODUCT_BUNDLE_IDENTIFIER: com.kaji.app.KaJi
-    MARKETING_VERSION: "1.11.2"
-    CURRENT_PROJECT_VERSION: "54"
+    MARKETING_VERSION: "1.11.3"
+    CURRENT_PROJECT_VERSION: "55"
     GENERATE_INFOPLIST_FILE: NO
     ENABLE_HARDENED_RUNTIME: YES
     CODE_SIGN_STYLE: Automatic
@@ -27,9 +27,10 @@ packages:
   GRDB:
     url: https://github.com/groue/GRDB.swift
     from: "7.1.0"
-  Sparkle:
-    url: https://github.com/sparkle-project/Sparkle
-    from: "2.7.0"
+  # Sparkle 已不再依赖（v1.11.3 起）
+  # 检查更新走自实现 URLSession 拉 appcast + 弹窗打开 GitHub release 下载页
+  # 留 Sparkle 框架会让启动 dyld 加载崩溃（macOS 26 ad-hoc + hardened runtime 与
+  # Sparkle universal framework 的隐式 Team ID 检查冲突，至今未解）
 
 targets:
   KaJi:
@@ -42,8 +43,6 @@ targets:
     dependencies:
       - package: GRDB
         product: GRDB
-      - package: Sparkle
-        product: Sparkle
     info:
       path: KaJi/Info.plist
       properties:
@@ -57,15 +56,12 @@ targets:
         NSPrincipalClass: NSApplication
         LSApplicationCategoryType: public.app-category.productivity
         NSHighResolutionCapable: true
-        # === Sparkle 2.x 在线更新 ===
-        # ad-hoc 签名 + 递归签 framework + 一致签名身份 — Sparkle 自动安装成立
-        # SUFeedURL：appcast.xml 部署位置（仓库根 /appcast.xml，不走 docs/ 因为 docs/ 在 .gitignore）
-        # SUPublicEDKey：Ed25519 公钥 base64（44 字符），公钥公开可直接入库
+        # === v1.11.3 起不依赖 Sparkle ===
+        # 检查更新由 UpdaterService.swift 自实现：URLSession 拉 appcast + 比较 build 号 +
+        # 弹窗打开 GitHub release 下载页（不再尝试自动装，避免 Sparkle 自动装签名问题）
+        # 保留 SUFeedURL 仅作 fallback，将来如真接入 Apple Developer ID + 公证
+        # 可无缝切回 Sparkle 全自动（更新 Info.plist key 即可）。
         SUFeedURL: "https://raw.githubusercontent.com/wxmpro/KaJi/main/appcast.xml"
-        SUEnableAutomaticChecks: true
-        SUAllowsAutomaticUpdates: true
-        SUScheduledCheckInterval: 86400
-        SUPublicEDKey: "HSFWsbVvHwemdQzzqTYZNNuP9JqYtg3FXmczSfZqmn4="
     settings:
       base:
         INFOPLIST_FILE: KaJi/Info.plist

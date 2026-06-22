@@ -31,7 +31,6 @@
 		582195DC99E9F0DC111EB3DE /* SearchToolbarField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FECCCF5ACB3B8F390337C282 /* SearchToolbarField.swift */; };
 		618ECF479D1E64370FEF3CC2 /* KaJiMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = C90FD45CE941E8326C1D998B /* KaJiMetrics.swift */; };
 		6725010D5EC9CC79B292172A /* KaJiListRowButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57C625A6DAC0E8BF6A1F87FA /* KaJiListRowButtonStyle.swift */; };
-		724118864E03C044E018D01B /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 1B530E4237BD7B44EEF89766 /* Sparkle */; };
 		74C30D76E0B8A18D477B5229 /* MarkdownWriteQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14B862C451F6D170DD651072 /* MarkdownWriteQueue.swift */; };
 		7977EA232F2B77CF76781C40 /* BackButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8D1FB338D29EB82A143F8B4 /* BackButton.swift */; };
 		7C5DA8257EB2C228A849E895 /* CardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60F46A35E904ABF137D03552 /* CardRepository.swift */; };
@@ -150,7 +149,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				3E6244F89B67DDF82771DE3B /* GRDB in Frameworks */,
-				724118864E03C044E018D01B /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -359,7 +357,6 @@
 			name = KaJi;
 			packageProductDependencies = (
 				779A271A1B8E8EC1EBF80ABF /* GRDB */,
-				1B530E4237BD7B44EEF89766 /* Sparkle */,
 			);
 			productName = KaJi;
 			productReference = 0A5CF4E98B6868AFAA27FD81 /* KaJi.app */;
@@ -391,7 +388,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				D79B6037D77B893EBCAD6AB6 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
-				4DE42067A46B2B64C8619ABB /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BBCE1271F6A7B0E12C64A376 /* Products */;
@@ -539,7 +535,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 54;
+				CURRENT_PROJECT_VERSION = 55;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -562,7 +558,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.11.2;
+				MARKETING_VERSION = 1.11.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -627,7 +623,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 54;
+				CURRENT_PROJECT_VERSION = 55;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -644,7 +640,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.11.2;
+				MARKETING_VERSION = 1.11.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kaji.app.KaJi;
@@ -681,14 +677,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		4DE42067A46B2B64C8619ABB /* XCRemoteSwiftPackageReference "Sparkle" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sparkle-project/Sparkle";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.7.0;
-			};
-		};
 		D79B6037D77B893EBCAD6AB6 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
@@ -700,11 +688,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		1B530E4237BD7B44EEF89766 /* Sparkle */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4DE42067A46B2B64C8619ABB /* XCRemoteSwiftPackageReference "Sparkle" */;
-			productName = Sparkle;
-		};
 		779A271A1B8E8EC1EBF80ABF /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D79B6037D77B893EBCAD6AB6 /* XCRemoteSwiftPackageReference "GRDB.swift" */;

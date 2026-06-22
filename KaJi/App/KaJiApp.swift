@@ -10,7 +10,6 @@
 
 import SwiftUI
 import AppKit
-import Sparkle
 
 @main
 struct KaJiApp: App {
@@ -100,7 +99,7 @@ struct KaJiApp: App {
     }
 }
 
-/// AppDelegate：接管启动期职责（reconcile + purge + 首卡初始化 + Sparkle updater）
+/// AppDelegate：接管启动期职责（reconcile + purge + 首卡初始化 + UpdaterService start）
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let statsState: StatsState
