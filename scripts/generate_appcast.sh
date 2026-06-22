@@ -88,19 +88,18 @@ for dmg in "${DMGS[@]}"; do
   rm -rf "$TMP_MOUNT"
 
   # sign_update 算 edSignature（Ed25519）
-  # 注意：Sparkle 2.x 的 sign_update 不支持 --format 选项；
-  # 默认输出 XML-ish 字符串，我们用 sed 解析 edSignature
+  # Sparkle 2.x 的 sign_update 不支持 --format 选项；固定输出：
+  #   sparkle:edSignature="<base64>" length="<bytes>"
+  # 用 sed 精确提取 edSignature 引号内的内容。
   SIGN_OUT=$("$SPARKLE_BIN_PATH/bin/sign_update" \
     --ed-key-file "$SPARKLE_PRIVATE_KEY_FILE" \
     "$dmg")
   ED_SIG=$(echo "$SIGN_OUT" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
+  # fail-fast：解析不出签名直接终止，绝不把残缺/整行输出当签名写进 appcast
+  # （否则错误会从 CI 推迟到用户端，Sparkle 校验失败且极难排查）
   if [ -z "$ED_SIG" ]; then
-    # Fallback: sign_update 2.x 直接输出 base64（无 xml 包装）
-    ED_SIG=$(echo "$SIGN_OUT" | tr -d '[:space:]' | head -c 200)
-  fi
-  if [ -z "$ED_SIG" ]; then
-    echo "[generate_appcast][FAIL] sign_update 未返回 edSignature: $dmg" >&2
-    echo "$SIGN_OUT" >&2
+    echo "[generate_appcast][FAIL] 无法从 sign_update 输出解析 edSignature: $dmg" >&2
+    echo "  原始输出: $SIGN_OUT" >&2
     exit 1
   fi
 
