@@ -128,14 +128,43 @@ cp -R "$APP_PATH" "$STAGING_DIR/"
 ln -s /Applications "$STAGING_DIR/Applications"
 echo "    -> $STAGING_DIR"
 
-echo "==> 4/7 代码签名 ($SIGN_IDENTITY)"
+echo "==> 4/7 代码签名（递归逐层，Sparkle framework 一致身份）($SIGN_IDENTITY)"
 if [ "$SIGN_IDENTITY" = "-" ]; then
-  echo "    -> ad-hoc 签名（不签名也可启动，但 Gatekeeper 会拦）"
+  echo "    -> ad-hoc 签名（同一身份递归签 framework + xpc + helper + 主 app）"
 else
   echo "    -> Developer ID: $SIGN_IDENTITY"
 fi
-codesign --force --deep --options runtime --sign "$SIGN_IDENTITY" "$STAGING_DIR/$APP_NAME.app"
-codesign --verify --verbose=2 "$STAGING_DIR/$APP_NAME.app"
+# 抄 vowky deploy/build.sh 的递归顺序：
+#   1) 内层 XPC / helper / Autoupdate（最深）
+#   2) Sparkle.framework 顶层
+#   3) .app 主程序
+# 这样所有内嵌二进制签名身份一致 → Sparkle 自动装替换 .app 时签名校验通过
+APP_IN_STAGING="$STAGING_DIR/$APP_NAME.app"
+
+# 1) Sparkle 内嵌的 XPC 服务、Updater.app、Autoupdate 工具（必须在 framework 之前）
+for item in \
+  "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/Updater.app" \
+  "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc" \
+  "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework/Versions/B/Versions"/*/*/* \
+  "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate" \
+  "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle"; do
+  [ -e "$item" ] && codesign --force --sign "$SIGN_IDENTITY" "$item" 2>&1 | grep -v "^$" || true
+done
+
+# 2) Sparkle.framework 顶层（必须在内嵌组件之后）
+if [ -d "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework" ]; then
+  codesign --force --sign "$SIGN_IDENTITY" "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework"
+fi
+
+# 3) 主 app
+codesign --force --options runtime --sign "$SIGN_IDENTITY" "$APP_IN_STAGING"
+codesign --verify --verbose=2 "$APP_IN_STAGING"
+
+echo "    -> 签名身份核验（全部应为同一身份：$SIGN_IDENTITY）"
+codesign -dvv "$APP_IN_STAGING" 2>&1 | grep -E "Identifier|Authority|TeamIdentifier|Signature" | head -5
+if [ -d "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework" ]; then
+  codesign -dvv "$APP_IN_STAGING/Contents/Frameworks/Sparkle.framework" 2>&1 | grep -E "Authority|TeamIdentifier|Signature" | head -3
+fi
 
 echo "==> 5/7 hdiutil 打包 DMG"
 mkdir -p "$DIST_DIR"

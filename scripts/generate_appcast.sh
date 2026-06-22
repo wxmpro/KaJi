@@ -1,27 +1,34 @@
 #!/bin/bash
-# generate_appcast.sh — 给定 dist/*.dmg 重新生成 docs/appcast.xml
+# generate_appcast.sh — 给定 dist/*.dmg 重新生成 appcast.xml（Sparkle 2.x）
 #
 # 用法：
 #   ./scripts/generate_appcast.sh
 #
 # 环境变量：
 #   SPARKLE_BIN_PATH          Sparkle 解压根目录（默认 ./build/sparkle）
-#   SPARKLE_PRIVATE_KEY_FILE  PEM 私钥路径（默认 ./build/sparkle-private.key）
+#
+# 私钥来源：
+#   默认从 macOS Keychain 读（Sparkle 的 generate_keys 会把私钥放 keychain，
+#   sign_update 自动用 keychain 里的私钥签名）。
+#   若想用文件形式的私钥（例如 CI 环境），设置：
+#     export SPARKLE_PRIVATE_KEY_FILE=/path/to/base64-private.key
 #
 # 设计原则：
 #   - append-only：新版本 <item> 加到 <channel> 末尾（Sparkle 自己挑 max）
-#   - 旧版本不删除——朋友从 v1.9.3 升 v1.10.0 还能回看历史
+#   - 旧版本不删除——朋友从 v1.10.0 升 v1.11.0 还能回看历史
 #   - 公钥 base64 长度校验（必须 44 字符，否则 script 拒绝生成空签名 appcast）
+#   - fail-fast：解析不出签名直接终止，绝不把残缺输出当签名写进 appcast
 #
 # 流程：
-#   1. 校验 Sparkle 工具与私钥就位
+#   1. 校验 Sparkle 工具就位
 #   2. 扫描 dist/KaJi-v*.dmg
 #   3. 挂载每个 dmg → 取 Info.plist 的 CFBundleVersion / CFBundleShortVersionString
-#   4. sign_update 算 edSignature（Ed25519）
-#   5. 拼 RSS 2.0 + sparkle 命名空间 → 写 docs/appcast.xml
+#   4. sign_update 算 edSignature（Ed25519；默认从 Keychain 读私钥）
+#   5. 拼 RSS 2.0 + sparkle 命名空间 → 写 appcast.xml
 #   6. xmllint 校验 XML 语法
 
-set -euo pipefail
+set -eo pipefail
+# 不用 -u：空数组展开时 `set -u` 会炸（bats 写脚本常见坑）
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_DIR"
@@ -29,17 +36,12 @@ cd "$PROJECT_DIR"
 DIST_DIR="$PROJECT_DIR/dist"
 APPCAST_PATH="$PROJECT_DIR/appcast.xml"
 SPARKLE_BIN_PATH="${SPARKLE_BIN_PATH:-$PROJECT_DIR/build/sparkle}"
-SPARKLE_PRIVATE_KEY_FILE="${SPARKLE_PRIVATE_KEY_FILE:-$PROJECT_DIR/build/sparkle-private.key}"
+SPARKLE_PRIVATE_KEY_FILE="${SPARKLE_PRIVATE_KEY_FILE:-}"
 
 # --- 前置校验 ---
 if [ ! -x "$SPARKLE_BIN_PATH/bin/sign_update" ]; then
   echo "[generate_appcast][FAIL] 找不到 sign_update: $SPARKLE_BIN_PATH/bin/sign_update" >&2
   echo "                              请先 ./scripts/fetch_sparkle.sh" >&2
-  exit 1
-fi
-if [ ! -f "$SPARKLE_PRIVATE_KEY_FILE" ]; then
-  echo "[generate_appcast][FAIL] 找不到私钥: $SPARKLE_PRIVATE_KEY_FILE" >&2
-  echo "                              请设置 SPARKLE_PRIVATE_KEY_FILE 环境变量或放到默认路径" >&2
   exit 1
 fi
 
@@ -52,6 +54,22 @@ if [ ${#DMGS[@]} -eq 0 ]; then
   exit 1
 fi
 echo "[generate_appcast] 扫描到 ${#DMGS[@]} 个 dmg"
+
+# --- 准备 sign_update 参数 ---
+# 用函数封装，避免 set -u 下空数组展开报错
+sign_dmg() {
+  local dmg="$1"
+  if [ -n "$SPARKLE_PRIVATE_KEY_FILE" ] && [ -f "$SPARKLE_PRIVATE_KEY_FILE" ]; then
+    "$SPARKLE_BIN_PATH/bin/sign_update" --ed-key-file "$SPARKLE_PRIVATE_KEY_FILE" "$dmg"
+  else
+    "$SPARKLE_BIN_PATH/bin/sign_update" "$dmg"
+  fi
+}
+if [ -n "$SPARKLE_PRIVATE_KEY_FILE" ] && [ -f "$SPARKLE_PRIVATE_KEY_FILE" ]; then
+  echo "[generate_appcast] 使用私钥文件: $SPARKLE_PRIVATE_KEY_FILE"
+else
+  echo "[generate_appcast] 使用 macOS Keychain 中的 ed25519 私钥"
+fi
 
 # --- 生成每个 DMG 的 <item> 片段 ---
 ITEMS_XML=""
@@ -91,12 +109,8 @@ for dmg in "${DMGS[@]}"; do
   # Sparkle 2.x 的 sign_update 不支持 --format 选项；固定输出：
   #   sparkle:edSignature="<base64>" length="<bytes>"
   # 用 sed 精确提取 edSignature 引号内的内容。
-  SIGN_OUT=$("$SPARKLE_BIN_PATH/bin/sign_update" \
-    --ed-key-file "$SPARKLE_PRIVATE_KEY_FILE" \
-    "$dmg")
+  SIGN_OUT=$(sign_dmg "$dmg")
   ED_SIG=$(echo "$SIGN_OUT" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
-  # fail-fast：解析不出签名直接终止，绝不把残缺/整行输出当签名写进 appcast
-  # （否则错误会从 CI 推迟到用户端，Sparkle 校验失败且极难排查）
   if [ -z "$ED_SIG" ]; then
     echo "[generate_appcast][FAIL] 无法从 sign_update 输出解析 edSignature: $dmg" >&2
     echo "  原始输出: $SIGN_OUT" >&2
@@ -109,11 +123,11 @@ for dmg in "${DMGS[@]}"; do
   ITEM=$(cat <<EOF
     <item>
       <title>v$SHORT</title>
-      <link>https://github.com/wxmpro/KaJi-macOS/releases/tag/v$SHORT</link>
-      <description><![CDATA[<h3>v$SHORT</h3><p>见 GitHub Release 说明：<a href="https://github.com/wxmpro/KaJi-macOS/releases/tag/v$SHORT">v$SHORT</a>。</p>]]></description>
+      <link>https://github.com/wxmpro/KaJi/releases/tag/v$SHORT</link>
+      <description><![CDATA[<h3>v$SHORT</h3><p>见 GitHub Release 说明：<a href="https://github.com/wxmpro/KaJi/releases/tag/v$SHORT">v$SHORT</a>。</p>]]></description>
       <pubDate>$PUB_DATE</pubDate>
       <enclosure
-        url="https://github.com/wxmpro/KaJi-macOS/releases/download/v$SHORT/$fname"
+        url="https://github.com/wxmpro/KaJi/releases/download/v$SHORT/$fname"
         sparkle:version="$BUILD"
         sparkle:shortVersionString="$SHORT"
         length="$SIZE"
@@ -135,7 +149,7 @@ cat > "$APPCAST_PATH" <<EOF
      xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>KaJi Changelog</title>
-    <link>https://github.com/wxmpro/KaJi-macOS/releases</link>
+    <link>https://github.com/wxmpro/KaJi/releases</link>
     <description>卡迹 KaJi macOS 更新源</description>
     <language>zh-CN</language>
 $ITEMS_XML  </channel>

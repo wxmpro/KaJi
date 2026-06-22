@@ -2,171 +2,122 @@
 //  UpdaterService.swift
 //  KaJi
 //
-//  轻量在线更新检查（v1.10.2 起改为「检查 + 引导下载」模式）。
+//  Sparkle 2.x 在线更新包装（v1.10.0 引入）。
 //
-//  设计背景：
-//  - 当前分发为 ad-hoc 签名（无 Apple Developer ID），Sparkle 的全自动「下载即安装」
-//    会因代码签名一致性校验失败而无法落地。
-//  - 因此这里改为自实现的轻量检查：拉取公开仓库的 appcast.xml → 比较 build 号 →
-//    发现新版本时弹窗引导用户前往 GitHub 下载页手动安装（拖入「应用程序」覆盖）。
-//  - 仓库（wxmpro/KaJi）公开，appcast 与 dmg 均可匿名下载。
-//
-//  保留项（未来铺垫，非死代码）：
-//  - Info.plist 的 SUFeedURL / SUPublicEDKey 与 CI 的 EdDSA 签名流程保留。
-//    一旦接入 Apple Developer ID 签名 + 公证，可无缝切回 Sparkle 全自动安装。
-//
-//  @MainActor @Observable 单例：SwiftUI 的 Toggle / Text 自动响应；UserDefaults 沿用 "KaJi." 前缀。
+//  设计原则：
+//  1. @MainActor @Observable 单例 — SPUStandardUpdaterController 必须主线程构造
+//     （Swift 6 严格隔离）；@Observable 让 SwiftUI Toggle / Text 自动响应
+//  2. Info.plist 已带 SUFeedURL / SUEnableAutomaticChecks / SUAllowsAutomaticUpdates / SUPublicEDKey
+//     （由 project.yml → xcodegen 注入），这里只覆盖「用户偏好」（自动检查开关）和「手动触发入口」
+//  3. UserDefaults keys 沿用 SettingsService 的 "KaJi." 前缀
+//  4. SUPublicEDKey 在 CI 端由 GitHub Secret SPARKLE_PUBLIC_KEY 灌入；本地 build 用占位符也能跑
+//     （仅 Sparkle 校验会失败，不影响 UI 与手动检查触发）
 //
 
 import Foundation
 import AppKit
+import Sparkle
 
+/// Sparkle 2.x 包装：@MainActor @Observable 单例 + SwiftUI 视图层绑定。
+/// 持有 SPUStandardUpdaterController（其内部 Updater 自动开启后台轮询）。
 @MainActor
 @Observable
 final class UpdaterService {
     static let shared = UpdaterService()
 
-    // MARK: - 常量
+    // MARK: - UserDefaults Keys（沿用 KaJi. 前缀）
 
-    /// 更新源：公开仓库的 appcast.xml（与 Info.plist 的 SUFeedURL 一致）
-    private static let appcastURL = URL(string: "https://raw.githubusercontent.com/wxmpro/KaJi/main/appcast.xml")!
-    /// 下载页：最新 release（用户手动下载安装）
-    static let downloadPageURL = URL(string: "https://github.com/wxmpro/KaJi/releases/latest")!
+    private static let autoCheckKey = "KaJi.updater.autoCheck"
+    private static let autoDownloadKey = "KaJi.updater.autoDownload"
+    private static let lastCheckKey = "KaJi.updater.lastCheck"
 
-    // MARK: - UserDefaults Keys（沿用旧 key，避免用户已有偏好丢失）
-
-    private enum Keys {
-        static let autoCheck = "KaJi.updater.autoCheck"
-        static let autoOpen = "KaJi.updater.autoDownload"
-        static let lastCheck = "KaJi.updater.lastCheck"
-    }
-
-    // MARK: - 可观察属性（绑定到「关于」页两个开关）
-
-    /// 自动检查更新：启动时后台检查一次
-    var automaticallyChecksForUpdates: Bool {
-        didSet { UserDefaults.standard.set(automaticallyChecksForUpdates, forKey: Keys.autoCheck) }
-    }
-
-    /// 发现新版本时是否自动打开下载页（关闭则仅弹提示，由用户点击「前往下载」）
-    var automaticallyDownloadsUpdates: Bool {
-        didSet { UserDefaults.standard.set(automaticallyDownloadsUpdates, forKey: Keys.autoOpen) }
-    }
-
-    /// 上次检查时间（「关于」页只读显示）
-    private(set) var lastUpdateCheckDate: Date?
+    // MARK: - 底层控制器（@ObservationIgnored：不让 SwiftUI 追踪 Sparkle 内部状态）
 
     @ObservationIgnored
-    private var isChecking = false
+    private let controller: SPUStandardUpdaterController
+
+    // MARK: - 可观察属性（暴露给 SwiftUI）
+
+    /// 自动检查更新（启动 + 间隔检查）
+    var automaticallyChecksForUpdates: Bool {
+        didSet {
+            controller.updater.automaticallyChecksForUpdates = automaticallyChecksForUpdates
+            UserDefaults.standard.set(automaticallyChecksForUpdates, forKey: Self.autoCheckKey)
+        }
+    }
+
+    /// 自动下载更新（后台静默下 dmg）
+    var automaticallyDownloadsUpdates: Bool {
+        didSet {
+            controller.updater.automaticallyDownloadsUpdates = automaticallyDownloadsUpdates
+            UserDefaults.standard.set(automaticallyDownloadsUpdates, forKey: Self.autoDownloadKey)
+        }
+    }
+
+    /// 上次成功拉取 appcast.xml 的时间（只读 UI 显示）
+    private(set) var lastUpdateCheckDate: Date?
 
     // MARK: - Init
 
     private init() {
-        let d = UserDefaults.standard
-        if d.object(forKey: Keys.autoCheck) == nil { d.set(true, forKey: Keys.autoCheck) }
-        if d.object(forKey: Keys.autoOpen) == nil { d.set(false, forKey: Keys.autoOpen) }
-        automaticallyChecksForUpdates = d.bool(forKey: Keys.autoCheck)
-        automaticallyDownloadsUpdates = d.bool(forKey: Keys.autoOpen)
-        lastUpdateCheckDate = d.object(forKey: Keys.lastCheck) as? Date
+        // startingUpdater: true 让 Sparkle 在 init 后立即开始后台轮询
+        // updaterDelegate / userDriverDelegate 留 nil（用默认 UI 弹窗 + 默认 delegate）
+        self.controller = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+
+        // 首次写入默认偏好（true）
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: Self.autoCheckKey) == nil {
+            defaults.set(true, forKey: Self.autoCheckKey)
+        }
+        if defaults.object(forKey: Self.autoDownloadKey) == nil {
+            defaults.set(true, forKey: Self.autoDownloadKey)
+        }
+
+        // 同步偏好给底层 Sparkle updater
+        let autoCheck = defaults.bool(forKey: Self.autoCheckKey)
+        let autoDownload = defaults.bool(forKey: Self.autoDownloadKey)
+        controller.updater.automaticallyChecksForUpdates = autoCheck
+        controller.updater.automaticallyDownloadsUpdates = autoDownload
+
+        self.automaticallyChecksForUpdates = autoCheck
+        self.automaticallyDownloadsUpdates = autoDownload
+        self.lastUpdateCheckDate = defaults.object(forKey: Self.lastCheckKey) as? Date
     }
 
     // MARK: - 启动钩子
 
-    /// applicationDidFinishLaunching 调用：开启自动检查时后台静默检查一次
+    /// applicationDidFinishLaunching 调用；订阅 appcast 拉取完成通知，记录 lastUpdateCheckDate
     func start() {
-        guard automaticallyChecksForUpdates else { return }
-        Task { await performCheck(userInitiated: false) }
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name.SUUpdaterDidFinishLoadingAppCast,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let now = Date()
+                self.lastUpdateCheckDate = now
+                UserDefaults.standard.set(now, forKey: Self.lastCheckKey)
+            }
+        }
     }
 
     // MARK: - 公共 API
 
-    /// 手动「检查更新…」按钮触发
+    /// 手动触发"检查更新"（SettingsView 的"检查更新…"按钮 → Sparkle 弹窗）
     func checkForUpdates() {
-        Task { await performCheck(userInitiated: true) }
+        controller.checkForUpdates(nil)
     }
 
-    /// 当前版本号字符串（"1.10.2 (53)"）
+    /// 当前版本号字符串（"1.10.0 (51)"）— 给 About tab 显示
     var currentVersionString: String {
-        let b = Bundle.main
-        let short = b.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
-        let build = b.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        let app = Bundle.main
+        let short = app.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build = app.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
         return "\(short) (\(build))"
-    }
-
-    private var currentBuild: Int {
-        Int(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "") ?? 0
-    }
-
-    // MARK: - 检查实现
-
-    private func performCheck(userInitiated: Bool) async {
-        guard !isChecking else { return }
-        isChecking = true
-        defer { isChecking = false }
-
-        do {
-            var req = URLRequest(url: Self.appcastURL)
-            req.cachePolicy = .reloadIgnoringLocalCacheData
-            req.timeoutInterval = 15
-            let (data, _) = try await URLSession.shared.data(for: req)
-
-            lastUpdateCheckDate = Date()
-            UserDefaults.standard.set(lastUpdateCheckDate, forKey: Keys.lastCheck)
-
-            guard let latest = Self.parseLatest(from: data) else {
-                if userInitiated { presentAlert(title: "无法检查更新", text: "更新源解析失败，请稍后再试。") }
-                return
-            }
-
-            if latest.build > currentBuild {
-                if automaticallyDownloadsUpdates {
-                    NSWorkspace.shared.open(Self.downloadPageURL)
-                } else {
-                    presentUpdateAvailable(shortVersion: latest.short)
-                }
-            } else if userInitiated {
-                presentAlert(title: "已是最新版本", text: "你当前使用的 \(currentVersionString) 已是最新版本。")
-            }
-        } catch {
-            if userInitiated { presentAlert(title: "检查更新失败", text: error.localizedDescription) }
-        }
-    }
-
-    /// 解析 appcast.xml，返回 build 号最大的版本 (build, shortVersion)
-    nonisolated private static func parseLatest(from data: Data) -> (build: Int, short: String)? {
-        guard let xml = String(data: data, encoding: .utf8) else { return nil }
-        // enclosure 中 sparkle:version="N" 在 sparkle:shortVersionString="X" 之前，二者可能跨行
-        let pattern = #"sparkle:version="(\d+)"[^>]*?sparkle:shortVersionString="([^"]+)""#
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) else { return nil }
-        let ns = xml as NSString
-        var best: (build: Int, short: String)?
-        regex.enumerateMatches(in: xml, range: NSRange(location: 0, length: ns.length)) { match, _, _ in
-            guard let match, match.numberOfRanges >= 3 else { return }
-            let build = Int(ns.substring(with: match.range(at: 1))) ?? 0
-            let short = ns.substring(with: match.range(at: 2))
-            if best == nil || build > best!.build { best = (build, short) }
-        }
-        return best
-    }
-
-    // MARK: - 弹窗
-
-    private func presentUpdateAvailable(shortVersion: String) {
-        let alert = NSAlert()
-        alert.messageText = "发现新版本 v\(shortVersion)"
-        alert.informativeText = "当前版本 \(currentVersionString)。点击「前往下载」获取最新版本，下载后拖入「应用程序」覆盖即可。"
-        alert.addButton(withTitle: "前往下载")
-        alert.addButton(withTitle: "稍后")
-        if alert.runModal() == .alertFirstButtonReturn {
-            NSWorkspace.shared.open(Self.downloadPageURL)
-        }
-    }
-
-    private func presentAlert(title: String, text: String) {
-        let alert = NSAlert()
-        alert.messageText = title
-        alert.informativeText = text
-        alert.addButton(withTitle: "好")
-        alert.runModal()
     }
 }

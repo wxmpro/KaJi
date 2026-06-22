@@ -13,8 +13,8 @@ settings:
     MACOSX_DEPLOYMENT_TARGET: "26.0"
     PRODUCT_NAME: KaJi
     PRODUCT_BUNDLE_IDENTIFIER: com.kaji.app.KaJi
-    MARKETING_VERSION: "1.11.0"
-    CURRENT_PROJECT_VERSION: "52"
+    MARKETING_VERSION: "1.11.1"
+    CURRENT_PROJECT_VERSION: "53"
     GENERATE_INFOPLIST_FILE: NO
     ENABLE_HARDENED_RUNTIME: YES
     CODE_SIGN_STYLE: Automatic
@@ -57,10 +57,8 @@ targets:
         NSPrincipalClass: NSApplication
         LSApplicationCategoryType: public.app-category.productivity
         NSHighResolutionCapable: true
-        # === 更新源（v1.11.0 起切到公开仓库 wxmpro/KaJi）===
-        # 当前分发走自实现的「拉 appcast → 弹窗 → 打开下载页」流程（UpdaterService.swift）。
-        # Info.plist 保留 SUFeedURL / SUPublicEDKey：一旦将来接入 Apple Developer ID 签名 + 公证，
-        # 可无缝切回 Sparkle 全自动安装，无需再改 Info.plist。
+        # === Sparkle 2.x 在线更新 ===
+        # ad-hoc 签名 + 递归签 framework + 一致签名身份 — Sparkle 自动安装成立
         # SUFeedURL：appcast.xml 部署位置（仓库根 /appcast.xml，不走 docs/ 因为 docs/ 在 .gitignore）
         # SUPublicEDKey：Ed25519 公钥 base64（44 字符），公钥公开可直接入库
         SUFeedURL: "https://raw.githubusercontent.com/wxmpro/KaJi/main/appcast.xml"
