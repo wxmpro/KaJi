@@ -66,6 +66,9 @@ jobs:
           sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
 
+      - name: Install xcodegen
+        run: brew install xcodegen
+
       - name: Cache DerivedData
         uses: actions/cache@v4
         with:
